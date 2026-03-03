@@ -1,0 +1,97 @@
+package io.dm.model.entity.player;
+
+import io.dm.api.utils.NumberUtils;
+import io.dm.cache.Color;
+import io.dm.cache.Icon;
+import io.dm.model.combat.Hit;
+import io.dm.model.combat.HitType;
+import io.dm.model.inter.InterfaceHandler;
+import io.dm.model.inter.InterfaceType;
+import io.dm.model.inter.actions.SimpleAction;
+import io.dm.model.inter.utils.Config;
+import io.dm.utility.Broadcast;
+
+public enum GameMode {
+    STANDARD(-1),
+    IRONMAN(20),
+    ULTIMATE_IRONMAN(21),
+    HARDCORE_IRONMAN(22);
+
+    public final int groupId;
+
+    GameMode(int groupId) {
+        this.groupId = groupId;
+    }
+
+    /**
+     * NOTE: this returns true if this game mode is ANY of the 3 iron man modes, not only the regular ironman mode!
+     */
+    public boolean isIronMan() {
+        return this != STANDARD;
+    }
+
+    public boolean isUltimateIronman() {
+        return this == ULTIMATE_IRONMAN;
+    }
+
+    public boolean isHardcoreIronman() {
+        return this == HARDCORE_IRONMAN;
+    }
+
+
+    public static void hardcoreDeath(Player player, Hit killHit) {
+        Config.IRONMAN_MODE.set(player, 1);
+        player.sendMessage(Color.RED.wrap("You have fallen as a Hardcore Ironman, your Hardcore status has been revoked."));
+        if (player.getStats().totalLevel >= 100) {
+            String overall = NumberUtils.formatNumber(player.getStats().totalLevel);
+            if (killHit == null) {
+                Broadcast.GLOBAL.sendPlain(Color.RED.wrap(Icon.HCIM_DEATH.tag() + player.getName() + " has died as a Hardcore Ironman with a total level of " + overall + "!"));
+            } else if (killHit.attacker != null) {
+                if (killHit.attacker instanceof Player) {
+                        Broadcast.GLOBAL.sendPlain(Color.RED.wrap(Icon.HCIM_DEATH.tag() + player.getName() + " has died as a Hardcore Ironman with a total level of " + overall + ", losing a fight to " + killHit.attacker.player.getName() +"!"));
+                } else {
+                    Broadcast.GLOBAL.sendPlain(Color.RED.wrap(Icon.HCIM_DEATH.tag() + player.getName() + " has died as a Hardcore Ironman with a total level of " + overall + ", brutally executed by " + killHit.attacker.npc.getDef().descriptiveName +"!"));
+                }
+            } else {
+                if (killHit.type == HitType.POISON) {
+                    Broadcast.GLOBAL.sendPlain(Color.RED.wrap(Icon.HCIM_DEATH.tag() + player.getName() + " has been poisoned to death as a Hardcore Ironman with a total level of " + overall + "!"));
+                } else if (killHit.type == HitType.VENOM) {
+                    Broadcast.GLOBAL.sendPlain(Color.RED.wrap(Icon.HCIM_DEATH.tag() + player.getName() + " has succumbed to venom as a Hardcore Ironman with a total level of " + overall + "!"));
+                } else { // not sure if this can happen? can't think of anything
+                    Broadcast.GLOBAL.sendPlain(Color.RED.wrap(Icon.HCIM_DEATH.tag() + player.getName() + " has died as a Hardcore Ironman with a total level of " + overall + "!"));
+                }
+            }
+        }
+    }
+
+    public static void hardcoreDeathByNPC(Player player, String npcName) {
+        Config.IRONMAN_MODE.set(player, 1);
+        player.sendMessage(Color.RED.wrap("You have fallen as a Hardcore Ironman, your Hardcore status has been revoked."));
+        if (player.getStats().totalLevel >= 1) { // hmm
+            String overall = NumberUtils.formatNumber(player.getStats().totalLevel);
+                Broadcast.GLOBAL.sendPlain(Color.RED.wrap(Icon.HCIM_DEATH.tag() + player.getName() + " has died as a Hardcore Ironman with a total level of " + overall + ", brutally executed by " + npcName + "!"));
+        }
+    }
+
+    public static void openSelection(Player player) {
+        player.openInterface(InterfaceType.MAIN, 215);
+        player.getPacketSender().setHidden(215, 16, true);
+        player.getPacketSender().setHidden(215, 17, true);
+    }
+
+    static {
+        InterfaceHandler.register(215, h -> {
+            h.actions[10] = (SimpleAction) p -> Config.IRONMAN_MODE.set(p, 0);
+            h.actions[11] = (SimpleAction) p -> {
+                Config.IRONMAN_MODE.set(p, 1);
+            };
+            h.actions[12] = (SimpleAction) p -> {
+                Config.IRONMAN_MODE.set(p, 3);
+            };
+            h.actions[13] = (SimpleAction) p -> {
+                Config.IRONMAN_MODE.set(p, 2);
+            };
+
+        });
+    }
+}

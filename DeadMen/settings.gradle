@@ -1,0 +1,6 @@
+rootProject.name = "DeadMen"
+
+include ':DMS'
+include ':kronos-api'
+include ':DMFS'
+

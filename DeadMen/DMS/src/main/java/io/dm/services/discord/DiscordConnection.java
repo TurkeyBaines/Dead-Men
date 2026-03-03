@@ -1,0 +1,59 @@
+package io.dm.services.discord;
+
+import io.dm.api.utils.ServerWrapper;
+import io.dm.model.World;
+import io.dm.process.task.TaskWorker;
+import io.dm.services.discord.impl.AdminCommands;
+import io.dm.services.discord.impl.PrivateMessageReceived;
+import io.dm.services.discord.impl.UserCommands;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import javax.security.auth.login.LoginException;
+
+public class DiscordConnection {
+
+	private static JDA jda;
+	private static DiscordConnection instance = new DiscordConnection();
+	private static long myId;
+
+	public static final long CHANNEL_PUNISHMENTS = 0;
+
+	public static void setup(String token) throws LoginException {
+		jda = JDABuilder.createDefault("token")
+				.addEventListeners(new UserCommands())
+				.addEventListeners(new AdminCommands())
+				.addEventListeners(new PrivateMessageReceived())
+				.build();
+
+		TaskWorker.startTask(t -> {
+			while (true) {
+				t.sleep(60000L);
+				jda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.watching(World.players.count() + " players!"));
+			}
+		});
+	}
+
+
+	public static void post(long channel, String title, String text) {
+		if (!World.isLive()) {
+			return;
+		}
+		MessageEmbed built = new EmbedBuilder().setTitle(title).setDescription(text).build();
+		post(channel, built);
+	}
+
+	public static void post(long channel, MessageEmbed built) {
+		if (!World.isLive()) {
+			return;
+		}
+		try {
+			jda.getTextChannelById(channel).sendMessageEmbeds(built).queue();
+		} catch (Exception e) {
+			ServerWrapper.logError("Failed to send discord message in : " + channel, e);
+		}
+	}
+}
