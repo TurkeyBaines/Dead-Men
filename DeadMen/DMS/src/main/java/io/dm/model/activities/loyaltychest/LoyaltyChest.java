@@ -101,7 +101,6 @@ public class LoyaltyChest {
     private static void openChest(Player player) {
         player.openInterface(InterfaceType.MAIN, Interface.LOYALTY_CHEST);
         Item[] rewards = ECO_REWARDS;
-        player.getPacketSender().sendLoyaltyRewards(player.loyaltyChestReward, player.loyaltyChestSpree, player.highestLoyaltyChestSpree,1, rewards);
     }
 
     private static void claimReward(Player player, int requestedDayReward) {

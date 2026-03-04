@@ -1,6 +1,5 @@
 package io.dm.model.inter.handlers;
 
-import io.dm.model.activities.duelarena.DuelArena;
 import io.dm.model.entity.Entity;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.Interface;
@@ -40,13 +39,13 @@ public class TabMagic {
         return new InterfaceAction() {
             @Override
             public void handleClick(Player player, int option, int slot, int itemId) {
-                if(spell.clickAction == null || !book.isActive(player) && !DuelArena.allowMagic(player))
+                if(spell.clickAction == null || !book.isActive(player))
                     return;
                 spell.clickAction.accept(player, option - 1);
             }
             @Override
             public void handleOnInterface(Player player, int fromSlot, int fromItemId, int toInterfaceId, int toChildId, int toSlot, int toItemId) {
-                if(spell.itemAction == null || !book.isActive(player) && !DuelArena.allowMagic(player))
+                if(spell.itemAction == null || !book.isActive(player))
                     return;
                 Item item = player.getInventory().get(toSlot, toItemId);
                 if(item == null)
@@ -55,13 +54,13 @@ public class TabMagic {
             }
             @Override
             public void handleOnEntity(Player player, Entity entity, int slot, int itemId) {
-                if(spell.entityAction == null || !book.isActive(player) && !DuelArena.allowMagic(player))
+                if(spell.entityAction == null || !book.isActive(player))
                     return;
                 spell.entityAction.accept(player, entity);
             }
             @Override
             public void handleOnObject(Player player, int slot, int itemId, GameObject obj) {
-                if(spell.objectAction == null || !book.isActive(player) && !DuelArena.allowMagic(player))
+                if(spell.objectAction == null || !book.isActive(player))
                     return;
                 spell.objectAction.accept(player, obj);
             }

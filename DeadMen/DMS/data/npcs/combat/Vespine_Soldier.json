@@ -1,7 +1,7 @@
 [
   { #Vespine soldier (raids) (flying)
     "ids": [ 7538, 7539 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.VespineSoldier",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.VespineSoldier",
     //Combat Info
     "hitpoints": 120,
     "aggressive_level": 126,
@@ -44,7 +44,7 @@
   },
     { #Vespine Soldier (raids) (grounded)
     "ids": [ 7539 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.VespineSoldier",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.VespineSoldier",
     //Combat Info
     "hitpoints": 700,
     "aggressive_level": 126,

@@ -1,6 +1,8 @@
 package io.dm.model.entity.player;
 
 import com.google.gson.annotations.Expose;
+import io.dm.deadman.Deadman;
+import io.dm.deadman.areas.Miscellania.OverworldTools;
 import io.netty.channel.Channel;
 import io.dm.Server;
 import io.dm.api.protocol.login.LoginInfo;
@@ -11,10 +13,7 @@ import io.dm.cache.InterfaceDef;
 import io.dm.cache.Varp;
 import io.dm.event.GameEventProcessor;
 import io.dm.model.World;
-import io.dm.model.activities.duelarena.Duel;
-import io.dm.model.activities.duelarena.DuelArena;
 import io.dm.model.activities.wilderness.BountyHunter;
-import io.dm.model.content.UpgradeMachine;
 import io.dm.model.content.upgrade.ItemEffect;
 import io.dm.model.entity.Entity;
 import io.dm.model.entity.npc.NPC;
@@ -27,17 +26,13 @@ import io.dm.model.inter.InterfaceHandler;
 import io.dm.model.inter.InterfaceType;
 import io.dm.model.inter.dialogue.*;
 import io.dm.model.inter.dialogue.skill.SkillDialogue;
-import io.dm.model.inter.handlers.TeleportInterface;
-import io.dm.model.inter.journal.presets.PresetCustom;
 import io.dm.model.inter.utils.Config;
 import io.dm.model.item.Item;
 import io.dm.model.item.ItemContainer;
-import io.dm.model.item.actions.impl.boxes.mystery.SuperMysteryBox;
 import io.dm.model.item.actions.impl.chargable.SerpentineHelm;
 import io.dm.model.item.actions.impl.storage.DeathStorage;
 import io.dm.model.item.actions.impl.storage.LootingBag;
 import io.dm.model.item.actions.impl.storage.RunePouch;
-import io.dm.model.item.actions.impl.tradepost.TradePost;
 import io.dm.model.item.attributes.AttributeExtensions;
 import io.dm.model.item.containers.Equipment;
 import io.dm.model.item.containers.Inventory;
@@ -46,7 +41,6 @@ import io.dm.model.item.containers.bank.Bank;
 import io.dm.model.item.containers.bank.BankPin;
 import io.dm.model.map.*;
 import io.dm.model.map.ground.GroundItem;
-import io.dm.model.map.object.actions.impl.edgeville.Christmas;
 import io.dm.model.map.route.routes.TargetRoute;
 import io.dm.model.shop.Shop;
 import io.dm.model.skills.construction.House;
@@ -545,8 +539,6 @@ public class Player extends PlayerAttributes {
         }
         if(trade != null)
             trade.close();
-        if(duel != null)
-            duel.close();
         closeChatbox(skipDialogues);
     }
 
@@ -696,11 +688,11 @@ public class Player extends PlayerAttributes {
     public void setAction(int option, PlayerAction action) {
         if(action == null) {
             PlayerAction previousAction = actions[option - 1];
-            if(previousAction == null)
+            if (previousAction == null)
                 return;
             actions[option - 1] = null;
             packetSender.sendPlayerAction("null", false, option);
-        } else {
+        } else if (actions[option-1] != action) {
             actions[option - 1] = action;
             packetSender.sendPlayerAction(action.name, action.top, option);
         }
@@ -851,8 +843,6 @@ public class Player extends PlayerAttributes {
 
     private Trade trade;
 
-    private Duel duel;
-
     @Expose private Bank bank;
 
     @Expose private BankPin bankPin;
@@ -866,8 +856,6 @@ public class Player extends PlayerAttributes {
     }
 
     @Expose private RunePouch tournamentRunePouch;
-
-    private SuperMysteryBox box;
 
     @Expose private DeathStorage deathStorage;
 
@@ -887,10 +875,6 @@ public class Player extends PlayerAttributes {
         return trade;
     }
 
-    public Duel getDuel() {
-        return duel;
-    }
-
     public Bank getBank() {
         return bank;
     }
@@ -906,8 +890,6 @@ public class Player extends PlayerAttributes {
     public RunePouch getRunePouch() {
         return runePouch;
     }
-
-    public SuperMysteryBox getBox() { return box; }
 
     public DeathStorage getDeathStorage() {
         return deathStorage;
@@ -962,14 +944,6 @@ public class Player extends PlayerAttributes {
         return bountyHunter;
     }
 
-    /**
-     * Trade post
-     */
-    @Expose private TradePost tradePost;
-
-    public TradePost getTradePost() {
-        return tradePost;
-    }
 
     /**
      * Hitpoints
@@ -1156,8 +1130,6 @@ public class Player extends PlayerAttributes {
 
         trade = new Trade(this);
 
-        duel = new Duel(this);
-
         if(bank == null)
             bank = new Bank();
         bank.init(this, 800, -1, 64207, 95, true);
@@ -1173,10 +1145,6 @@ public class Player extends PlayerAttributes {
         if(tournamentRunePouch == null)
             tournamentRunePouch = new RunePouch();
         tournamentRunePouch.init(this, 3, -1, -1, -1, false);
-
-        if(box == null)
-            box = new SuperMysteryBox();
-        box.init(this, 24, -1, -1, 510, false);
 
         if(deathStorage == null)
             deathStorage = new DeathStorage();
@@ -1215,23 +1183,98 @@ public class Player extends PlayerAttributes {
             bountyHunter = new BountyHunter();
         bountyHunter.init(this);
 
-        if (tradePost == null) {
-            tradePost = new TradePost();
-        }
-        tradePost.init(player);
-
-        if (teleports == null) {
-            teleports = new TeleportInterface();
-        }
-        teleports.setPlayer(this);
-
-        if (upgradeMachine == null) {
-            upgradeMachine = new UpgradeMachine();
-        }
-        upgradeMachine.setPlayer(this);
-
         checkMulti();
         Tile.occupy(this);
+
+        if (skillHolder == null) {
+            skillHolder = new int[][] {
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {10, 1154},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0},
+                    {1, 0}
+            };
+        }
+
+        if (prestigeLevel == null) {
+            prestigeLevel = new int[] {
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0
+            };
+        }
+
+        if (equipmentHolder == null) {
+            equipmentHolder = new Item[]{
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+            };
+        }
+
+        if (inventoryHolder == null) {
+            inventoryHolder = new ItemContainer();
+            inventoryHolder.init(4, false);
+            inventoryHolder.add(IRON_AXE, 1);
+            inventoryHolder.add(IRON_PICKAXE, 1);
+            inventoryHolder.add(KNIFE, 1);
+            inventoryHolder.add(HAMMER, 1);
+        }
+
+        if (unlockedSigils == null) {
+            unlockedSigils = new boolean[40];
+            for (int i = 0; i < 40; i++) unlockedSigils[i] = false;
+
+            activeSigils = new int[3];
+            for (int i = 0; i < 3; i++) activeSigils[i] = -1;
+
+            toggleSigils = new boolean[4][2];
+            for (int i = 0; i < 4; i++) toggleSigils[i] = new boolean[]{false, false};
+
+            activeCooldowns = new long[3];
+            for (int i = 0; i < 3; i++) activeCooldowns[i] = -1;
+
+            toggleCooldowns = new long[4];
+            for (int i = 0; i < 4; i++) toggleCooldowns[i] = -1;
+            dmmNeedsReset = false;
+        }
+
+        if (overworldToolTier == null) {
+            overworldToolTier = new OverworldTools.Tier[] {
+                    OverworldTools.Tier.Bronze,
+                    OverworldTools.Tier.Bronze,
+                    OverworldTools.Tier.Bronze
+            };
+        }
     }
 
     /**
@@ -1247,7 +1290,6 @@ public class Player extends PlayerAttributes {
         /*
          * Misc
          */
-        PresetCustom.check(this);
         bankPin.loggedIn();
         /*
          * Actions
@@ -1260,7 +1302,6 @@ public class Player extends PlayerAttributes {
          */
         sendMessage("Welcome to " + World.type.getWorldName() + "." + (" The Final Challenge!"));
 
-        packetSender.sendDiscordPresence("Idle");
         if(World.weekendExpBoost)
             player.sendMessage(Color.COOL_BLUE.wrap("The 25% experience weekend boost is currently active!"));
 
@@ -1422,13 +1463,11 @@ public class Player extends PlayerAttributes {
         if(logoutListener != null && logoutListener.attemptAction != null && !logoutListener.attemptAction.allow(this))
             return;
         logoutStage = 1;
-        packetSender.sendDiscordPresence("In Lobby");
         packetSender.sendLogout();
     }
 
     public void forceLogout() {
         logoutStage = -1;
-        packetSender.sendDiscordPresence("In Lobby");
         packetSender.sendLogout();
     }
 
@@ -1525,7 +1564,6 @@ public class Player extends PlayerAttributes {
         lootingBag.sendUpdates();
         runePouch.sendUpdates();
         tournamentRunePouch.sendUpdates();
-        box.sendUpdates();
 
         combat.preAttack();
         TargetRoute.beforeMovement(this);
@@ -1634,13 +1672,6 @@ public class Player extends PlayerAttributes {
         for (Item item : equipment.getItems()) {
             if (item != null && item.getDef() != null)
                 item.getDef().onTick(this, item);
-        }
-
-        if(player.wildernessLevel <= 0 && !player.pvpAttackZone && player.snowballPeltOption &&
-                !player.getEquipment().hasId(Christmas.SNOWBALL) && !player.getPosition().inBounds(DuelArena.BOUNDS)
-                && !player.getPosition().inBounds(DuelArena.CUSTOM_EDGE)) {
-            player.setAction(1, null);
-            player.snowballPeltOption = false;
         }
 
     }

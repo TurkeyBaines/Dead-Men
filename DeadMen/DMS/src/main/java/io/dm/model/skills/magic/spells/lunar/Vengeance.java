@@ -1,6 +1,5 @@
 package io.dm.model.skills.magic.spells.lunar;
 
-import io.dm.model.activities.duelarena.DuelRule;
 import io.dm.model.combat.Hit;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.Widget;
@@ -18,10 +17,6 @@ public class Vengeance extends Spell {
     }
 
     public static boolean cast(Player player, Integer i) {
-        if(DuelRule.NO_MAGIC.isToggled(player)) {
-            player.sendMessage("Melee has been disabled for this duel!");
-            return false;
-        }
         if(player.vengeanceActive) {
             player.sendMessage("You already have this spell casted.");
             return false;

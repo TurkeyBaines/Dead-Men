@@ -1,7 +1,7 @@
 [
   {
   "ids": [ 7860 ],
-  "handler": "io.ruin.model.activities.wilderness.bosses.magearena.Porazdir",
+  "handler": "io.dm.model.activities.wilderness.bosses.magearena.Porazdir",
   //Combat Info
   "hitpoints": 320,
   "aggressive_level": 300,

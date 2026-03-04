@@ -1,6 +1,5 @@
 package io.dm.model.item.actions.impl;
 
-import io.dm.model.activities.duelarena.DuelRule;
 import io.dm.model.item.actions.ItemAction;
 import io.dm.model.stat.StatType;
 
@@ -8,10 +7,6 @@ public class ImbuedHeart {
 
     static {
         ItemAction.registerInventory(20724, 1, (player, item) -> {
-            if(DuelRule.NO_DRINKS.isToggled(player)) {
-                player.sendMessage("You cannot use an Imbued Heart with drinks disabled.");
-                return;
-            }
             if(player.imbueHeartCooldown.isDelayed()) {
                 int delay = player.imbueHeartCooldown.remaining();
                 if(delay >= 100) {

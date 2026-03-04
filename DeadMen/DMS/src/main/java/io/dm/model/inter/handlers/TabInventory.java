@@ -79,10 +79,6 @@ public class TabInventory {
                 player.sendMessage("You cannot drop items while in jail.");
                 return;
             }
-            if(player.getDuel().stage >= 4) {
-                player.sendMessage("You can't drop items in a duel.");
-                return;
-            }
             if(player.joinedTournament) {
                 player.sendMessage("You can't drop items while you're signed up for a tournament.");
                 return;

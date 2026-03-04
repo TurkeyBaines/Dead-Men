@@ -1,7 +1,7 @@
 [
   { #Twisted Banshee (89)
     "ids": [ 7272 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.Banshee",
+    "handler": "io.dm.model.activities.miscpvm.slayer.Banshee",
     //Combat Info
     "hitpoints": 109,
     "aggressive_level": 178,

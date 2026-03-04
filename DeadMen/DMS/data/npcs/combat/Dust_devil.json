@@ -1,7 +1,7 @@
 [
   { #Dust devil (93)
     "ids": [ 423 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.DustDevil",
+    "handler": "io.dm.model.activities.miscpvm.slayer.DustDevil",
     //Combat Info
     "hitpoints": 105,
     "aggressive_level": 186,
@@ -44,7 +44,7 @@
   },
   { #Dust devil (110)
     "ids": [ 7249 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.DustDevil",
+    "handler": "io.dm.model.activities.miscpvm.slayer.DustDevil",
     //Combat Info
     "hitpoints": 130,
     "aggressive_level": 220,

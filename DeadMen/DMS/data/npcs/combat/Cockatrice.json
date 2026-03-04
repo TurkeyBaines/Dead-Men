@@ -1,7 +1,7 @@
 [
   { #Cockatrice (37)
     "ids": [ 419, 420 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.Cockatrice",
+    "handler": "io.dm.model.activities.miscpvm.slayer.Cockatrice",
     //Combat Info
     "hitpoints": 37,
     "aggressive_level": 74,

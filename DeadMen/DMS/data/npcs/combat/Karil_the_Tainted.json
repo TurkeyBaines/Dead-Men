@@ -1,7 +1,7 @@
 [
   { #Karil the Tainted (98)
     "ids": [ 1675 ],
-    "handler": "io.ruin.model.activities.barrows.brothers.Karil",
+    "handler": "io.dm.model.activities.barrows.brothers.Karil",
     //Combat Info
     "hitpoints": 100,
     "aggressive_level": 196,

@@ -1,7 +1,7 @@
 [
   { #Mithril dragon (304)
     "ids": [ 2919 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.MithrilDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.MithrilDragon",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 608,

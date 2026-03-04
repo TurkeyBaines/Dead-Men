@@ -1,7 +1,7 @@
 [
   { #Spinner (36)
     "ids": [ 1709 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Spinner",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Spinner",
     //Combat Info
     "hitpoints": 33,
     "aggressive_level": 148,
@@ -44,7 +44,7 @@
   },
   { #Spinner (55)
     "ids": [ 1710 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Spinner",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Spinner",
     //Combat Info
     "hitpoints": 53,
     "aggressive_level": 110,
@@ -87,7 +87,7 @@
   },
   { #Spinner (74)
     "ids": [ 1711 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Spinner",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Spinner",
     //Combat Info
     "hitpoints": 73,
     "aggressive_level": 148,
@@ -130,7 +130,7 @@
   },
   { #Spinner (88)
     "ids": [ 1713 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Spinner",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Spinner",
     //Combat Info
     "hitpoints": 1,
     "aggressive_level": 176,
@@ -173,7 +173,7 @@
   },
   { #Spinner (92)
     "ids": [ 1712 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Spinner",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Spinner",
     //Combat Info
     "hitpoints": 101,
     "aggressive_level": 184,

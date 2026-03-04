@@ -16,14 +16,14 @@ public class TabJournal {
 //                h.actions[12] = (SimpleAction) Journal.BESTIARY::send;
 //                h.actions[4] = (SlotAction) (p, slot) -> p.journal.select(p, slot);
 //            });
-            InterfaceHandler.register(Interface.SERVER_TAB, h -> {
-                h.actions[48] = (SimpleAction) TabJournal::restore;
+//            InterfaceHandler.register(Interface.SERVER_TAB, h -> {
+//                h.actions[48] = (SimpleAction) TabJournal::restore;
 //                h.actions[49] = (SimpleAction) TabJournal::restore;
-                for(int i = 9; i <= 47; i++) {
-                    int finalI = i;
-                    h.actions[i] = (SimpleAction) p -> p.journal.select(p, finalI - 8);
-                }
-            });
+//                for(int i = 9; i <= 47; i++) {
+//                    int finalI = i;
+//                    h.actions[i] = (SimpleAction) p -> p.journal.select(p, finalI - 8);
+//                }
+//            });
         }
 //        InterfaceHandler.register(Interface.SERVER_TAB, h -> {
 //            for(int i = 9; i <= 47; i++) {
@@ -63,8 +63,8 @@ public class TabJournal {
     }
 
     public static void restore(Player player) {
-        swap(player, Interface.NOTICEBOARD);
-        TabQuest.send(player);
+        //swap(player, Interface.NOTICEBOARD);
+        //TabQuest.send(player);
         //player.journal.send(player);
     }
 

@@ -1,7 +1,7 @@
 [
   { #Nechryael (115)
     "ids": [ 8, 11 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.Nechryael",
+    "handler": "io.dm.model.activities.miscpvm.slayer.Nechryael",
     //Combat Info
     "hitpoints": 105,
     "aggressive_level": 0,

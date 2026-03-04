@@ -1,7 +1,7 @@
 [
   { #Black dragon (227)
     "ids": [ 252, 253, 254, 255, 256, 257, 258, 259, 7861, 7862, 7863 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.ChromaticDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.ChromaticDragon",
     //Combat Info
     "hitpoints": 190,
     "aggressive_level": 454,

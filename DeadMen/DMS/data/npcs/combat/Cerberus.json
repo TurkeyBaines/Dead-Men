@@ -1,7 +1,7 @@
 [
   { #Cerberus (318)
     "ids": [ 5862, 5863, 5866 ],
-    "handler": "io.ruin.model.activities.bosses.slayer.Cerberus",
+    "handler": "io.dm.model.activities.bosses.slayer.Cerberus",
     //Combat Info
     "hitpoints": 600,
     "aggressive_level": 636,

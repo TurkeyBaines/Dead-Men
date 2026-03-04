@@ -1,7 +1,7 @@
 [
   { #Skeletal Wyvern (140)
     "ids": [ 465, 466, 467, 468 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.SkeletalWyvern",
+    "handler": "io.dm.model.activities.miscpvm.slayer.SkeletalWyvern",
     //Combat Info
     "hitpoints": 210,
     "aggressive_level": 280,

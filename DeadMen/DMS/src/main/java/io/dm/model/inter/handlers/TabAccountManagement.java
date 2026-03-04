@@ -26,7 +26,7 @@ public class TabAccountManagement {
         /**
          * Send the interface when our player logs in
          */
-        LoginListener.register(player -> player.getPacketSender().sendAccountManagement(getDonatorRank(player), getUsername(player), player.getUnreadPMs()));
+        //LoginListener.register(player -> player.getPacketSender().sendAccountManagement(getDonatorRank(player), getUsername(player), player.getUnreadPMs()));
 
         /**
          * Interface buttons

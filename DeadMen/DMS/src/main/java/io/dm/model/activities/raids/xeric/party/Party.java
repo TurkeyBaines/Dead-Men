@@ -108,21 +108,21 @@ public class Party {
     }
 
     public static void sendRaidJournal(Player player, Party party) {
-        /* set the journal interface */
-        TabJournal.swap(player, Interface.RAIDING_JOURNAL);
-
-        player.getPacketSender().sendClientScript(1547, "i", party.getMembers().size());
-        /* party members information */
-        int index = 0;
-        if (party.getMembers().size() != 0) {
-            for (Player member : party.getMembers()) {
-                String memberInformation = "<col=" + (member == party.getLeader() ? "ffffff" : "9f9f9f") + ">" + member.getName() + "</col>" + "|" +
-                        member.getCombat().getLevel() + "|" +
-                        member.getStats().totalLevel;
-                player.getPacketSender().sendClientScript(1548, "is", index++, memberInformation);
-            }
-        }
-        player.getPacketSender().sendClientScript(1553, "i", index - 1);
+//        /* set the journal interface */
+//        TabJournal.swap(player, Interface.RAIDING_JOURNAL);
+//
+//        player.getPacketSender().sendClientScript(1547, "i", party.getMembers().size());
+//        /* party members information */
+//        int index = 0;
+//        if (party.getMembers().size() != 0) {
+//            for (Player member : party.getMembers()) {
+//                String memberInformation = "<col=" + (member == party.getLeader() ? "ffffff" : "9f9f9f") + ">" + member.getName() + "</col>" + "|" +
+//                        member.getCombat().getLevel() + "|" +
+//                        member.getStats().totalLevel;
+//                player.getPacketSender().sendClientScript(1548, "is", index++, memberInformation);
+//            }
+//        }
+//        player.getPacketSender().sendClientScript(1553, "i", index - 1);
   }
 
     public static void updatePartyStage(Player player, int stage) {

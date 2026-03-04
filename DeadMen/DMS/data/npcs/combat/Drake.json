@@ -1,7 +1,7 @@
 [
   {
     "ids": [ 8612, 8613 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.Drake",
+    "handler": "io.dm.model.activities.miscpvm.slayer.Drake",
     //Combat Info
     "hitpoints": 250,
     "aggressive_level": 0,

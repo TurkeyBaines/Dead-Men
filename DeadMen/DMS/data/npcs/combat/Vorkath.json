@@ -1,7 +1,7 @@
 [
   { #Vorkath (792)
     "ids": [ 8059, 8061 ],
-    "handler": "io.ruin.model.activities.bosses.vorkath.Vorkath",
+    "handler": "io.dm.model.activities.bosses.vorkath.Vorkath",
     //Combat Info
     "hitpoints": 750,
     "aggressive_level": 0,

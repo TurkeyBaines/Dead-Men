@@ -185,10 +185,6 @@ public class GroundItem {
             player.sendMessage("Ironmen cannot pick up items dropped by or for other players.");
             return;
         }
-        if(player.getDuel().stage >= 4) {
-            player.sendMessage("You can't pickup items in a duel.");
-            return;
-        }
         if(player.joinedTournament) {
             player.sendMessage("You can't pickup items while you're signed up for a tournament.");
             return;

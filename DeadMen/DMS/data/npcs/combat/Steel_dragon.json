@@ -1,7 +1,7 @@
 [
   { #Steel dragon (246)
     "ids": [ 274, 275 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.MetalDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.MetalDragon",
     //Combat Info
     "hitpoints": 210,
     "aggressive_level": 492,
@@ -44,7 +44,7 @@
   },
     { #Steel dragon (POH)
     "ids": [ 139 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.MetalDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.MetalDragon",
     //Combat Info
     "hitpoints": 210,
     "aggressive_level": 492,
@@ -89,7 +89,7 @@
   },
   { #Steel dragon (274)
     "ids": [ 7255 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.MetalDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.MetalDragon",
     //Combat Info
     "hitpoints": 250,
     "aggressive_level": 548,

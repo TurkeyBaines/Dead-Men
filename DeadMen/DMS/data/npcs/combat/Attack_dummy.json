@@ -1,7 +1,7 @@
 [
   { #Attack dummy
     "ids": [ 2668, 7413 ],
-    "handler": "io.ruin.model.activities.miscpvm.MaxHitDummy",
+    "handler": "io.dm.model.activities.miscpvm.MaxHitDummy",
     //Combat Info
     "hitpoints": 2000,
     "max_damage": 0,

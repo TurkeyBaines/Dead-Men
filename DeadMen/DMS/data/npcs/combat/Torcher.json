@@ -1,7 +1,7 @@
 [
   { #Torcher (33)
     "ids": [ 1714, 1715 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Torcher",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Torcher",
     //Combat Info
     "hitpoints": 18,
     "aggressive_level": 148,
@@ -44,7 +44,7 @@
   },
   { #Torcher (49)
     "ids": [ 1716, 1717 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Torcher",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Torcher",
     //Combat Info
     "hitpoints": 30,
     "aggressive_level": 148,
@@ -87,7 +87,7 @@
   },
   { #Torcher (66)
     "ids": [ 1718, 1719 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Torcher",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Torcher",
     //Combat Info
     "hitpoints": 45,
     "aggressive_level": 132,
@@ -130,7 +130,7 @@
   },
   { #Torcher (79)
     "ids": [ 1720, 1721 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Torcher",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Torcher",
     //Combat Info
     "hitpoints": 57,
     "aggressive_level": 158,
@@ -173,7 +173,7 @@
   },
   { #Torcher (92)
     "ids": [ 1723 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Torcher",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Torcher",
     //Combat Info
     "hitpoints": 71,
     "aggressive_level": 184,

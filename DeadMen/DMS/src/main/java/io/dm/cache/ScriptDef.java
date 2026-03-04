@@ -17,7 +17,7 @@ public class ScriptDef {
         for(int id = 0; id < LOADED.length; id++) {
             byte[] data = index.getFile(id, 0);
             if(data == null) {
-              //  System.err.println("CS2 " + id + " has null data!");
+                //System.err.println("CS2 " + id + " has null data!");
                 continue;
             }
             ScriptDef def = new ScriptDef();

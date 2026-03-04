@@ -1,7 +1,7 @@
 [
   { #Ice demon (raids)
     "ids": [ 7584, 7585 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.IceDemon",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.IceDemon",
     //Combat Info
     "hitpoints": 140,
     "aggressive_level": 0,

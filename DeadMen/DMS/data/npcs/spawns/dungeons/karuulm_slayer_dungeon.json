@@ -745,14 +745,5 @@
     "z": 2,
     "direction": "S",
     "walkRange": 4
-  },
-  {
-    "name": "Kaal-Ket-Jor",
-    "id": 15021,
-    "x": 1367,
-    "y": 10206,
-    "z": 1,
-    "direction": "S",
-    "walkRange": 16
   }
 ]

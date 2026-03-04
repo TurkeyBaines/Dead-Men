@@ -42,16 +42,6 @@ public class Karuulm {
         Tile.getObject(34515, 1307, 10253, 0, 10, -1).skipReachCheck = p -> true;
         ObjectAction.register(34515, 1, Karuulm::jumpGap);
 
-        ObjectAction.register(34516, "crawl through", Karuulm::crawlThroughTunnel);
-
-        ObjectAction.register(34530, 1330, 10205, 0, 1, (player, obj) -> player.getMovement().teleport(1334, 10205, 1));
-        ObjectAction.register(34531, 1330, 10205, 1, 1, (player, obj) -> player.getMovement().teleport(1329, 10205, 0));
-
-        ObjectAction.register(34530, 1314, 10188, 1, 1, (player, obj) -> player.getMovement().teleport(1318, 10188, 2));
-        ObjectAction.register(34531, 1314, 10188, 2, 1, (player, obj) -> player.getMovement().teleport(1313, 10188, 1));
-
-        ObjectAction.register(4469, 1357, 10206, 1, 1, Karuulm::handleBarrier);
-        ObjectAction.register(4469, 1357, 10207, 1, 1, Karuulm::handleBarrier);
 
     }
 

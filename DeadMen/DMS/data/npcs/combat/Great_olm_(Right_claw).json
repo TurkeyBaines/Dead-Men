@@ -1,7 +1,7 @@
 [
   {
     "ids": [ 7550, 7553 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.OlmRightClaw",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.OlmRightClaw",
     //Combat Info
     "hitpoints": 600,
     "aggressive_level": 2086,

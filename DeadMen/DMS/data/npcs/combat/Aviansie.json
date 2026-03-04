@@ -1,7 +1,7 @@
 [
   { #Aviansie (69)
     "ids": [ 3169 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 70,
     "aggressive_level": 138,
@@ -44,7 +44,7 @@
   },
   { #Aviansie (71)
     "ids": [ 3177 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 63,
     "aggressive_level": 142,
@@ -87,7 +87,7 @@
   },
   { #Aviansie (73)
     "ids": [ 3178 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 67,
     "aggressive_level": 146,
@@ -130,7 +130,7 @@
   },
   { #Aviansie (79)
     "ids": [ 3170, 3179 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 83,
     "aggressive_level": 158,
@@ -173,7 +173,7 @@
   },
   { #Aviansie (79)
     "ids": [ 3170, 3179 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 77,
     "aggressive_level": 158,
@@ -216,7 +216,7 @@
   },
   { #Aviansie (83)
     "ids": [ 3172 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 86,
     "aggressive_level": 166,
@@ -259,7 +259,7 @@
   },
   { #Aviansie (84)
     "ids": [ 3171 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 86,
     "aggressive_level": 168,
@@ -302,7 +302,7 @@
   },
   { #Aviansie (89)
     "ids": [ 3180 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 69,
     "aggressive_level": 178,
@@ -345,7 +345,7 @@
   },
   { #Aviansie (92)
     "ids": [ 3173 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 95,
     "aggressive_level": 184,
@@ -388,7 +388,7 @@
   },
   { #Aviansie (94)
     "ids": [ 3181 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 75,
     "aggressive_level": 188,
@@ -431,7 +431,7 @@
   },
   { #Aviansie (97)
     "ids": [ 3174, 3182 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 98,
     "aggressive_level": 194,
@@ -474,7 +474,7 @@
   },
   { #Aviansie (97)
     "ids": [ 3174, 3182 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 79,
     "aggressive_level": 194,
@@ -517,7 +517,7 @@
   },
   { #Aviansie (131)
     "ids": [ 3183 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 115,
     "aggressive_level": 262,
@@ -560,7 +560,7 @@
   },
   { #Aviansie (137)
     "ids": [ 3175 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 124,
     "aggressive_level": 274,
@@ -603,7 +603,7 @@
   },
   { #Aviansie (148)
     "ids": [ 3176 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 139,
     "aggressive_level": 296,

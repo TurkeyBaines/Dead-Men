@@ -1,7 +1,7 @@
 [
   { #Torag the Corrupted (115)
     "ids": [ 1676 ],
-    "handler": "io.ruin.model.activities.barrows.brothers.Torag",
+    "handler": "io.dm.model.activities.barrows.brothers.Torag",
     //Combat Info
     "hitpoints": 100,
     "aggressive_level": 230,

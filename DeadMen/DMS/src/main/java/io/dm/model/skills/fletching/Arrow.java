@@ -11,7 +11,6 @@ import io.dm.model.stat.StatType;
 public enum Arrow {
 
     HEADLESS(52, 314, 53, 1.0, 1, "headless arrows", ""),
-    HEADLESS_CORRUPTED(30115, 314, 30117, 1.0, 90, "headless corrupted arrows", ""),
     BRONZE_ARROW(53, 39, 882, 1.3, 1, "bronze arrows", "bronze"),
     IRON_ARROW(53, 40, 884, 2.5, 15, "iron arrows", "iron"),
     STEEL_ARROW(53, 41, 886, 5.0, 30, "steel arrows", "steel"),
@@ -21,7 +20,6 @@ public enum Arrow {
     RUNE_ARROW(53, 44, 892, 12.5, 75, "rune arrows", "rune"),
     DRAGON_ARROW(53, 11237, 11212, 15.0, 90, "dragon arrows", "dragon"),
     AMETHYST(53, 21350, 21326, 13.5, 82, "amethyst arrow", "amethyst"),
-    CORRUPTED_ARROW(30117, 30119, 30121, 15.5, 90, "corrupted arrow", "corrupted")
     ;
 
     public final int shaft, tip, outcome, levelReq;

@@ -305,8 +305,7 @@ public class Mining {
                 {Rock.SANDSTONE, 11387, 11390, PlayerCounter.MINED_SANDSTONE},
                 {Rock.GRANITE, 11386, 11391, PlayerCounter.MINED_GRANITE},
                 {Rock.GEM_ROCK, 11380, 11390, PlayerCounter.MINED_GEM_ROCK},
-                {Rock.GEM_ROCK, 11381, 11391, PlayerCounter.MINED_GEM_ROCK},
-                {Rock.CORRUPTED, 50006, 50007, PlayerCounter.MINED_CORRUPT},
+                {Rock.GEM_ROCK, 11381, 11391, PlayerCounter.MINED_GEM_ROCK}
         };
         for (Object[] d : oreData) {
             Rock rock = (Rock) d[0];

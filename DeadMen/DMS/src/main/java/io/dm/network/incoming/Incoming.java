@@ -16,7 +16,7 @@ public interface Incoming {
     int[] SIZES = new int[256];
 
     static void load() throws Exception {
-        for(Class c : PackageLoader.load("io.ruin.network.incoming.handlers", Incoming.class)) {
+        for(Class c : PackageLoader.load("io.dm.network.incoming.handlers", Incoming.class)) {
             Incoming incoming = (Incoming) c.newInstance();
             IdHolder idHolder = (IdHolder) c.getAnnotation(IdHolder.class);
             if(idHolder == null) {

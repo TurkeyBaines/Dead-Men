@@ -1,7 +1,7 @@
 [
   { #Abyssal portal (Raids, Vespula)
     "ids": [ 7533 ],
-    "handler": "io.ruin.model.activities.miscpvm.PassiveCombat",
+    "handler": "io.dm.model.activities.miscpvm.PassiveCombat",
     //Combat Info
     "hitpoints": 400,
     "aggressive_level": 0,

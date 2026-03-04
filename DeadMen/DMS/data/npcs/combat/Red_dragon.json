@@ -1,7 +1,7 @@
 [
   { #Red dragon (152)
     "ids": [ 247, 248, 249, 250, 251 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.ChromaticDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.ChromaticDragon",
     //Combat Info
     "hitpoints": 140,
     "aggressive_level": 304,

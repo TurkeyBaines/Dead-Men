@@ -1,7 +1,7 @@
 [
   { #Jal-Ak (165)
     "ids": [ 7693 ],
-    "handler": "io.ruin.model.activities.inferno.monsters.JalAk",
+    "handler": "io.dm.model.activities.inferno.monsters.JalAk",
     //Combat Info
     "hitpoints": 40,
     "aggressive_level": 330,

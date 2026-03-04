@@ -2423,7 +2423,7 @@ public final class ItemID
 	public static final int EXPLOSIVE_POTION = 4045;
 	public static final int CLIMBING_ROPE = 4047;
 	public static final int BANDAGES = 4049;
-	public static final int TOOLKIT_4051 = 4051;
+	public static final int OVERWORLD_FISHING_TOOLS = 4051;
 	public static final int BARRICADE = 4053;
 	public static final int CASTLEWARS_MANUAL = 4055;
 	public static final int VOTE_TICKETS = 4067;
@@ -5824,7 +5824,7 @@ public final class ItemID
 	public static final int IRON_BOLTS_UNF = 9377;
 	public static final int STEEL_BOLTS_UNF = 9378;
 	public static final int MITHRIL_BOLTS_UNF = 9379;
-	public static final int ADAMANT_BOLTSUNF = 9380;
+	public static final int ADAMANT_BOLTS_UNF = 9380;
 	public static final int RUNITE_BOLTS_UNF = 9381;
 	public static final int SILVER_BOLTS_UNF = 9382;
 	public static final int GRAPPLE = 9415;
@@ -6552,7 +6552,7 @@ public final class ItemID
 	public static final int SELECTED_IRON = 10488;
 	public static final int BAR_MAGNET = 10489;
 	public static final int UNDEAD_TWIGS = 10490;
-	public static final int BLESSED_AXE = 10491;
+	public static final int OVERWORLD_AXE = 10491;
 	public static final int RESEARCH_NOTES = 10492;
 	public static final int TRANSLATED_NOTES = 10493;
 	public static final int A_PATTERN = 10494;
@@ -7327,7 +7327,7 @@ public final class ItemID
 	public static final int WATER_RUNE_NZ = 11716;
 	public static final int EARTH_RUNE_NZ = 11717;
 	public static final int FIRE_RUNE_NZ = 11718;
-	public static final int RUNE_PICKAXE_NZ = 11719;
+	public static final int OVERWORLD_PICKAXE = 11719;
 	public static final int MITHRIL_PICKAXE_NZ = 11720;
 	public static final int IRON_PICKAXE_NZ = 11721;
 	public static final int SUPER_RANGING_4 = 11722;

@@ -162,10 +162,6 @@ public enum DragonfireShield {
             player.dragonfireShieldSpecial = false;
             return;
         }
-        if(player.getDuel().stage >= 4) {
-            player.sendMessage("You can't use the dragonfire special inside the duel arena!");
-            return;
-        }
         if(player.joinedTournament) {
             player.sendMessage("You can't use the dragonfire special inside the tournament.");
             return;

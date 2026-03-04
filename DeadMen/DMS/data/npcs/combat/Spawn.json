@@ -1,7 +1,7 @@
 [
   { #Spawn (60) - Abyssal sire minion
     "ids": [ 5916, 5917 ],
-    "handler": "io.ruin.model.activities.bosses.slayer.sire.Scion", # THIS IS CORRECT, SPAWNS USE THE SAME HANDLER AS SCIONS SINCE THEY TRANSFORM INTO THEM!!
+    "handler": "io.dm.model.activities.bosses.slayer.sire.Scion", # THIS IS CORRECT, SPAWNS USE THE SAME HANDLER AS SCIONS SINCE THEY TRANSFORM INTO THEM!!
     //Combat Info
     "hitpoints": 15,
     "aggressive_level": 120,

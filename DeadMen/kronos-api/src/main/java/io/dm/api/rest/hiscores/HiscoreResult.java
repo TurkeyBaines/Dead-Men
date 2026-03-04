@@ -1,6 +1,6 @@
 package io.dm.api.rest.hiscores;
 
-//import io.ruin.api.rest.KronosRest;
+//import io.dm.api.rest.KronosRest;
 //import lombok.Getter;
 //import lombok.RequiredArgsConstructor;
 //

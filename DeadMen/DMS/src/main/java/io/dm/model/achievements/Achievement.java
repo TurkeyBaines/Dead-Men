@@ -10,8 +10,6 @@ import io.dm.model.achievements.listeners.novice.IntoTheAbyss;
 import io.dm.model.achievements.listeners.novice.Lightness;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.shared.listeners.LoginListener;
-import io.dm.model.inter.journal.Journal;
-import io.dm.model.inter.journal.JournalEntry;
 
 public enum Achievement {
 
@@ -52,20 +50,13 @@ public enum Achievement {
     private final AchievementListener listener;
     private final AchievementCategory category;
 
-    private JournalEntry entry;
-
     Achievement(AchievementListener listener, AchievementCategory category) {
         this.listener = listener;
         this.category = category;
     }
 
     public void update(Player player) {
-        if(entry == null) {
-            //never displayed on this world
-            return;
-        }
         AchievementStage oldStage = player.achievementStages[ordinal()];
-        entry.send(player);
         AchievementStage newStage = player.achievementStages[ordinal()];
         if(newStage != oldStage) {
             if(newStage == AchievementStage.STARTED) {
@@ -76,28 +67,6 @@ public enum Achievement {
                 getListener().finished(player);
             }
         }
-    }
-
-    public JournalEntry toEntry() {
-        return entry = new JournalEntry() {
-            @Override
-            public void send(Player player) {
-                AchievementStage stage = player.achievementStages[ordinal()] = getListener().stage(player);
-                if (player.journal != Journal.ACHIEVEMENTS) {
-                    return;
-                }
-                if(stage == AchievementStage.FINISHED)
-                    send(player, getListener().name(), Color.GREEN);
-                else if(stage == AchievementStage.STARTED)
-                    send(player, getListener().name(), Color.YELLOW);
-                else
-                    send(player, getListener().name(), Color.RED);
-            }
-            @Override
-            public void select(Player player) {
-                player.sendScroll("<col=800000>" + getListener().name(), getListener().lines(player, isFinished(player)));
-            }
-        };
     }
 
     public boolean isStarted(Player player) {

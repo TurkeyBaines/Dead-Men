@@ -1,7 +1,7 @@
 [
   { #Basilisk (61)
     "ids": [ 417, 418 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.Basilisk",
+    "handler": "io.dm.model.activities.miscpvm.slayer.Basilisk",
     //Combat Info
     "hitpoints": 75,
     "aggressive_level": 122,

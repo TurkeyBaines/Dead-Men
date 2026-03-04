@@ -1,7 +1,7 @@
 [
   { #Vet\u0027ion (454)
     "ids": [ 6611 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.Vetion",
+    "handler": "io.dm.model.activities.wilderness.bosses.Vetion",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 908,
@@ -47,7 +47,7 @@
   },
   { #Vet\u0027ion Reborn (454)
     "ids": [ 6612 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.Vetion",
+    "handler": "io.dm.model.activities.wilderness.bosses.Vetion",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 908,

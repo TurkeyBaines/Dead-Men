@@ -1,7 +1,7 @@
 [
   { #Giant Mole (230)
     "ids": [ 5779, 6499 ],
-    "handler": "io.ruin.model.activities.bosses.GiantMole",
+    "handler": "io.dm.model.activities.bosses.GiantMole",
     //Combat Info
     "hitpoints": 200,
     "aggressive_level": 460,

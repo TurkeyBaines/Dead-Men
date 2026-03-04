@@ -1,7 +1,7 @@
 [
   { #Jal-Xil (370)
     "ids": [ 7698, 7702 ],
-    "handler": "io.ruin.model.activities.inferno.monsters.JalXil",
+    "handler": "io.dm.model.activities.inferno.monsters.JalXil",
     //Combat Info
     "hitpoints": 130,
     "aggressive_level": 740,

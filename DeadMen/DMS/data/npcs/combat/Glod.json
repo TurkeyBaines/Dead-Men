@@ -1,7 +1,7 @@
 [
   { #Glod (138)
     "ids": [ 5129, 6358 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.custom.Glod",
+    "handler": "io.dm.model.activities.wilderness.bosses.custom.Glod",
     //Combat Info
     "hitpoints": 2000,
     "aggressive_level": 276,

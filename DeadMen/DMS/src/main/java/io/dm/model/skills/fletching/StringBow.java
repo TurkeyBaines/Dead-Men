@@ -21,11 +21,7 @@ public enum StringBow {
     YEW_SHORT_BOW(68, 857, 65, 68.5, 6682),
     YEW_LONG_BOW(66, 855, 70, 75.0, 6688),
     MAGIC_SHORT_BOW(72, 861, 80, 83.3, 6683),
-    MAGIC_LONG_BOW(70, 859, 85, 91.5, 6689),
-    CORRUPT_SHORT_BOW(30151, 30148, 90, 98.5, 8525),
-    CORRUPT_LONG_BOW(30157, 30154, 95, 105.5, 8526),
-
-    ;
+    MAGIC_LONG_BOW(70, 859, 85, 91.5, 6689);
 
     public final int unstrung, strung, levelReq, animation;
     public final double exp;

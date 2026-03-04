@@ -1,7 +1,7 @@
 [
   {
     "ids": [ 7859 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.magearena.Derwen",
+    "handler": "io.dm.model.activities.wilderness.bosses.magearena.Derwen",
     //Combat Info
     "hitpoints": 320,
     "aggressive_level": 300,

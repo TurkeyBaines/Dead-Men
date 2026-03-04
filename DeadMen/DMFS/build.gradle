@@ -10,5 +10,5 @@ dependencies {
 }
 
 application {
-    mainClassName = 'io.ruin.update.Server'
+    mainClassName = 'io.dm.update.Server'
 }

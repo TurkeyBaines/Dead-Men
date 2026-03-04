@@ -6,7 +6,6 @@ import io.dm.event.GameEventProcessor;
 import io.dm.model.World;
 import io.dm.model.entity.npc.NPC;
 import io.dm.model.entity.player.Player;
-import io.dm.model.inter.journal.toggles.TargetOverlay;
 import io.dm.model.object.owned.OwnedObject;
 
 public class CoreWorker extends World {
@@ -122,7 +121,6 @@ public class CoreWorker extends World {
                 if(player.isOnline()) {
                     player.getUpdater().process();
                     player.getNpcUpdater().process();
-                    TargetOverlay.process(player);
                     player.sendVarps();
                 }
             } catch(Throwable t) {

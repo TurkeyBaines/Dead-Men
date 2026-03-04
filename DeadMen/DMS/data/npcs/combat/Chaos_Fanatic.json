@@ -1,7 +1,7 @@
 [
   { #Chaos Fanatic (202)
     "ids": [ 6619 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.ChaosFanatic",
+    "handler": "io.dm.model.activities.wilderness.bosses.ChaosFanatic",
     //Combat Info
     "hitpoints": 225,
     "aggressive_level": 404,

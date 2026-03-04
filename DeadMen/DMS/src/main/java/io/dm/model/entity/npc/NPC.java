@@ -30,7 +30,11 @@ public class NPC extends NPCAttributes {
 
     public NPC(int id) {
         this.id = id;
-        setSize(getDef().size);
+        try {
+            setSize(getDef().size);
+        } catch (NullPointerException e) {
+            System.out.println("NPC has null def: " + id);
+        }
     }
 
     public void setId(int id) {
@@ -133,6 +137,9 @@ public class NPC extends NPCAttributes {
 
     private boolean setCombat() {
         NPCDef def = getDef();
+        if (def == null) {
+            System.out.println("<NPC DEF NULL>: " + id);
+        }
         if(def.combatInfo == null) {
             /* not a combat npc */
             return false;
@@ -274,7 +281,6 @@ public class NPC extends NPCAttributes {
             attackBounds = new Bounds(spawnPosition, getCombat().getAttackBoundsRange());
         }
         setIndex(World.npcs.add(this, 0));
-        this.wildernessSpawnLevel = Wilderness.getLevel(spawnPosition);
         checkMulti();
         Tile.occupy(this);
         if (combat != null && combat.info != null && combat.info.spawn_animation != -1)

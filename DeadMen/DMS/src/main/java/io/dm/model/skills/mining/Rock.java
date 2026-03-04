@@ -16,9 +16,7 @@ public enum Rock {
     AMETHYST(21347, "amethyst", 92, 1000, 246.0, 120, 2500, 1),
     SANDSTONE(new int[] {6971, 6973, 6975, 6977}, "sandstone", 35, 150, new int[] {30, 40, 50, 60}, 5, 74160, 1),
     GRANITE(new int[] {6979, 6981, 6983}, "granite", 45, 150, new int[] {50, 60, 75}, 5, 74160, 1),
-    GEM_ROCK(new int[] {1625, 1627, 1629, 1623, 1621, 1619, 1617}, "gem", 40, 300, 65.0, 35, 9328, 1.0/3),
-    CORRUPTED(30109, "corrupted", 90, 300, 150.0, 30, 4237, 2.0/5)
-    ;
+    GEM_ROCK(new int[] {1625, 1627, 1629, 1623, 1621, 1619, 1617}, "gem", 40, 300, 65.0, 35, 9328, 1.0/3);
 
     public final int ore, levelReq, difficulty, respawnTime, petOdds;
     public final String rockName;

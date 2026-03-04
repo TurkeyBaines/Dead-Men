@@ -1,7 +1,7 @@
 [
   { #Turoth (83)
     "ids": [ 430 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.LeafVulnerableMonster",
+    "handler": "io.dm.model.activities.miscpvm.slayer.LeafVulnerableMonster",
     //Combat Info
     "hitpoints": 76,
     "aggressive_level": 166,
@@ -44,7 +44,7 @@
   },
   { #Turoth (85)
     "ids": [ 429 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.LeafVulnerableMonster",
+    "handler": "io.dm.model.activities.miscpvm.slayer.LeafVulnerableMonster",
     //Combat Info
     "hitpoints": 77,
     "aggressive_level": 170,
@@ -87,7 +87,7 @@
   },
   { #Turoth (87)
     "ids": [ 428 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.LeafVulnerableMonster",
+    "handler": "io.dm.model.activities.miscpvm.slayer.LeafVulnerableMonster",
     //Combat Info
     "hitpoints": 79,
     "aggressive_level": 174,
@@ -130,7 +130,7 @@
   },
   { #Turoth (89)
     "ids": [ 427 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.LeafVulnerableMonster",
+    "handler": "io.dm.model.activities.miscpvm.slayer.LeafVulnerableMonster",
     //Combat Info
     "hitpoints": 81,
     "aggressive_level": 178,

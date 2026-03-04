@@ -236,12 +236,5 @@ public enum Armour {
         ItemItemAction.register(NEEDLE, FRESH_CRAB_CLAW, (player, needle, freshCrabClaw) -> SkillDialogue.make(player,
                 new SkillItem(CRAB_CLAW.cutID).addAction((p, amount, event) -> craft(p, CRAB_CLAW, amount))));
 
-        /**
-         * Lava dragon hide
-         */
-        ItemItemAction.register(NEEDLE, LAVA_DRAGON_LEATHER, (player, needle, blackDragonLeather) -> SkillDialogue.make(player,
-                new SkillItem(LAVA_COIF.cutID).addAction((p, amount, event) -> craft(p, LAVA_COIF, amount)),
-                new SkillItem(LAVA_CHAPS.cutID).addAction((p, amount, event) -> craft(p, LAVA_CHAPS, amount)),
-                new SkillItem(LAVA_BODY.cutID).addAction((p, amount, event) -> craft(p, LAVA_BODY, amount))));
     }
 }

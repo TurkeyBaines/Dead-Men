@@ -1,7 +1,7 @@
 [
   { #The Maiden of Sagadinti (8360)
     "ids": [ 8360, 8361, 8362, 8363, 8364, 8365 ],
-    "handler": "io.ruin.model.activities.bosses.tob.TheMaidenOfSagadintiCombat",
+    "handler": "io.dm.model.activities.bosses.tob.TheMaidenOfSagadintiCombat",
     //Combat Info
     "hitpoints": 3500,
     "aggressive_level": 1880,

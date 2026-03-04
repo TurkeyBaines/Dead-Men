@@ -1,7 +1,7 @@
 [
   {
     "ids": [ 7565, 7566, 7567 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.VasaNistirio",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.VasaNistirio",
     //Combat Info
     "hitpoints": 300,
     "aggressive_level": 138,

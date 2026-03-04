@@ -1,7 +1,7 @@
 [
   { #Bronze dragon (131)
     "ids": [ 270, 271 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.MetalDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.MetalDragon",
     //Combat Info
     "hitpoints": 122,
     "aggressive_level": 262,
@@ -44,7 +44,7 @@
   },
   { #Bronze dragon (143)
     "ids": [ 7253 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.MetalDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.MetalDragon",
     //Combat Info
     "hitpoints": 122,
     "aggressive_level": 286,

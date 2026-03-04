@@ -31,7 +31,7 @@ public class npc_drops extends DataFile {
 
     @Override
     public String path() {
-        return "npcs/drops/" + (World.isEco() ? "eco" : "pvp") + "/*.json";
+        return "npcs/drops/eco/*.json";
     }
 
     @Override

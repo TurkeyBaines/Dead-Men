@@ -1,7 +1,7 @@
 [
   { #Abyssal Sire (350)
     "ids": [ 5886, 5887, 5888, 5889, 5890, 5891, 5908 ],
-    "handler": "io.ruin.model.activities.bosses.slayer.sire.AbyssalSire",
+    "handler": "io.dm.model.activities.bosses.slayer.sire.AbyssalSire",
     //Combat Info
     "hitpoints": 400,
     "aggressive_level": 0,

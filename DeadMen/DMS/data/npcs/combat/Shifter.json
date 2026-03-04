@@ -1,7 +1,7 @@
 [
   { #Shifter (38)
     "ids": [ 1694, 1695 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Shifter",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Shifter",
     //Combat Info
     "hitpoints": 23,
     "aggressive_level": 148,
@@ -44,7 +44,7 @@
   },
   { #Shifter (57)
     "ids": [ 1696, 1697 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Shifter",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Shifter",
     //Combat Info
     "hitpoints": 38,
     "aggressive_level": 114,
@@ -87,7 +87,7 @@
   },
   { #Shifter (76)
     "ids": [ 1698, 1699 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Shifter",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Shifter",
     //Combat Info
     "hitpoints": 53,
     "aggressive_level": 152,
@@ -130,7 +130,7 @@
   },
   { #Shifter (90)
     "ids": [ 1700, 1701 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Shifter",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Shifter",
     //Combat Info
     "hitpoints": 68,
     "aggressive_level": 180,
@@ -173,7 +173,7 @@
   },
   { #Shifter (104)
     "ids": [ 1702, 1703 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Shifter",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Shifter",
     //Combat Info
     "hitpoints": 83,
     "aggressive_level": 208,

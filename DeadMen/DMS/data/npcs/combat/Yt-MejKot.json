@@ -1,7 +1,7 @@
 [
   { #Yt-MejKot (180)
     "ids": [ 3123, 3124 ],
-    "handler": "io.ruin.model.activities.fightcaves.monsters.YtMejKot",
+    "handler": "io.dm.model.activities.fightcaves.monsters.YtMejKot",
     //Combat Info
     "hitpoints": 80,
     "aggressive_level": 360,

@@ -1,7 +1,7 @@
 [
   { #Lizardman shaman (150)
     "ids": [ 6766, 6767, 7744, 7745 ],
-	"handler": "io.ruin.model.activities.bosses.LizardmanShaman",
+	"handler": "io.dm.model.activities.bosses.LizardmanShaman",
     //Combat Info
     "hitpoints": 150,
     "aggressive_level": 0,
@@ -44,7 +44,7 @@
   },
     { #Lizardman shaman (raids)
     "ids": [ 7573, 7574 ],
-	"handler": "io.ruin.model.activities.bosses.LizardmanShaman",
+	"handler": "io.dm.model.activities.bosses.LizardmanShaman",
     //Combat Info
     "hitpoints": 180,
     "aggressive_level": 300,

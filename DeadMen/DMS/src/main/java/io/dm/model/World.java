@@ -12,6 +12,7 @@ import io.dm.api.utils.IPAddress;
 import io.dm.cache.Color;
 import io.dm.cache.Icon;
 import io.dm.content.activities.event.TimedEventManager;
+import io.dm.deadman.Deadman;
 import io.dm.model.activities.pvminstances.PVMInstance;
 import io.dm.model.combat.Killer;
 import io.dm.model.entity.EntityList;
@@ -56,6 +57,8 @@ public class World extends EventWorker {
 
     public static int port;
 
+    @Getter private static Deadman deadman;
+
     public static boolean isDev() {
         return stage == WorldStage.DEV;
     }
@@ -68,18 +71,12 @@ public class World extends EventWorker {
         return stage == WorldStage.LIVE;
     }
 
-    public static boolean isPVP() {
-        return type == WorldType.PVP;
-    }
-
-    public static boolean isEco() {
-        return type == WorldType.ECO;
-    }
-
     public static final int spawnableOffset = 100000;
 
     public static final Position HOME = Position.of(2028, 3577, 0);
     public static final Position EDGEHOME = Position.of(3085, 3492, 0);
+
+    public static final double OVERWORLD_XP_MULT = 10;
 
     /**
      * Players
@@ -154,8 +151,6 @@ public class World extends EventWorker {
 
     public static boolean doublePest;
 
-    public static int xpMultiplier = 0;
-
     public static int playerModifier = 0;
 
     public static int bmMultiplier = 0;
@@ -180,20 +175,6 @@ public class World extends EventWorker {
     public static void toggleDoublePest() {
         doublePest = !doublePest;
         Broadcast.WORLD.sendNews(Icon.RED_INFO_BADGE, "Double Pest Control Points has been " + (doublePest ? "enabled" : "disabled") + ".");
-    }
-
-    public static void boostXp(int multiplier) {
-        xpMultiplier = multiplier;
-        if(xpMultiplier == 1)
-            Broadcast.WORLD.sendNews(Icon.RED_INFO_BADGE, "Experience is now normal. (x1)");
-        else if(xpMultiplier == 2)
-            Broadcast.WORLD.sendNews(Icon.RED_INFO_BADGE, "Experience is now being doubled! (x2)");
-        else if(xpMultiplier == 3)
-            Broadcast.WORLD.sendNews(Icon.RED_INFO_BADGE, "Experience is now being tripled! (x3)");
-        else if(xpMultiplier == 4)
-            Broadcast.WORLD.sendNews(Icon.RED_INFO_BADGE, "Experience is now being quadrupled! (x4)");
-        else
-            Broadcast.WORLD.sendNews(Icon.RED_INFO_BADGE, "Experience is now boosted! (x" + multiplier + ")");
     }
 
     /*
@@ -227,14 +208,6 @@ public class World extends EventWorker {
     }
 
     public static void sendLoginMessages(Player player) {
-        if(doubleDrops)
-            player.sendMessage(Color.ORANGE_RED.tag() + "Npc drops are currently being doubled!");
-        if(xpMultiplier == 2)
-            player.sendMessage(Color.ORANGE_RED.tag() + "Experience is currently being doubled! (x2)");
-        else if(xpMultiplier == 3)
-            player.sendMessage(Color.ORANGE_RED.tag() + "Experience is currently being tripled! (x3)");
-        else if(xpMultiplier == 4)
-            player.sendMessage(Color.ORANGE_RED.tag() + "Experience is currently being quadrupled! (x4)");
     }
 
     public static boolean wildernessDeadmanKeyEvent = false;
@@ -425,6 +398,10 @@ public class World extends EventWorker {
                 }
             });
         });
+
+        Server.afterData.add(() -> {
+
+        });
     }
 
     @SneakyThrows
@@ -457,5 +434,9 @@ public class World extends EventWorker {
             host = IPAddress.get();
         World.address = host + ":" + port;
 
+    }
+
+    public static void initDeadman() {
+        deadman = new Deadman();
     }
 }

@@ -1,7 +1,7 @@
 [
   { #Corporeal Beast (785)
     "ids": [ 319 ],
-    "handler": "io.ruin.model.activities.bosses.corp.CorporealBeast",
+    "handler": "io.dm.model.activities.bosses.corp.CorporealBeast",
     //Combat Info
     "hitpoints": 2000,
     "aggressive_level": 1570,

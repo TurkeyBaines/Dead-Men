@@ -15,8 +15,7 @@ public enum Tree {
     MAHOGANY(6332, "mahogany logs", 50, 200, 125.0, 80, false, 16541, PlayerCounter.CHOPPED_MAHOGANY),
     YEW(1515, "yew logs", 60, 225, 175.0, 100, false, 14501, PlayerCounter.CHOPPED_YEW),
     MAGIC(1513, "magic logs", 75, 340, 250.0, 100, false, 7232, PlayerCounter.CHOPPED_MAGIC),
-    REDWOOD(19669, "redwood logs", 90, 460, 380.0, 200, false, 6200, PlayerCounter.CHOPPED_REDWOOD),
-    CORRUPT_TREE(30105, "corrupt logs", 95, 340, 300.0, 100, false, 6200, PlayerCounter.CHOPPED_CORRUPT);
+    REDWOOD(19669, "redwood logs", 90, 460, 380.0, 200, false, 6200, PlayerCounter.CHOPPED_REDWOOD);
 
     public final int log, levelReq, respawnTime, petOdds;
     public final double experience, difficulty;

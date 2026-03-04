@@ -1,7 +1,6 @@
 package io.dm.model.entity.player;
 
 import io.dm.model.activities.raids.xeric.party.RecruitingBoard;
-import io.dm.model.map.object.actions.impl.edgeville.Christmas;
 import io.dm.model.map.route.routes.TargetRoute;
 
 import java.util.function.BiConsumer;
@@ -22,17 +21,6 @@ public enum PlayerAction {
             p1.getTrade().request(p2);
             p1.faceNone(true);
         });
-    }),
-    CHALLENGE("Challenge", false, (p1, p2) -> {
-        p1.face(p2);
-        TargetRoute.set(p1, p2, () -> {
-            p1.getDuel().request(p2);
-            p1.faceNone(true);
-        });
-    }),
-    PELT("Pelt", true, (p1, p2) -> {
-        p1.face(p2);
-        Christmas.throwSnow(p1, p2);
     }),
     FIGHT("Fight", true, (p1, p2) -> {
         p1.face(p2);

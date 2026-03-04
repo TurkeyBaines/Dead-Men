@@ -1,7 +1,7 @@
 [
   { #Kree\u0027arra (580)
     "ids": [ 3162, 6492 ],
-    "handler": "io.ruin.model.activities.godwars.combat.impl.armadyl.KreeArra",
+    "handler": "io.dm.model.activities.godwars.combat.impl.armadyl.KreeArra",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 1160,

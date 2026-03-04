@@ -1,7 +1,7 @@
 [
   { #Tz-Kek (45)
     "ids": [ 2191, 2192, 3118, 3119 ],
-    "handler": "io.ruin.model.activities.fightcaves.monsters.TzKek",
+    "handler": "io.dm.model.activities.fightcaves.monsters.TzKek",
     //Combat Info
     "hitpoints": 20,
     "aggressive_level": 90,

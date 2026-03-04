@@ -1,7 +1,7 @@
 [
   { #Aberrant spectre (96)
     "ids": [ 2, 3, 4, 5, 6, 7 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.AberrantSpectre",
+    "handler": "io.dm.model.activities.miscpvm.slayer.AberrantSpectre",
     //Combat Info
     "hitpoints": 90,
     "aggressive_level": 192,

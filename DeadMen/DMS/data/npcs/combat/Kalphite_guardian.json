@@ -1,7 +1,7 @@
 [
   { #Kalphite Guardian (141)
     "ids": [ 959, 960, 962 ],
-    "handler": "io.ruin.model.activities.miscpvm.PoisonousKalphite",
+    "handler": "io.dm.model.activities.miscpvm.PoisonousKalphite",
     //Combat Info
     "hitpoints": 171,
     "aggressive_level": 282,

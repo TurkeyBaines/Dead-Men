@@ -1,6 +1,5 @@
 package io.dm.model.item.actions.impl.jewellery;
 
-import io.dm.model.activities.duelarena.DuelRule;
 import io.dm.model.entity.player.Player;
 import io.dm.model.item.Item;
 import io.dm.model.item.containers.Equipment;
@@ -11,8 +10,6 @@ public class PhoenixNecklace {
         if (player.getHp() <= player.getMaxHp() * 0.20 && !player.getCombat().isDead()) {
             Item necklace = player.getEquipment().get(Equipment.SLOT_AMULET);
             if (necklace == null || necklace.getId() != 11090)
-                return;
-            if (DuelRule.NO_FOOD.isToggled(player))
                 return;
             necklace.remove();
             int heal = (int) (player.getMaxHp() * 0.30);

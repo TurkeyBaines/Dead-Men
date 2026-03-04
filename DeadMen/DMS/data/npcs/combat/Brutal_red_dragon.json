@@ -1,7 +1,7 @@
 [
   { #Brutal red dragon (289)
     "ids": [ 7274 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.BrutalDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.BrutalDragon",
     //Combat Info
     "hitpoints": 285,
     "aggressive_level": 578,

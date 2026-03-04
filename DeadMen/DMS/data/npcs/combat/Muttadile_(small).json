@@ -1,7 +1,7 @@
 [
   { #Muttadile (small) (raids)
     "ids": [ 7562 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.SmallMuttadile",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.SmallMuttadile",
     //Combat Info
     "hitpoints": 250,
     "aggressive_level": 126,

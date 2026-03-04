@@ -3,9 +3,8 @@ package io.dm.model.entity.player;
 import com.google.gson.annotations.Expose;
 import io.dm.content.activities.lms.LastManStandingQueue;
 import io.dm.content.activities.lms.LastManStandingSession;
-import io.dm.content.activities.tournament.Tournament;
-import io.dm.content.activities.tournament.TournamentFightPair;
 import io.dm.content.objects.Cannon;
+import io.dm.deadman.areas.Miscellania.OverworldTools;
 import io.dm.model.achievements.Achievement;
 import io.dm.model.achievements.AchievementStage;
 import io.dm.model.activities.ActivityTimer;
@@ -17,21 +16,14 @@ import io.dm.model.activities.pestcontrol.PestControlGame;
 import io.dm.model.activities.pvminstances.PVMInstance;
 import io.dm.model.activities.pyramidplunder.PyramidPlunderGame;
 import io.dm.model.activities.raids.xeric.party.Party;
-import io.dm.model.activities.tasks.DailyTask;
 import io.dm.model.activities.wilderness.WildernessObelisk;
 import io.dm.model.combat.WildernessRating;
-import io.dm.model.content.UpgradeMachine;
 import io.dm.model.entity.Entity;
 import io.dm.model.entity.npc.NPC;
 import io.dm.model.inter.handlers.OptionScroll;
-import io.dm.model.inter.handlers.TeleportInterface;
-import io.dm.model.inter.journal.Journal;
-import io.dm.model.inter.journal.JournalEntry;
-import io.dm.model.inter.journal.presets.Preset;
-import io.dm.model.inter.journal.presets.PresetCustom;
-import io.dm.model.inter.journal.toggles.EdgevilleBlacklist;
 import io.dm.model.inter.utils.Config;
 import io.dm.model.item.Item;
+import io.dm.model.item.ItemContainer;
 import io.dm.model.item.actions.impl.Pet;
 import io.dm.model.item.actions.impl.storage.EssencePouch;
 import io.dm.model.map.Position;
@@ -59,12 +51,41 @@ import java.util.function.Function;
 
 public abstract class PlayerAttributes extends Entity {
 
+    /**********************************************/
+    /**********************************************/
+    /********** DEADMAN VARS FOR PLAYERS **********/
+    /**********************************************/
+    /**********************************************/
+
+    //@Expose @Getter public SkullTimer skullTimer;
+    @Expose @Getter public int[][] skillHolder;
+    @Expose @Getter public int[] prestigeLevel;
+    @Expose @Getter public ItemContainer inventoryHolder;
+    @Expose @Getter public Item[] equipmentHolder;
+
+    @Expose @Getter @Setter public boolean dmmNeedsReset;
+    @Expose @Getter public int overworldPoints;
+    @Expose @Getter public OverworldTools.Tier[] overworldToolTier;
+
+    @Expose @Getter public boolean[] unlockedSigils;
+    @Expose @Getter public int[] activeSigils;
+    @Expose @Getter public boolean[][] toggleSigils;
+
+    @Expose @Getter public long[] activeCooldowns;
+    @Expose @Getter public long[] toggleCooldowns;
+
+    /**********************************************/
+    /**********************************************/
+    /************** DEADMAN VARS END **************/
+    /**********************************************/
+    /**********************************************/
+
+
+
     @Expose public boolean debug;
     @Expose @Getter @Setter
     public int tutorialStage;
     @Setter protected Runnable onDialogueContinued;
-
-    @Expose public Journal journal = Journal.BESTIARY;
 
     @Expose public int targetOverlaySetting = 0;
     public Entity targetOverlayTarget;
@@ -874,12 +895,6 @@ public abstract class PlayerAttributes extends Entity {
 
 
     /**
-     * Presets
-     */
-
-    @Expose public PresetCustom[] customPresets = new PresetCustom[PresetCustom.ENTRIES.length];
-
-    /**
      * Elo rating
      */
     @Expose public int pkRating = WildernessRating.DEFAULT_RATING;
@@ -949,10 +964,6 @@ public abstract class PlayerAttributes extends Entity {
      */
     public long sessionStart = System.currentTimeMillis();
 
-    /**
-     * Bestiary
-     */
-    public List<JournalEntry> bestiarySearchResults;
 
     /**
      * Active valcano
@@ -1048,15 +1059,6 @@ public abstract class PlayerAttributes extends Entity {
      */
     public TickDelay nurseSpecialRefillCooldown = new TickDelay();
 
-    /**
-     * Used when a player has a bounty target to ensure he doesn't switch presets
-     */
-    public Preset lastPresetUsed;
-
-    /**
-     * Edgeville blacklisted users
-     */
-    @Expose public EdgevilleBlacklist[] edgevilleBlacklistedUsers = new EdgevilleBlacklist[EdgevilleBlacklist.ENTRIES.length];
 
     /**
      * Used to determine if a player is an official dice host or not (set when the player claims the dice bag)
@@ -1068,11 +1070,6 @@ public abstract class PlayerAttributes extends Entity {
      * Daily reset
      */
     @Expose public String lastLoginDate; // would have used a LocalDate object for this but it doesn't serialize properly with the @Expose annotation
-
-    @Expose public DailyTask[] dailyTasks = new DailyTask[3];
-    @Expose public int[] dailyTaskProgress = new int[3];
-    @Expose public int dailyTasksCompleted;
-    @Expose public int dailyTaskPoints;
 
     /**
      * PvP weapon specials
@@ -1249,9 +1246,6 @@ public abstract class PlayerAttributes extends Entity {
     @Expose public int lmsGamesPlayed;
     @Expose public int lmsRank;
 
-    public Tournament tournament;
-    public TournamentFightPair tournamentFight;
-
     @Expose public int mysteriousStrangerVarp;
     public boolean rigging = false;
 
@@ -1266,12 +1260,6 @@ public abstract class PlayerAttributes extends Entity {
     @Expose public boolean bountyHunterOverlay = true;
 
     public PyramidPlunderGame pyramidPlunderGame;
-
-    @Expose @Getter
-    public TeleportInterface teleports;
-
-    @Expose @Getter
-    public UpgradeMachine upgradeMachine;
 
     @Expose public boolean cerberusMetamorphisis;
     @Expose public boolean infernalJadMetamorphisis;

@@ -1,7 +1,7 @@
 [
   { #Brutal blue dragon (271)
     "ids": [ 7273 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.BrutalDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.BrutalDragon",
     //Combat Info
     "hitpoints": 245,
     "aggressive_level": 542,

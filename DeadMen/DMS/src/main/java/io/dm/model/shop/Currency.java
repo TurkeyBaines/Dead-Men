@@ -19,31 +19,6 @@ public enum Currency {
     WARRIOR_GUILD_TOKEN(new ItemCurrencyHandler(ItemID.WARRIOR_GUILD_TOKEN)),
     VOTE_TICKETS(new ItemCurrencyHandler(ItemID.VOTE_TICKETS)),
     UNIDENTIFIED_MINERALS(new ItemCurrencyHandler(ItemID.UNIDENTIFIED_MINERALS)),
-    TASK_POINTS(new CurrencyHandler("daily task points") {
-        @Override
-        public int getCurrencyCount(Player player) {
-            return player.dailyTaskPoints;
-        }
-
-        @Override
-        public int removeCurrency(Player player, int amount) {
-            if(amount > player.dailyTaskPoints){
-                return 0;
-            }
-            player.dailyTaskPoints -= amount;
-            return amount;
-        }
-
-        @Override
-        public int addCurrency(Player player, int amount) {
-            if((long) player.dailyTaskPoints + (long) amount > Integer.MAX_VALUE){
-                player.dailyTaskPoints = Integer.MAX_VALUE;
-            } else {
-                player.dailyTaskPoints += amount;
-            }
-            return amount;
-        }
-    }),
     WILDERNESS_SLAYER_POINTS(new CurrencyHandler("wilderness slayer points") {
         @Override
         public int getCurrencyCount(Player player) {
@@ -189,32 +164,7 @@ public enum Currency {
             }
             return amount;
         }
-    }),
-    SNOWBALL_POINTS(new CurrencyHandler("snowball", "snowballs") {
-        @Override
-        public int getCurrencyCount(Player player) {
-            return player.snowballPoints;
-        }
-
-        @Override
-        public int removeCurrency(Player player, int amount) {
-            if(amount > player.snowballPoints){
-                return 0;
-            }
-            player.snowballPoints -= amount;
-            return amount;
-        }
-        @Override
-        public int addCurrency(Player player, int amount) {
-            if((long) player.snowballPoints + (long) amount > Integer.MAX_VALUE){
-                player.snowballPoints = Integer.MAX_VALUE;
-            } else {
-                player.snowballPoints += amount;
-            }
-            return amount;
-        }
-    })
-    ;
+    });
 
 
     Currency(CurrencyHandler currencyHandler) {

@@ -53,7 +53,7 @@ public abstract class DataFile {
          * Find all files
          */
         List<DataFile> dataFiles = new ArrayList<>();
-        for(Class c : PackageLoader.load("io.ruin.data.impl", DataFile.class))
+        for(Class c : PackageLoader.load("io.dm.data.impl", DataFile.class))
             dataFiles.add((DataFile) c.newInstance());
         dataFiles.sort(Comparator.comparingInt(DataFile::priority));
         for(DataFile dataFile : dataFiles)

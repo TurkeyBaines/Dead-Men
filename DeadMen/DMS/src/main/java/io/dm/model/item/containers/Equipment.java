@@ -1,8 +1,6 @@
 package io.dm.model.item.containers;
 
-import io.dm.cache.Color;
 import io.dm.cache.ItemDef;
-import io.dm.model.activities.duelarena.DuelRule;
 import io.dm.model.combat.RangedWeapon;
 import io.dm.model.inter.Interface;
 import io.dm.model.inter.handlers.EquipmentStats;
@@ -48,22 +46,7 @@ public class Equipment extends ItemContainer {
             return;
         }
 
-        if(player.getDuel().isBlocked(selectedDef)) {
-            player.sendMessage("That item cannot be equipped in this duel!");
-            return;
-        }
-
-        if(player.getDuel().isToggled(DuelRule.NO_WEAPON_SWITCH) && equipSlot == Equipment.SLOT_WEAPON) {
-            player.sendMessage("Weapon switching is disabled for this fight!");
-            return;
-        }
-
         if(!CombatRoom.allowEquip(player, selectedDef)) {
-            return;
-        }
-
-        if(selectedDef.achievement != null && !selectedDef.achievement.isFinished(player) && (!selectedDef.achievementReqIsIronmanOnly || player.getGameMode().isIronMan())) {
-            player.sendMessage("You must complete the " + Color.RED.wrap(selectedDef.achievement.getListener().name()) + " achievement to equip this item.");
             return;
         }
 
@@ -198,16 +181,13 @@ public class Equipment extends ItemContainer {
             if(item != null) {
                 ItemDef def = item.getDef();
                 if(def.equipBonuses != null) {
-                    boolean wilderness = def.wilderness; //If its pvp armor
-                    boolean inWilderness = player.wildernessLevel > 0 || player.tournament != null;
+                    boolean inWilderness = player.wildernessLevel > 0;
                     for(int i = 0; i < def.equipBonuses.length; i++) {
                         int bonus = def.equipBonuses[i];
                         if (bonus == 0)
                             continue;
                         if(ignoreRangedAmmoStr && def.equipSlot == SLOT_AMMO && i == EquipmentStats.RANGED_STRENGTH)
                             continue;
-                        if (wilderness && !inWilderness)
-                            bonus *= .75;
                         bonuses[i] += bonus;
                     }
                 }

@@ -1,6 +1,5 @@
 package io.dm.model.skills.magic.spells;
 
-import io.dm.model.activities.duelarena.DuelRule;
 import io.dm.model.combat.AttackStyle;
 import io.dm.model.combat.AttackType;
 import io.dm.model.combat.CombatUtils;
@@ -144,10 +143,6 @@ public class TargetSpell extends Spell {
             if(entity.player != null) {
                 if(!entity.player.getStats().check(StatType.Magic, lvlReq, "cast this spell"))
                     return false;
-                if(DuelRule.NO_MAGIC.isToggled(entity.player)) {
-                    entity.player.sendMessage("Magic has been disabled for this duel!");
-                    return false;
-                }
                 if(runeItems != null && (r = RuneRemoval.get(entity.player, runeItems)) == null) {
                     entity.player.sendMessage("You don't have enough runes to cast this spell.");
                     return false;

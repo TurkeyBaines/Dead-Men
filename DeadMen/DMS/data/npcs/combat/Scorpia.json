@@ -1,7 +1,7 @@
 [
   { #Scorpia (225)
     "ids": [ 6615 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.scorpia.Scorpia",
+    "handler": "io.dm.model.activities.wilderness.bosses.scorpia.Scorpia",
     //Combat Info
     "hitpoints": 200,
     "aggressive_level": 450,

@@ -1,7 +1,7 @@
 [
   { #Dagannoth (88) ( ranged)
     "ids": [ 5942 ],
-    "handler": "io.ruin.model.activities.miscpvm.waterbirth.RangedDagannoth",
+    "handler": "io.dm.model.activities.miscpvm.waterbirth.RangedDagannoth",
     //Combat Info
     "hitpoints": 85,
     "aggressive_level": -1,

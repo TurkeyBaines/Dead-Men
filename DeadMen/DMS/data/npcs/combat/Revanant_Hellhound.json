@@ -1,7 +1,7 @@
 [
     { #Rev hellhound
     "ids": [ 7935 ],
-    "handler": "io.ruin.model.activities.miscpvm.Revenant",
+    "handler": "io.dm.model.activities.miscpvm.Revenant",
     //Combat Info
     "hitpoints": 90,
     "aggressive_level": 135,

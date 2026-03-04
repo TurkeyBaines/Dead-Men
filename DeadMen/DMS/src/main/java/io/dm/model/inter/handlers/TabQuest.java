@@ -3,6 +3,7 @@ package io.dm.model.inter.handlers;
 import io.dm.Server;
 import io.dm.api.utils.TimeUtils;
 import io.dm.cache.Color;
+import io.dm.deadman.Deadman;
 import io.dm.model.World;
 import io.dm.model.activities.pvp.PVPInstance;
 import io.dm.model.activities.wilderness.Wilderness;
@@ -14,7 +15,6 @@ import io.dm.model.inter.InterfaceAction;
 import io.dm.model.inter.InterfaceHandler;
 import io.dm.model.inter.InterfaceType;
 import io.dm.model.inter.actions.SimpleAction;
-import io.dm.model.inter.journal.Journal;
 import lombok.Getter;
 
 import java.util.List;
@@ -38,11 +38,11 @@ public class TabQuest {
         COMPONENT_10(10, player -> "Players in Wild: " + Color.GREEN.wrap(String.valueOf(Wilderness.players.size()))),
         COMPONENT_11(11, player -> "Players in Tournament: " + Color.GREEN.wrap(String.valueOf(PVPInstance.players.size()))),
         COMPONENT_12(12, player -> "Server Uptime: " + Color.GREEN.wrap(TimeUtils.fromMs(Server.currentTick() * Server.tickMs(), false))),
-        COMPONENT_43(43, player -> "XP Bonus: " + Color.GREEN.wrap(String.valueOf(World.xpMultiplier))),
-        COMPONENT_44(44, player -> "Double Drops: " + Color.GREEN.wrap(getDoubleDrops())),
-        COMPONENT_45(45, player -> "Double PK Points: " + Color.GREEN.wrap(getDoublePkp())),
-        COMPONENT_46(46, player -> "Double Slayer Points: " + Color.GREEN.wrap(getDoubleSlayerPoints())),
-        COMPONENT_47(47, player -> "Double Pest Control: " + Color.GREEN.wrap(getDoublePcPoints())),
+//        COMPONENT_43(43, player -> "XP Bonus: " + Color.GREEN.wrap(String.valueOf(Deadman.getConfig().XP_RATE))),
+//        COMPONENT_44(44, player -> "Double Drops: " + Color.GREEN.wrap(getDoubleDrops())),
+//        COMPONENT_45(45, player -> "Double PK Points: " + Color.GREEN.wrap(getDoublePkp())),
+//        COMPONENT_46(46, player -> "Double Slayer Points: " + Color.GREEN.wrap(getDoubleSlayerPoints())),
+//        COMPONENT_47(47, player -> "Double Pest Control: " + Color.GREEN.wrap(getDoublePcPoints())),
         COMPONENT_14(14, player -> {
             boolean hasTwoFactor = player.tfa;
             String text = "Two-factor authentication";
@@ -50,13 +50,13 @@ public class TabQuest {
         }, (SimpleAction) player -> player.openUrl("https://community.kronos.rip/index.php?account/security")), //need to hookup tfa to the website somehow
         COMPONENT_15(15, player -> "Time Played: " + Color.GREEN.wrap(TimeUtils.fromMs(player.playTime * Server.tickMs(), false))),
         COMPONENT_16(16, player -> "Total Spent: " + Color.GREEN.wrap( "$" + player.storeAmountSpent)),
-        COMPONENT_17(17, player -> "Base XP: " + Color.GREEN.wrap(String.valueOf(getXpBonus(player)))),
+        //COMPONENT_17(17, player -> "Base XP: " + Color.GREEN.wrap(String.valueOf(getXpBonus(player)))),
         COMPONENT_18(18, player -> "Double Drop Chance: " + Color.GREEN.wrap(DoubleDrops.getChance(player) + "%")),
-        COMPONENT_49(49, player -> "PVM Points: " + Color.GREEN.wrap(Integer.toString(player.PvmPoints))),
+//        COMPONENT_49(49, player -> "PVM Points: " + Color.GREEN.wrap(Integer.toString(player.PvmPoints))),
 
-        COMPONENT_50(50, player -> "Achievements", (SimpleAction) player -> sendAchievements(player)),
-        COMPONENT_51(51, player -> "Drop Tables", (SimpleAction) player -> sendBestiary(player)),
-        COMPONENT_52(52, player -> "Settings", (SimpleAction) player -> sendToggles(player)),
+//        COMPONENT_50(50, player -> "Achievements", (SimpleAction) player -> send(player)),
+//        COMPONENT_51(51, player -> "Drop Tables", (SimpleAction) player -> send(player)),
+//        COMPONENT_52(52, player -> "Settings", (SimpleAction) player -> send(player)),
 
         COMPONENT_19(19, player -> "Website", (SimpleAction) player -> player.openUrl("http://kronos.rip/")),
         COMPONENT_20(20, player -> "Community", (SimpleAction) player -> player.openUrl("https://community.kronos.rip/index.php")),
@@ -90,9 +90,9 @@ public class TabQuest {
      * @param player    The player.
      */
     public static void send(Player player) {
-        for (NoticeboardComponent component : NoticeboardComponent.values()) {
-            player.getPacketSender().sendString(Interface.NOTICEBOARD, component.getComponentId(), component.getText().send(player));
-        }
+//        for (NoticeboardComponent component : NoticeboardComponent.values()) {
+//            player.getPacketSender().sendString(Interface.QUEST_TAB, component.getComponentId(), component.getText().send(player));
+//        }
     }
 
     /**
@@ -108,15 +108,6 @@ public class TabQuest {
         for (Player p1 : staffList) {
             player.getPacketSender().sendString(interId, component++, p1.getPrimaryGroup().tag() + " " + p1.getName());
         }
-    }
-    private static void sendBestiary(Player player) {
-        Journal.BESTIARY.send(player);
-    }
-    private static void sendAchievements(Player player) {
-        Journal.ACHIEVEMENTS.send(player);
-    }
-    private static void sendToggles(Player player) {
-        Journal.TOGGLES.send(player);
     }
 
     private static String getDoubleDrops() {
@@ -153,39 +144,21 @@ public class TabQuest {
         return staffList.size();
     }
 
-    private static double getXpBonus(Player player) {
-        double xp = 1;
-
-        if (World.xpMultiplier > 0)
-            xp += World.xpMultiplier - 1;
-
-        if(player.expBonus.isDelayed()) //50% xp scrolls
-            xp += 0.5;
-
-        if (player.wildernessLevel > 1) //wilderness bonus
-            xp += .25;
-
-        if (World.weekendExpBoost)
-            xp += .25;
-
-        return xp;
-    }
-
     static {
-        InterfaceHandler.register(Interface.NOTICEBOARD, (h) -> {
-            for (NoticeboardComponent component : NoticeboardComponent.values()) {
-                h.actions[component.getComponentId()] = component.getAction();
-            }
-        });
-        LoginListener.register(player -> {
-            send(player);
-            player.addEvent(event -> {
-                while(true) {
-                    send(player);
-                    event.delay(10);
-                }
-            });
-        });
+//        InterfaceHandler.register(Interface.QUEST_TAB, (h) -> {
+//            for (NoticeboardComponent component : NoticeboardComponent.values()) {
+//                h.actions[component.getComponentId()] = component.getAction();
+//            }
+//        });
+//        LoginListener.register(player -> {
+//            send(player);
+//            player.addEvent(event -> {
+//                while(true) {
+//                    send(player);
+//                    event.delay(10);
+//                }
+//            });
+//        });
     }
 
     private interface TextField {

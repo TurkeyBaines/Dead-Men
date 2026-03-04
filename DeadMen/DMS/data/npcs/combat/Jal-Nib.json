@@ -1,7 +1,7 @@
 [
   { #Jal-Nib (32)
     "ids": [ 7691 ],
-    "handler": "io.ruin.model.activities.inferno.monsters.JalNib",
+    "handler": "io.dm.model.activities.inferno.monsters.JalNib",
     //Combat Info
     "hitpoints": 10,
     "aggressive_level": 0,

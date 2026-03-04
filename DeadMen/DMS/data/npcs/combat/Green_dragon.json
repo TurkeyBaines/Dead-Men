@@ -1,7 +1,7 @@
 [
   { #Green dragon (79)
     "ids": [ 260, 261, 262, 263, 264, 7868, 7869, 7870 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.ChromaticDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.ChromaticDragon",
     //Combat Info
     "hitpoints": 75,
     "aggressive_level": 158,

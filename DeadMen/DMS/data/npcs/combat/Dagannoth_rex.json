@@ -1,7 +1,7 @@
 [
   { #Dagannoth Rex (303)
     "ids": [ 2267, 6498 ],
-    "handler": "io.ruin.model.activities.bosses.dagannothkings.DagannothRex",
+    "handler": "io.dm.model.activities.bosses.dagannothkings.DagannothRex",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 606,

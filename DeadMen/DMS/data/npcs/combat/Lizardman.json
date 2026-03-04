@@ -1,7 +1,7 @@
 [
   { #Lizardman (53)
     "ids": [ 6914, 6915 ],
-    "handler": "io.ruin.model.activities.miscpvm.Lizardman",
+    "handler": "io.dm.model.activities.miscpvm.Lizardman",
     //Combat Info
     "hitpoints": 60,
     "aggressive_level": 0,

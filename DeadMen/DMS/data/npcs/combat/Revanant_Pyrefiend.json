@@ -1,7 +1,7 @@
 [
     { #Rev Pyre
     "ids": [ 7932 ],
-    "handler": "io.ruin.model.activities.miscpvm.Revenant",
+    "handler": "io.dm.model.activities.miscpvm.Revenant",
     //Combat Info
     "hitpoints": 48,
     "aggressive_level": 135,

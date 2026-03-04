@@ -1,7 +1,7 @@
 [
   { #Ranalph Devere (92)
     "ids": [ 3966, 8300, 8301, 8302 ],
-    "handler": "io.ruin.model.activities.bosses.Ranalph",
+    "handler": "io.dm.model.activities.bosses.Ranalph",
     //Combat Info
     "hitpoints": 130,
     "aggressive_level": 184,

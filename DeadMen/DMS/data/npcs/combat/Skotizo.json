@@ -1,7 +1,7 @@
 [
   { #Skotizo (321) (WILDERNESS PVP WORLD EVENT VERSION!)
     "ids": [ 7286 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.custom.SkotizoPVPEvent",
+    "handler": "io.dm.model.activities.wilderness.bosses.custom.SkotizoPVPEvent",
     //Combat Info
     "hitpoints": 1500,
     "aggressive_level": 642,
@@ -47,7 +47,7 @@
   },
   { #Skotizo (321) (Catacombs boss version!)
     "ids": [ 7297 ],
-    "handler": "io.ruin.model.activities.bosses.Skotizo",
+    "handler": "io.dm.model.activities.bosses.Skotizo",
     //Combat Info
     "hitpoints": 450,
     "aggressive_level": 642,

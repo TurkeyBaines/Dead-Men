@@ -146,7 +146,6 @@ public class PVPInstance {
             player.getBountyHunter().skip(false);
         if(player.pvpInstancePosition == null)
             player.pvpInstancePosition = player.getPosition().copy();
-        player.getPacketSender().sendDiscordPresence("PVP Instance");
         player.getPacketSender().sendVarp(20003, 1); //custom to set client to think pvp world
         player.openInterface(InterfaceType.WILDERNESS_OVERLAY, Interface.WILDERNESS_OVERLAY);
         player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 58, true); //hide wilderness level
@@ -163,7 +162,6 @@ public class PVPInstance {
             player.pvpInstancePosition = null;
             player.closeInterface(InterfaceType.WILDERNESS_OVERLAY);
         }
-        player.getPacketSender().sendDiscordPresence("Idle");
         players.remove(player);
     }
 

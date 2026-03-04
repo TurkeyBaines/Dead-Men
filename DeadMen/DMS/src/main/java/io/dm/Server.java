@@ -6,7 +6,7 @@ import io.dm.api.database.DummyDatabase;
 import io.dm.api.filestore.FileStore;
 import io.dm.api.netty.NettyServer;
 import io.dm.api.process.ProcessWorker;
-//import io.ruin.api.rest.KronosRest;
+//import io.dm.api.rest.KronosRest;
 import io.dm.api.utils.*;
 import io.dm.cache.*;
 import io.dm.data.DataFile;
@@ -18,7 +18,6 @@ import io.dm.model.combat.special.Special;
 import io.dm.model.entity.player.Player;
 import io.dm.model.map.object.actions.impl.Trapdoor;
 import io.dm.model.map.object.actions.impl.dungeons.StrongholdSecurity;
-import io.dm.model.map.object.actions.impl.edgeville.Giveaway;
 import io.dm.model.shop.ShopManager;
 import io.dm.network.LoginDecoder;
 import io.dm.network.incoming.Incoming;
@@ -27,7 +26,6 @@ import io.dm.process.LoginWorker;
 import io.dm.process.event.EventWorker;
 import io.dm.services.LatestUpdate;
 import io.dm.services.Loggers;
-import io.dm.services.discord.DiscordConnection;
 import io.dm.utility.CharacterBackups;
 import lombok.extern.slf4j.Slf4j;
 
@@ -145,16 +143,14 @@ public class Server extends ServerWrapper {
 
             Loggers.clearOnlinePlayers(World.id);
             LatestUpdate.fetch();
-            Giveaway.updateTotalAmount();
-            if(!World.isDev()) {
-                DiscordConnection.setup("");
-            }
         }
 
 
         Achievement.staticInit();
 
         ShopManager.registerUI();
+
+        World.initDeadman();
 
         /*
          * Loading (After data has been loaded!
@@ -182,7 +178,7 @@ public class Server extends ServerWrapper {
             StrongholdSecurity.register();
             Trapdoor.register();
 
-            PackageLoader.load("io.ruin"); //ensures all static blocks load
+            PackageLoader.load("io.dm"); //ensures all static blocks load
 
             // When packaged, priority messes up and these load too late.
             StrongholdSecurity.register();

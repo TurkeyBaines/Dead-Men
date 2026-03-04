@@ -1,6 +1,5 @@
 package io.dm.model.activities.tasks;
 
-import io.dm.model.activities.wilderness.Hotspot;
 import io.dm.model.activities.wilderness.Wilderness;
 import io.dm.model.combat.Killer;
 import io.dm.model.entity.npc.NPC;
@@ -13,7 +12,6 @@ public enum PlayerKillTaskListener implements TaskListener  {
     EDGEVILLE((p, k) -> p.getPosition().inBounds(Killer.EDGEVILLE_FARM_SKIP_BOUNDS)),
     MAIN((p, k) -> p.getCombat().getLevel() == 126),
     PURE((p, k) -> p.getStats().get(StatType.Defence).fixedLevel == 1),
-    HOTSPOT((p, k) -> p.getPosition().inBounds(Hotspot.ACTIVE.bounds)),
     DEEP_WILD((p, k) -> p.wildernessLevel >= 50),
     REV_CAVE((p, k) -> p.getPosition().inBounds(Wilderness.REVENANT_CAVE)),
 

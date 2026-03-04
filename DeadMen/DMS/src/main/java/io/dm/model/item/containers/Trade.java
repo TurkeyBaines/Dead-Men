@@ -102,10 +102,6 @@ public class Trade extends ItemContainer {
             player.sendMessage("You can't trade with jailed players.");
             return;
         }
-        if(player.getDuel().stage >= 4) {
-            player.sendMessage("You can't trade while in a duel.");
-            return;
-        }
         if(player.joinedTournament) {
             player.sendMessage("You can't trade while you're signed up for a tournament.");
             return;

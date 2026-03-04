@@ -6,7 +6,6 @@ import io.dm.api.utils.Random;
 import io.dm.cache.Color;
 import io.dm.cache.ItemDef;
 import io.dm.model.World;
-import io.dm.model.activities.duelarena.DuelRule;
 import io.dm.model.activities.pvp.leaderboard.Leaderboard;
 import io.dm.model.activities.raids.xeric.ChambersOfXeric;
 import io.dm.model.activities.wilderness.BloodyChest;
@@ -24,7 +23,6 @@ import io.dm.model.inter.Widget;
 import io.dm.model.inter.handlers.EquipmentStats;
 import io.dm.model.inter.handlers.IKOD;
 import io.dm.model.inter.handlers.TabCombat;
-import io.dm.model.inter.journal.toggles.TargetOverlay;
 import io.dm.model.inter.utils.Config;
 import io.dm.model.item.Item;
 import io.dm.model.item.actions.impl.TransformationRing;
@@ -66,6 +64,19 @@ public class PlayerCombat extends Combat {
 
     private int lastTargetTimeoutTicks;
 
+    /**
+     * Sigil Curses
+     */
+    public void curse() {
+        nextCurseTicks = Server.currentTick() + 10;
+    }
+
+    public long nextCurseTicks;
+
+    public boolean canCurse() {
+        return Server.currentTick() > nextCurseTicks;
+    }
+
     public void init(Player player) {
         this.player = player;
         player.hitListener = new HitListener()
@@ -97,7 +108,6 @@ public class PlayerCombat extends Combat {
     public void setTarget(Entity target) {
         updateLastTarget(target);
         super.setTarget(target);
-        TargetOverlay.set(player, target);
         if(target.player != null)
             Config.PLAYER_PRIORITY.set(player, target.getIndex());
     }
@@ -258,11 +268,6 @@ public class PlayerCombat extends Combat {
             updateLastAttack(4);
             return;
         }
-        if (weaponDef.id == CorruptedStaff.UNCHARGED) {
-            player.sendMessage("Your Corrupted staff has no charges left!");
-            updateLastAttack(4);
-            return;
-        }
         if (swamp || weaponDef.id == TridentOfTheSeas.CHARGED || weaponDef.id == TridentOfTheSeas.FULLY_CHARGED) {
             if (target.player != null) {
                 player.sendMessage(Color.RED.wrap("This staff's spell cannot be used against other players."));
@@ -306,41 +311,6 @@ public class PlayerCombat extends Combat {
             }
             updateLastAttack(4);
         }
-        if (weaponDef.id == CorruptedStaff.CHARGED) {
-            if (target.player != null) {
-                player.sendMessage(Color.RED.wrap("This staff's spell cannot be used against other players."));
-                return;
-            }
-            player.animate(1167);
-            player.graphics(5008, 92, 0);
-            int duration = new Projectile(5013, 75, 36, 51, 56, 10, 16, 11).send(player, target);
-            Hit hit = new Hit(player, AttackStyle.MAGIC, getAttackType()).randDamage(getCorruptedStaffMaxDamage()).clientDelay(duration).setAttackWeapon(weaponDef);
-            int damage = target.hit(hit);
-            if (damage > 0) {
-                int curr = -1;
-                int fixed = -1;
-                if (target != null && target.npc.getCombat() != null) {
-                    curr = target.npc.getCombat().getStat(StatType.Defence).currentLevel;
-                    fixed = target.npc.getCombat().getStat(StatType.Defence).fixedLevel;
-                }
-                double ratio = (double) curr / fixed;
-                if (Random.rollDie(6, 1) && ratio > 0.9) {
-                    target.npc.getCombat().getStat(StatType.Defence).drain(0.9);
-                    target.graphics(5012, 0, duration - 60);
-                } else {
-                    target.graphics(5010, 120, duration - 60);
-                }
-            } else {
-                hit.nullify();
-                target.graphics(85, 92, duration - 60);
-            }
-            updateLastAttack(4);
-        }
-    }
-
-    public int getCorruptedStaffMaxDamage() {
-        int base = 24;
-        return (int) Math.round((Math.max(base, base + (Math.max(0, player.getStats().get(StatType.Magic).currentLevel - 77)) / 3)) * (1 + (player.getEquipment().bonuses[EquipmentStats.MAGIC_DAMAGE] / 100.0)));
     }
 
     public int getTridentMaxDamage(boolean swamp) {
@@ -1071,7 +1041,6 @@ public class PlayerCombat extends Combat {
         restoreSpecial(100);
         if(specialActive != null)
             deactivateSpecial();
-        TargetOverlay.reset(player);
     }
 
     /**
@@ -1188,10 +1157,6 @@ public class PlayerCombat extends Combat {
             return;
         }
         if(wepDef != null && wepDef.special != null) {
-            if(DuelRule.NO_SPECIALS.isToggled(player)) {
-                player.sendMessage("Special attacks have been disabled for this duel!");
-                return;
-            }
             if(!wepDef.special.handleActivation(player)) {
                 if(wepDef.graniteMaul)
                     queueGraniteMaulSpecial();

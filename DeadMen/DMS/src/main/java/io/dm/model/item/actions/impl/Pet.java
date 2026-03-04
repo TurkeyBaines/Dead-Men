@@ -24,146 +24,136 @@ public enum Pet {
     /**
      * Boss pets
      */
-    ABYSSAL_ORPHAN(13262, 5884, 15006, true, 1000),
-    BABY_MOLE(12646, 6635, true, 1000),
-    CALLISTO_CUB(13178, 5558, true, 500),
-    HELLPUPPY(13247, 3099, 15007, true, 1000),
-    KALPHITE_PRINCESS(12647, 6638, 6637, true, 1000),
-    KALPHITE_PRINCESS_2(12654, 6637, 6638, false),
-    CHAOS_ELEMENTAL(11995, 2055, true, 500),
-    DAGANNOTH_PRIME(12644, 6629, true, 1000),
-    DAGANNOTH_REX(12645, 6630, true, 1000),
-    DAGGANOTH_SUPREME(12643, 6628, true, 1000),
-    DARK_CORE(12816, 318, 8010, true, 1000),
-    GENERAL_GRAARDOR(12650, 6632, true, 1000),
-    JAL_NIB_REK(21291, 7675, 8009, true),
-    KRIL_TSUTSAROTH(12652, 6634, true, 1000),
-    KRAKEN(12655, 6640, true, 1000),
-    KREEARRA(12649, 6631, true, 1000),
-    MIDNIGHT(21750, 7893, 7892, true, 1000),
-    NOON(21748, 7892, 7893, true),
-    SMOKE_DEVIL(12648, 6639, true, 1000),
-    SNAKELING_GREEN(12921, 2130, 2131, true, 1000),
-    SNAKELING_RED(12939, 2131, 2132, false),
-    SNAKELING_BLUE(12940, 2132, 2130, false),
-    ZILYANA(12651, 6633, true, 1000),
-    PRINCE_BLACK_DRAGON(12653, 6636, true, 1000),
-    SCORPIAS_OFFSPRING(13181, 5561, true, 1000),
-    TZREK_JAD(13225, 5893, 15008, true, 100),
-    VENENATIS_SPIDERLING(13177, 5557, true, 500),
-    VETION_JR_PURPLE(13179, 5559, 5560, true, 500),
-    VETION_JR_ORANGE(13180, 5560, 5559, false),
-    SKOTOS(21273, 7671, true, 500),
-    VORKI(21992, 8029, false, 600),
-    LIL_ZIK(22473, 8337, false, 500),
-    TZREK_ZUK(22319, 8009, 7675, true, 100),
-    CORPOREAL_CRITTER(22318, 8010, 318, true),
-    IKKLE_HYDRA_GREEN(22746, 8492, 8493, true, 1000),
-    IKKLE_HYDRA_BLUE(22748, 8493, 8494, false),
-    IKKLE_HYDRA_RED(22750, 8494, 8495, false),
-    IKKLE_HYDRA_BLACK(22752, 8495, 8492, false),
-    SRARACHA(23495, 2143, false),
-    ABYYSALSIRE(30047, 15006, 5884, true),
-    CERBERUS(30045, 15007, 3099, true),
-    JALTOKJAD(30044, 15008, 5893, true),
-    Necromancer(30033, 15005, false),
-    Nech(30018, 15002, false),
-    LAVADRAGON(30131, 15017, false),
-    KAAL_KET_JOR(30211, 15022, false, 2000),
+    ABYSSAL_ORPHAN(13262, 5884, 1000),
+    BABY_MOLE(12646, 6635, 1000),
+    CALLISTO_CUB(13178, 5558, 500),
+    HELLPUPPY(13247, 3099, 1000),
+    KALPHITE_PRINCESS(12647, 6638, 1000),
+    KALPHITE_PRINCESS_2(12654, 6637),
+    CHAOS_ELEMENTAL(11995, 2055, 500),
+    DAGANNOTH_PRIME(12644, 6629, 1000),
+    DAGANNOTH_REX(12645, 6630, 1000),
+    DAGGANOTH_SUPREME(12643, 6628, 1000),
+    DARK_CORE(12816, 318, 1000),
+    GENERAL_GRAARDOR(12650, 6632, 1000),
+    JAL_NIB_REK(21291, 7675),
+    KRIL_TSUTSAROTH(12652, 6634, 1000),
+    KRAKEN(12655, 6640, 1000),
+    KREEARRA(12649, 6631, 1000),
+    MIDNIGHT(21750, 7893, 1000),
+    NOON(21748, 7892),
+    SMOKE_DEVIL(12648, 6639, 1000),
+    SNAKELING_GREEN(12921, 2130, 1000),
+    SNAKELING_RED(12939, 2131),
+    SNAKELING_BLUE(12940, 2132),
+    ZILYANA(12651, 6633, 1000),
+    PRINCE_BLACK_DRAGON(12653, 6636, 1000),
+    SCORPIAS_OFFSPRING(13181, 5561, 1000),
+    TZREK_JAD(13225, 5893, 100),
+    VENENATIS_SPIDERLING(13177, 5557, 500),
+    VETION_JR_PURPLE(13179, 5559, 500),
+    VETION_JR_ORANGE(13180, 5560),
+    SKOTOS(21273, 7671),
+    VORKI(21992, 8029),
+    LIL_ZIK(22473, 8337),
+    TZREK_ZUK(22319, 8009),
+    CORPOREAL_CRITTER(22318, 8010),
+    IKKLE_HYDRA_GREEN(22746, 8492,1000),
+    IKKLE_HYDRA_BLUE(22748, 8493),
+    IKKLE_HYDRA_RED(22750, 8494),
+    IKKLE_HYDRA_BLACK(22752, 8495),
+    SRARACHA(23495, 2143),
 
     /**
      * Skilling pets
      */
-    BABY_CHINCHOMPA_GREY(13324, 6757, 6756, true),
-    BABY_CHINCHOMPA_RED(13323, 6756, 6758, false),
-    BABY_CHINCHOMPA_BLACK(13325, 6758, 6757, false),
-    BABY_CHINCHOMPA_GOLD(13326, 6759, 6757, false),
-    BEAVER(13322, 6724, true),
-    HERON(13320, 6722, true),
-    ROCK_GOLEM(13321, 7451, true),
-    GIANT_SQUIRREL(20659, 7351, true),
-    TANGLEROOT(20661, 7352, true),
-    ROCKY(20663, 7353, true),
-    RIFT_GUARDIAN_FIRE(20665, 7354, true),
-    RIFT_GUARDIAN_AIR(20667, 7355, true),
-    RIFT_GUARDIAN_MIND(20669, 7356, true),
-    RIFT_GUARDIAN_WATER(20671, 7357, true),
-    RIFT_GUARDIAN_EARTH(20673, 7358, true),
-    RIFT_GUARDIAN_BODY(20675, 7359, true),
-    RIFT_GUARDIAN_COSMIC(20677, 7360, true),
-    RIFT_GUARDIAN_CHAOS(20679, 7361, true),
-    RIFT_GUARDIAN_NATURE(20681, 7362, true),
-    RIFT_GUARDIAN_LAW(20683, 7363, true),
-    RIFT_GUARDIAN_DEATH(20685, 7364, true),
-    RIFT_GUARDIAN_SOUL(20687, 7365, true),
-    RIFT_GUARDIAN_ASTRAL(20689, 7366, true),
-    RIFT_GUARDIAN_BLOOD(20691, 7367, true),
-    HERBI(21509, 7760, true),
+    BABY_CHINCHOMPA_GREY(13324, 6757),
+    BABY_CHINCHOMPA_RED(13323, 6756),
+    BABY_CHINCHOMPA_BLACK(13325, 6758),
+    BABY_CHINCHOMPA_GOLD(13326, 6759),
+    BEAVER(13322, 6724),
+    HERON(13320, 6722),
+    ROCK_GOLEM(13321, 7451),
+    GIANT_SQUIRREL(20659, 7351),
+    TANGLEROOT(20661, 7352),
+    ROCKY(20663, 7353),
+    RIFT_GUARDIAN_FIRE(20665, 7354),
+    RIFT_GUARDIAN_AIR(20667, 7355),
+    RIFT_GUARDIAN_MIND(20669, 7356),
+    RIFT_GUARDIAN_WATER(20671, 7357),
+    RIFT_GUARDIAN_EARTH(20673, 7358),
+    RIFT_GUARDIAN_BODY(20675, 7359),
+    RIFT_GUARDIAN_COSMIC(20677, 7360),
+    RIFT_GUARDIAN_CHAOS(20679, 7361),
+    RIFT_GUARDIAN_NATURE(20681, 7362),
+    RIFT_GUARDIAN_LAW(20683, 7363),
+    RIFT_GUARDIAN_DEATH(20685, 7364),
+    RIFT_GUARDIAN_SOUL(20687, 7365),
+    RIFT_GUARDIAN_ASTRAL(20689, 7366),
+    RIFT_GUARDIAN_BLOOD(20691, 7367),
+    HERBI(21509, 7760),
 
     /**
      * Misc pets
      */
-    PENANCE_QUEEN(12703, 6674, true),
-    BLOODHOUND(19730, 7232, true),
-    CHOMPY_CHICK(13071, 4002, true),
-    PHOENIX(20693, 7370, true),
-    OLMLET(20851, 7520, 8201, true),
-    PUPPADILE(22376, 8201, 8202, true),
-    TEKTINY(22378, 8202, 8203, true),
-    VANGUARD(22380, 8203, 8204, true),
-    VASA(22382, 8204, 8205, true),
-    VESPINE(22384, 8205, 7520, true),
-    FOUNDER(30016, 15000, true),
-    KRONOS_MINION(30194, 15020, true),
-    SUMMER_PET(30217, 15023, true),
+    PENANCE_QUEEN(12703, 6674),
+    BLOODHOUND(19730, 7232),
+    CHOMPY_CHICK(13071, 4002),
+    PHOENIX(20693, 7370),
+    OLMLET(20851, 7520),
+    PUPPADILE(22376, 8201),
+    TEKTINY(22378, 8202),
+    VANGUARD(22380, 8203),
+    VASA(22382, 8204),
+    VESPINE(22384, 8205),
 
     /**
      * Cats
      */
-    KITTEN1(1555, 5591, 1619, false),
-    CAT1(1561, 1619, 5598, false),
-    OVERGROWN_CAT1(1567, 5598, 5585, false),
-    WILY_CAT1(6556, 5585, 1627, false),
-    LAZY_CAT1(6550, 1627, 5591, false),
+    KITTEN1(1555, 5591),
+    CAT1(1561, 1619),
+    OVERGROWN_CAT1(1567, 5598),
+    WILY_CAT1(6556, 5585),
+    LAZY_CAT1(6550, 1627),
 
-    KITTEN2(1556, 5592, 1620, false),
-    CAT2(1562, 1620, 5599, false),
-    OVERGROWN_CAT2(1568, 5599, 5584, false),
-    WILY_CAT2(6555, 5584, 1626, false),
-    LAZY_CAT2(6549, 1626, 5592, false),
+    KITTEN2(1556, 5592),
+    CAT2(1562, 1620),
+    OVERGROWN_CAT2(1568, 5599),
+    WILY_CAT2(6555, 5584),
+    LAZY_CAT2(6549, 1626),
 
-    KITTEN3(1557, 5593, 1621, false),
-    CAT3(1563, 1621, 5600, false),
-    OVERGROWN_CAT3(1569, 5600, 5586, false),
-    WILY_CAT3(6557, 5586, 1628, false),
-    LAZY_CAT3(6551, 1628, 5593, false),
+    KITTEN3(1557, 5593),
+    CAT3(1563, 1621),
+    OVERGROWN_CAT3(1569, 5600),
+    WILY_CAT3(6557, 5586),
+    LAZY_CAT3(6551, 1628),
 
-    KITTEN4(1558, 5594, 1622, false),
-    CAT4(1564, 1622, 5601, false),
-    OVERGROWN_CAT4(1570, 5601, 5587, false),
-    WILY_CAT4(6558, 5587, 1629, false),
-    LAZY_CAT4(6552, 1629, 5594, false),
+    KITTEN4(1558, 5594),
+    CAT4(1564, 1622),
+    OVERGROWN_CAT4(1570, 5601),
+    WILY_CAT4(6558, 5587),
+    LAZY_CAT4(6552, 1629),
 
-    KITTEN5(1559, 5595, 1623, false),
-    CAT5(1565, 1623, 5602, false),
-    OVERGROWN_CAT5(1571, 5602, 5588, false),
-    WILY_CAT5(6559, 5588, 1630, false),
-    LAZY_CAT5(6553, 1630, 5595, false),
+    KITTEN5(1559, 5595),
+    CAT5(1565, 1623),
+    OVERGROWN_CAT5(1571, 5602),
+    WILY_CAT5(6559, 5588),
+    LAZY_CAT5(6553, 1630),
 
-    KITTEN6(1560, 5596, 1624, false),
-    CAT6(1566, 1624, 5603, false),
-    OVERGROWN_CAT6(1572, 5603, 5589, false),
-    WILY_CAT6(6560, 5589, 1631, false),
-    LAZY_CAT6(6554, 1631, 5596, false),
+    KITTEN6(1560, 5596),
+    CAT6(1566, 1624),
+    OVERGROWN_CAT6(1572, 5603),
+    WILY_CAT6(6560, 5589),
+    LAZY_CAT6(6554, 1631),
 
-    HELL_KITTEN(7583, 5597, 1625, false),
-    HELL_CAT(7582, 1625, 5604, false),
-    HELL_OVERGROWN_CAT(7581, 5604, 5590, false),
-    HELL_WILY_CAT(7585, 5590, 1632, false),
-    HELL_LAZY_CAT(7584, 1632, 5597, false),
-    SMOLCANO(23760, 8731, 8739, false),
-    YOUNGLLEF(23757, 8729, 8737, false),
-    CORRUPTED_YOUNGLLEF(23759, 8730, 8738, false);
+    HELL_KITTEN(7583, 5597),
+    HELL_CAT(7582, 1625),
+    HELL_OVERGROWN_CAT(7581, 5604),
+    HELL_WILY_CAT(7585, 5590),
+    HELL_LAZY_CAT(7584, 1632),
+    SMOLCANO(23760, 8731),
+    YOUNGLLEF(23757, 8729),
+    CORRUPTED_YOUNGLLEF(23759, 8730);
 
     public final int itemId, npcId, metaId;
 
@@ -179,6 +169,13 @@ public enum Pet {
 
     Pet(int itemId, int npcId, int metaId, boolean mysteryBox) {
         this(itemId, npcId, metaId, mysteryBox, 0);
+    }
+
+    Pet(int itemId, int npcId) {
+        this(itemId, npcId, -1, false, 0);
+    }
+    Pet(int itemId, int npcId, int dropAverage) {
+        this(itemId, npcId, -1, false, dropAverage);
     }
 
     Pet(int itemId, int npcId, boolean mysteryBox, int dropAverage) {
@@ -200,8 +197,7 @@ public enum Pet {
             if (def == null || def.id == baseDef.id || def.name == null || def.options == null || !def.name.equalsIgnoreCase(baseDef.name)) {
                 continue;
             }
-            if (!Arrays.equals(def.options, baseDef.options) && !baseDef.hasOption("metamorphosis"))
-                continue;
+
             if (!Arrays.equals(def.models, baseDef.models))
                 continue;
             return def.id;
@@ -311,58 +307,42 @@ public enum Pet {
              * Metamorphosis
              */
             NPCAction.register(pet.npcId, "metamorphosis", (player, npc) -> {
-                if (Config.PET_NPC_INDEX.get(player) != npc.getIndex())
-                    return;
-                if (pet.metaId == -1)
-                    return;
-                player.faceTemp(npc);
-                if ((pet == BABY_CHINCHOMPA_BLACK || pet == BABY_CHINCHOMPA_GREY || pet == BABY_CHINCHOMPA_RED) && Random.rollDie(5000, 1)) {
-                    npc.transform(BABY_CHINCHOMPA_GOLD.npcId); // https://youtu.be/6d-BGPO5SLk
+//                if (Config.PET_NPC_INDEX.get(player) != npc.getIndex())
+//                    return;
+//                if (pet.metaId == -1)
+//                    return;
+//                player.faceTemp(npc);
+//                if ((pet == BABY_CHINCHOMPA_BLACK || pet == BABY_CHINCHOMPA_GREY || pet == BABY_CHINCHOMPA_RED) && Random.rollDie(5000, 1)) {
+//                    npc.transform(BABY_CHINCHOMPA_GOLD.npcId); // https://youtu.be/6d-BGPO5SLk
+//
+//                    return;
+//                }
+//                if (pet == BABY_CHINCHOMPA_GOLD) {
+//                    player.dialogue(
+//                            new MessageDialogue("<col=ff0000>Warning:</col> Metamorphosis will result in you losing your<br>golden chinchompa. Are you sure you want to do this?").lineHeight(24),
+//                            new OptionsDialogue(
+//                                    new Option("Yes", () -> npc.transform(BABY_CHINCHOMPA_GOLD.metaId)),
+//                                    new Option("No")
+//                            )
+//                    );
+//                    return;
+//                }
+                //npc.transform(pet.metaId);
+                //npc.face(player);
 
-                    return;
-                }
-                if (pet == BABY_CHINCHOMPA_GOLD) {
-                    player.dialogue(
-                            new MessageDialogue("<col=ff0000>Warning:</col> Metamorphosis will result in you losing your<br>golden chinchompa. Are you sure you want to do this?").lineHeight(24),
-                            new OptionsDialogue(
-                                    new Option("Yes", () -> npc.transform(BABY_CHINCHOMPA_GOLD.metaId)),
-                                    new Option("No")
-                            )
-                    );
-                    return;
-                }
-                if (pet == CERBERUS) {
-                    if (!player.cerberusMetamorphisis) {
-                        player.sendMessage("You need to use Cerberus paws on this first before you can use metamorphosis.");
-                        return;
-                    }
-                }
-                if (pet == ABYSSAL_ORPHAN) {
-                    if (!player.abyssalSireMetamorphisis) {
-                        player.sendMessage("You need to use a Sires tendral on this first before you can use metamorphosis.");
-                        return;
-                    }
-                }
-                if (pet == TZREK_JAD) {
-                    if (!player.infernalJadMetamorphisis) {
-                        player.sendMessage("You need to use Infernal shard on this first before you can use metamorphosis.");
-                        return;
-                    }
-                }
-                npc.transform(pet.metaId);
-                npc.face(player);
+                player.sendMessage("This was shit, I might add it back later :(");
             });
             /**
              * Age (Custom for cats!!)
              */
-            NPCAction.register(pet.npcId, "age", (player, npc) -> {
-                if (Config.PET_NPC_INDEX.get(player) != npc.getIndex())
-                    return;
-                if (pet.metaId == -1)
-                    return;
-                player.faceTemp(npc);
-                npc.transform(pet.metaId);
-            });
+//            NPCAction.register(pet.npcId, "age", (player, npc) -> {
+//                if (Config.PET_NPC_INDEX.get(player) != npc.getIndex())
+//                    return;
+//                if (pet.metaId == -1)
+//                    return;
+//                player.faceTemp(npc);
+//                npc.transform(pet.metaId);
+//            });
             /**
              * Dialogue
              */
@@ -373,30 +353,6 @@ public enum Pet {
                 NPCAction.register(pet.roamId, "talk-to", (player, npc) -> talkAction.accept(player));
             }
         }
-        ItemNPCAction.register(30043, HELLPUPPY.npcId, (player, item, npc) -> {
-            if (!player.cerberusMetamorphisis) {
-                player.sendMessage("You've unlocked the cerberus metamorphosis for your hell puppy.");
-                item.remove(1);
-            } else {
-                player.sendMessage("You've already unlocked the cerberus metamorphosis.");
-            }
-        });
-        ItemNPCAction.register(30042, ABYSSAL_ORPHAN.npcId, (player, item, npc) -> {
-            if (!player.abyssalSireMetamorphisis) {
-                player.sendMessage("You've unlocked the abyssal sire metamorphosis for your Abyssal orphan.");
-                item.remove(1);
-            } else {
-                player.sendMessage("You've already unlocked the abyssal sire metamorphosis.");
-            }
-        });
-        ItemNPCAction.register(30041, TZREK_JAD.npcId, (player, item, npc) -> {
-            if (!player.infernalJadMetamorphisis) {
-                player.sendMessage("You've unlocked the JalTok-Jad metamorphosis for your Tzrek Jad.");
-                item.remove(1);
-            } else {
-                player.sendMessage("You've already unlocked the JalTok-Jad metamorphosis.");
-            }
-        });
     }
 
     public static boolean pickup(Player player, NPC npc, Pet pet) {

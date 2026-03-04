@@ -1,7 +1,7 @@
 [
   { #Cave crawler (23)
     "ids": [ 406, 407, 408, 409 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.CaveCrawler",
+    "handler": "io.dm.model.activities.miscpvm.slayer.CaveCrawler",
     //Combat Info
     "hitpoints": 22,
     "aggressive_level": 46,

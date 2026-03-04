@@ -1,7 +1,7 @@
 [
   { #Jal-MejJak (250)
     "ids": [ 7708 ],
-    "handler": "io.ruin.model.activities.inferno.monsters.JalMejJak",
+    "handler": "io.dm.model.activities.inferno.monsters.JalMejJak",
     //Combat Info
     "hitpoints": 80,
     "aggressive_level": 0,

@@ -1,7 +1,7 @@
 [
   { #Dark energy core (75)
     "ids": [ 320 ],
-    "handler": "io.ruin.model.activities.bosses.corp.DarkCore",
+    "handler": "io.dm.model.activities.bosses.corp.DarkCore",
     //Combat Info
     "hitpoints": 25,
     "aggressive_level": 150,

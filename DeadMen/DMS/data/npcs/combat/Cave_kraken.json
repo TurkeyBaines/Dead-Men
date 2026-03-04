@@ -1,7 +1,7 @@
 [
   { #Cave kraken (127)
     "ids": [ 492, 493 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.CaveKraken",
+    "handler": "io.dm.model.activities.miscpvm.slayer.CaveKraken",
     //Combat Info
     "hitpoints": 125,
     "aggressive_level": 254,

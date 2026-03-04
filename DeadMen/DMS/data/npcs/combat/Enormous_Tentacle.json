@@ -1,7 +1,7 @@
 [
   { #Enormous Tentacle (112)
     "ids": [ 5535, 5534 ],
-    "handler": "io.ruin.model.activities.bosses.slayer.KrakenTentacle",
+    "handler": "io.dm.model.activities.bosses.slayer.KrakenTentacle",
     //Combat Info
     "hitpoints": 120,
     "aggressive_level": 224,

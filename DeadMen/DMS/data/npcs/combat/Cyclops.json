@@ -1,7 +1,7 @@
 [
   { #Cyclops (56)
     "ids": [ 2097, 2463, 2465, 2467, 7271 ],
-    "handler": "io.ruin.model.activities.warriorsguild.Cyclops",
+    "handler": "io.dm.model.activities.warriorsguild.Cyclops",
     //Combat Info
     "hitpoints": 75,
     "aggressive_level": 112,
@@ -44,7 +44,7 @@
   },
   { #Cyclops (76)
     "ids": [ 2464, 2466, 2468, 7270 ],
-    "handler": "io.ruin.model.activities.warriorsguild.Cyclops",
+    "handler": "io.dm.model.activities.warriorsguild.Cyclops",
     //Combat Info
     "hitpoints": 100,
     "aggressive_level": 152,
@@ -130,7 +130,7 @@
   },
   { #Cyclops (106)
     "ids": [ 2137, 2138, 2139, 2140, 2141, 2142 ],
-    "handler": "io.ruin.model.activities.warriorsguild.Cyclops",
+    "handler": "io.dm.model.activities.warriorsguild.Cyclops",
     //Combat Info
     "hitpoints": 150,
     "aggressive_level": 212,

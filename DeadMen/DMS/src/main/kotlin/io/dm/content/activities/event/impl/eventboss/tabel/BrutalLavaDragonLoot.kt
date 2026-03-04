@@ -23,8 +23,7 @@ class BrutalLavaDragonLoot : LootTable() {
                 LootItem(454, 50, 100, 100), //coal
                 LootItem(562, 200, 300, 100), //chaos rune
                 LootItem(560, 200, 300, 100), //death rune
-                LootItem(7937, 1500, 2500, 100), //ess
-                LootItem(30083, 1, 1, 100).broadcast(Broadcast.WORLD) //Hides
+                LootItem(7937, 1500, 2500, 100) //ess
         )
         addTable(10,
                 LootItem(995, 100_000, 500_000, 100), //coins
@@ -35,13 +34,7 @@ class BrutalLavaDragonLoot : LootTable() {
                 LootItem(392, 50, 100, 90), //manta
                 LootItem(454, 200, 500, 100), //coal
                 LootItem(441, 50, 100, 100), //iron
-                LootItem(30083, 2, 2, 100).broadcast(Broadcast.WORLD), //Hides
                 LootItem(11230, 20, 50, 90)
-        )
-        addTable(1,
-                LootItem(30145, 1, 1, 2).broadcast(Broadcast.WORLD), //leaf
-                LootItem(30129, 1, 1, 2).broadcast(Broadcast.WORLD), //Augment
-                LootItem(30083, 5, 5, 3).broadcast(Broadcast.WORLD) //Hides
         )
     }
 }

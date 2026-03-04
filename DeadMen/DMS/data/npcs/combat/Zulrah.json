@@ -1,7 +1,7 @@
 [
   { #Zulrah (725) (serpentine form)
     "ids": [ 2042 ],
-    "handler": "io.ruin.model.activities.bosses.zulrah.Zulrah",
+    "handler": "io.dm.model.activities.bosses.zulrah.Zulrah",
 	"pet": "SNAKELING_GREEN",
     //Combat Info
     "hitpoints": 500,
@@ -45,7 +45,7 @@
   },
   { #Zulrah (725) (magma form)
     "ids": [ 2043 ],
-    "handler": "io.ruin.model.activities.bosses.zulrah.Zulrah",
+    "handler": "io.dm.model.activities.bosses.zulrah.Zulrah",
     //Combat Info
     "hitpoints": 500,
     "aggressive_level": 1450,
@@ -88,7 +88,7 @@
   },
   { #Zulrah (725) (tanzanite form)
     "ids": [ 2044 ],
-    "handler": "io.ruin.model.activities.bosses.zulrah.Zulrah",
+    "handler": "io.dm.model.activities.bosses.zulrah.Zulrah",
     //Combat Info
     "hitpoints": 500,
     "aggressive_level": 1450,

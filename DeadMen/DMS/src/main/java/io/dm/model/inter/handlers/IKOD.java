@@ -13,8 +13,6 @@ import io.dm.model.item.actions.impl.ItemBreaking;
 import io.dm.model.item.actions.impl.ItemUpgrading;
 import io.dm.model.item.actions.impl.Pet;
 import io.dm.model.item.actions.impl.chargable.Blowpipe;
-import io.dm.model.item.actions.impl.chargable.CorruptedJavelin;
-import io.dm.model.item.actions.impl.chargable.CorruptedStaff;
 import io.dm.model.item.actions.impl.combine.ItemCombining;
 import io.dm.model.item.attributes.AttributeExtensions;
 import io.dm.model.skills.prayer.Prayer;
@@ -177,26 +175,6 @@ public class IKOD {
                     if (etherAmount > 0)
                         loseItems.add(new Item(21820, etherAmount));
                     item.setId(22542);
-                    AttributeExtensions.setCharges(item, 0);
-                    loseItems.add(item);
-                    continue;
-                }
-                /* corrupted staff */
-                if (item.getId() == CorruptedStaff.CHARGED) {
-                    int essenceAmt = AttributeExtensions.getCharges(item);
-                    if (essenceAmt > 0)
-                        loseItems.add(new Item(CorruptedStaff.ESSENCE, essenceAmt));
-                    item.setId(CorruptedStaff.UNCHARGED);
-                    AttributeExtensions.setCharges(item, 0);
-                    loseItems.add(item);
-                    continue;
-                }
-                /* corrupted staff */
-                if (item.getId() == CorruptedJavelin.CHARGED) {
-                    int essenceAmt = AttributeExtensions.getCharges(item);
-                    if (essenceAmt > 0)
-                        loseItems.add(new Item(CorruptedJavelin.ESSENCE, essenceAmt));
-                    item.setId(CorruptedJavelin.UNCHARGED);
                     AttributeExtensions.setCharges(item, 0);
                     loseItems.add(item);
                     continue;

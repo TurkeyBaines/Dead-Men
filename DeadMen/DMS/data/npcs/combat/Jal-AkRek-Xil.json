@@ -1,7 +1,7 @@
 [
   { #Jal-AkRek-Xil (70)
     "ids": [ 7695 ],
-    "handler": "io.ruin.model.activities.inferno.monsters.JalAkRekXil",
+    "handler": "io.dm.model.activities.inferno.monsters.JalAkRekXil",
     //Combat Info
     "hitpoints": 15,
     "aggressive_level": 140,

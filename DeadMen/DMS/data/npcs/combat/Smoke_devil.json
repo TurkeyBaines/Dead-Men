@@ -1,7 +1,7 @@
 [
   { #Smoke devil (160)
     "ids": [ 498 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.SmokeDevil",
+    "handler": "io.dm.model.activities.miscpvm.slayer.SmokeDevil",
     //Combat Info
     "hitpoints": 185,
     "aggressive_level": 0,

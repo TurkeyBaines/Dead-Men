@@ -1,7 +1,7 @@
 [
   { #Thermonuclear smoke devil (301)
     "ids": [ 499 ],
-    "handler": "io.ruin.model.activities.bosses.slayer.ThermonuclearSmokeDevil",
+    "handler": "io.dm.model.activities.bosses.slayer.ThermonuclearSmokeDevil",
     //Combat Info
     "hitpoints": 240,
     "aggressive_level": 480,

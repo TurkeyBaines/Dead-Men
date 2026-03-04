@@ -1,7 +1,7 @@
 [
   { #Yt-HurKot (108)
     "ids": [ 3128 ],
-    "handler": "io.ruin.model.activities.fightcaves.monsters.YtHurKot",
+    "handler": "io.dm.model.activities.fightcaves.monsters.YtHurKot",
     //Combat Info
     "hitpoints": 60,
     "aggressive_level": 216,

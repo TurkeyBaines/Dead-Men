@@ -1,7 +1,7 @@
 [
   { #Wallasalki (98)
     "ids": [ 5938, 5939 ],
-    "handler": "io.ruin.model.activities.miscpvm.waterbirth.Wallasalki",
+    "handler": "io.dm.model.activities.miscpvm.waterbirth.Wallasalki",
     //Combat Info
     "hitpoints": 120,
     "aggressive_level": 196,

@@ -1,7 +1,7 @@
 [
   { #Scorpia\u0027s guardian (47)
     "ids": [ 6617 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.scorpia.ScorpiasGuardian",
+    "handler": "io.dm.model.activities.wilderness.bosses.scorpia.ScorpiasGuardian",
     //Combat Info
     "hitpoints": 70,
     "aggressive_level": 94,

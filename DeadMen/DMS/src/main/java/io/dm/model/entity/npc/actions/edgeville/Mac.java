@@ -23,7 +23,6 @@ public class Mac {
 
     public static final String MAC_SHOP_UUID = "9cdf0778-af8d-49ca-8dad-dff2e4862583";
     public static final String MAC_SHOP2_UUID = "9cdf0778-af8d-49ca-8dad-dff2e4862584";
-    public static final String MAC_MASTER_UUID = "cb3b999f-67a3-47d7-ab8d-87f0fe858f91";
     private static final int ECO_PRICE = 99000;
 
     static {
@@ -109,21 +108,8 @@ public class Mac {
 
         ShopManager.registerShop(untrimmedCapeShop);
 
-        Shop masterCapeShop = Shop.builder()
-                .identifier(MAC_MASTER_UUID)
-                .title("Mac's Master Cape Emporium")
-                .currency(Currency.COINS)
-                .canSellToStore(false)
-                .defaultStock(capes200m)
-                .generatedByBuilder(true)
-                .accessibleByIronMan(true)
-                .build();
-
-        ShopManager.registerShop(masterCapeShop);
-
         NPCAction.register(6481, "buy-capes", (p, n) -> ShopManager.openIfExists(p, MAC_SHOP_UUID));
         NPCAction.register(6481, "buy-capes 2", (p, n) -> ShopManager.openIfExists(p, MAC_SHOP2_UUID));
-        NPCAction.register(6481, "buy-master capes", (p, n) -> ShopManager.openIfExists(p, MAC_MASTER_UUID));
         NPCAction.register(6481, "reset-levels", Mac::resetLevels);
 
     }

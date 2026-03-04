@@ -1,7 +1,7 @@
 [
   { #Deathly ranger
     "ids": [ 7559 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.DeathlyRanger",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.DeathlyRanger",
     //Combat Info
     "hitpoints": 120,
     "aggressive_level": 0,

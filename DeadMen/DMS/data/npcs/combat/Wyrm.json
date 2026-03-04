@@ -1,7 +1,7 @@
 [
   {
     "ids": [ 8610, 8611 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.Wyrm",
+    "handler": "io.dm.model.activities.miscpvm.slayer.Wyrm",
     //Combat Info
     "hitpoints": 130,
     "aggressive_level": 0,

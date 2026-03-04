@@ -1,7 +1,7 @@
 [
     { #Rev knight
     "ids": [ 7939 ],
-    "handler": "io.ruin.model.activities.miscpvm.Revenant",
+    "handler": "io.dm.model.activities.miscpvm.Revenant",
     //Combat Info
     "hitpoints": 143,
     "aggressive_level": 135,

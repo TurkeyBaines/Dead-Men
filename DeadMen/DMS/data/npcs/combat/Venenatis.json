@@ -1,7 +1,7 @@
 [
   { #Venenatis (464)
     "ids": [ 6504, 6610 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.Venenatis",
+    "handler": "io.dm.model.activities.wilderness.bosses.Venenatis",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 928,

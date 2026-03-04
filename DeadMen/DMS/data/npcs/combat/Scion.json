@@ -1,7 +1,7 @@
 [
   { #Scion (100)
     "ids": [ 5918 ],
-    "handler": "io.ruin.model.activities.bosses.slayer.sire.Scion",
+    "handler": "io.dm.model.activities.bosses.slayer.sire.Scion",
     //Combat Info
     "hitpoints": 50,
     "aggressive_level": 200,

@@ -5,7 +5,6 @@ import io.dm.Server;
 import io.dm.cache.AnimDef;
 import io.dm.cache.ObjectDef;
 import io.dm.model.World;
-import io.dm.model.activities.duelarena.DuelRule;
 import io.dm.model.combat.Combat;
 import io.dm.model.combat.CombatUtils;
 import io.dm.model.combat.Hit;
@@ -915,12 +914,6 @@ public abstract class Entity {
         if(isStunned() || isRooted()) {
             if(message && player != null)
                 player.sendMessage("You're stunned!");
-            return true;
-        }
-
-        if(player != null && DuelRule.NO_MOVEMENT.isToggled(player)) {
-            if(message)
-                player.sendMessage("Movement has been disabled for this duel!");
             return true;
         }
         return false;

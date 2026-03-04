@@ -130,7 +130,7 @@
   },
   { #Spiritual ranger (127)
     "ids": [ 3167 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.Aviansie",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.Aviansie",
     //Combat Info
     "hitpoints": 89,
     "aggressive_level": 254,

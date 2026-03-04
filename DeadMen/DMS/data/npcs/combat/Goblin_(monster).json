@@ -216,7 +216,7 @@
   },
     { #Goblin Rev (15)
     "ids": [ 7931 ],
-    "handler": "io.ruin.model.activities.miscpvm.Revenant",
+    "handler": "io.dm.model.activities.miscpvm.Revenant",
     //Combat Info
     "hitpoints": 15,
     "aggressive_level": 32,

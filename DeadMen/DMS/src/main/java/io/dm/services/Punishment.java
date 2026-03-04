@@ -10,7 +10,6 @@ import io.dm.model.entity.player.PlayerGroup;
 import io.dm.api.utils.IPBans;
 import io.dm.api.utils.MACBan;
 import io.dm.api.utils.UUIDBan;
-import io.dm.services.discord.DiscordConnection;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 
@@ -41,11 +40,6 @@ public class Punishment {
      */
 
     public static void jail(Player p1, Player p2, int ores) {
-        if (p2.tournament != null) {
-            p1.sendMessage("You can't jail a player while they are within a tournament.");
-            return;
-        }
-
         if (p2.lmsSession != null) {
             p2.lmsSession.eliminatePlayer(p2);
         }
@@ -187,7 +181,6 @@ public class Punishment {
             }
         }
 
-        DiscordConnection.post(DiscordConnection.CHANNEL_PUNISHMENTS, builder.build());
     }
 
 }

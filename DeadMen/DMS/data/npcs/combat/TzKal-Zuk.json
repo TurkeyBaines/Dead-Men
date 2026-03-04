@@ -1,7 +1,7 @@
 [
   { #TzKal-Zuk (1400)
     "ids": [ 7706 ],
-    "handler": "io.ruin.model.activities.inferno.monsters.TzKalZuk",
+    "handler": "io.dm.model.activities.inferno.monsters.TzKalZuk",
 	"pet": TZREK_ZUK,
     //Combat Info
     "hitpoints": 1200,

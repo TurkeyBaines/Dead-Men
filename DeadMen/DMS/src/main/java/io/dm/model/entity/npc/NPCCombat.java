@@ -1,5 +1,6 @@
 package io.dm.model.entity.npc;
 
+import io.dm.Server;
 import io.dm.api.utils.NumberUtils;
 import io.dm.api.utils.Random;
 import io.dm.cache.Color;
@@ -7,8 +8,6 @@ import io.dm.cache.NPCDef;
 import io.dm.data.impl.npcs.npc_combat;
 import io.dm.model.World;
 import io.dm.model.achievements.listeners.experienced.DemonSlayer;
-import io.dm.model.activities.summerevent.SummerTokens;
-import io.dm.model.activities.tasks.DailyTask;
 import io.dm.model.activities.wilderness.Wilderness;
 import io.dm.model.combat.*;
 import io.dm.model.content.PvmPoints;
@@ -34,7 +33,6 @@ import io.dm.model.map.route.routes.TargetRoute;
 import io.dm.model.skills.slayer.Slayer;
 import io.dm.model.stat.Stat;
 import io.dm.model.stat.StatType;
-import io.dm.services.discord.impl.RareDropEmbedMessage;
 import io.dm.utility.Broadcast;
 import lombok.Getter;
 import lombok.Setter;
@@ -60,6 +58,22 @@ public abstract class NPCCombat extends Combat {
 
     @Setter @Getter
     private boolean allowRetaliate = true;
+
+    /**
+     * Sigil Curses
+     */
+    public long nextCurseTicks;
+
+    public void curse() {
+        nextCurseTicks = Server.currentTick()+10;
+        System.out.println("NPCCombat>Curse() - curTick " + Server.currentTick());
+        System.out.println("NPCCombat>Curse() - nextCurseTick " + nextCurseTicks);
+    }
+
+    public boolean canCurse() {
+        System.out.println("NPCCombat>canCurse() - Answer: " + (Server.currentTick() > nextCurseTicks));
+        return Server.currentTick() > nextCurseTicks;
+    }
 
     protected final NPCCombat init(NPC npc, npc_combat.Info info) {
         this.npc = npc;
@@ -269,7 +283,6 @@ public abstract class NPCCombat extends Combat {
                     npc.getDef().killCounter.apply(killer.player).increment(killer.player);
                 if(info.pet != null && Random.rollDie(info.pet.dropAverage))
                     info.pet.unlock(killer.player);
-                DailyTask.checkNPCKill(killer.player, npc);
                 DemonSlayer.check(killer.player, npc);
             }
 
@@ -347,10 +360,6 @@ public abstract class NPCCombat extends Combat {
          * Casket loots
          */
         GoldCasket.drop(pKiller, npc, dropPosition);
-        /*
-         * Summer Loot
-         */
-        SummerTokens.npcKill(pKiller, npc, dropPosition);
         /*
          * Catacombs loot
          */
@@ -460,13 +469,6 @@ public abstract class NPCCombat extends Combat {
                 npc.dropListener.dropping(killer, item);
 
             /*
-             * Global Broadcast
-             */
-            if(item.lootBroadcast != null || item.getDef().dropAnnounce) {
-                getRareDropAnnounce(pKiller, item);
-            }
-
-            /*
              * Local Broadcast!
              */
             if (info.local_loot) {
@@ -493,7 +495,6 @@ public abstract class NPCCombat extends Combat {
         } else {
             Broadcast.GLOBAL.sendNews(pKiller, message + " from " + npc.getDef().descriptiveName + "!");
         }
-        RareDropEmbedMessage.sendDiscordMessage(message, npc.getDef().descriptiveName, item.getId());
     }
 
     private void getLocalAnnounce(Player pKiller, Item item) {
@@ -610,9 +611,8 @@ public abstract class NPCCombat extends Combat {
     }
 
     protected int getAggressiveLevel() {
-        if (npc.wildernessSpawnLevel > 0)
-            return Integer.MAX_VALUE;
-        else if (info.aggressive_level == -1)
+
+        if (info.aggressive_level == -1)
             return npc.getDef().combatLevel * 2;
         else
             return info.aggressive_level;
@@ -636,7 +636,7 @@ public abstract class NPCCombat extends Combat {
     }
 
     public int getAggressionRange() {
-        return npc.wildernessSpawnLevel > 0 ? 2 : 4;
+        return 4;
     }
 
     public int getAttackBoundsRange() {

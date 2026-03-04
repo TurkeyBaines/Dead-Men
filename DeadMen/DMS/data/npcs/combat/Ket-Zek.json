@@ -1,7 +1,7 @@
 [
   { #Ket-Zek (360)
     "ids": [ 3125, 3126 ],
-    "handler": "io.ruin.model.activities.fightcaves.monsters.KetZek",
+    "handler": "io.dm.model.activities.fightcaves.monsters.KetZek",
     //Combat Info
     "hitpoints": 160,
     "aggressive_level": 720,

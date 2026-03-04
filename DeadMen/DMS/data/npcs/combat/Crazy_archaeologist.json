@@ -1,7 +1,7 @@
 [
   { #Crazy archaeologist (204)
     "ids": [ 6618 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.CrazyArchaeologist",
+    "handler": "io.dm.model.activities.wilderness.bosses.CrazyArchaeologist",
     //Combat Info
     "hitpoints": 225,
     "aggressive_level": 408,

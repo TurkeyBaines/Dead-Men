@@ -1,7 +1,6 @@
 package io.dm.model.combat.special.melee;
 
 import io.dm.cache.ItemDef;
-import io.dm.model.activities.duelarena.DuelRule;
 import io.dm.model.combat.AttackStyle;
 import io.dm.model.combat.AttackType;
 import io.dm.model.combat.Hit;
@@ -22,10 +21,6 @@ public class DragonSpear implements Special {
 
     @Override
     public boolean handle(Player player, Entity target, AttackStyle attackStyle, AttackType attackType, int maxDamage) {
-        if(DuelRule.NO_MOVEMENT.isToggled(player)) {
-            player.sendMessage("This weapon's special attack cannot be used in this duel.");
-            return false;
-        }
         if(target.getSize() > 1) {
             player.sendMessage("That monster is too big to be pushed back!");
             return false;

@@ -1,7 +1,7 @@
 [
   { #Commander Zilyana (596)
     "ids": [ 2205, 6493 ],
-    "handler": "io.ruin.model.activities.godwars.combat.impl.saradomin.CommanderZilyana",
+    "handler": "io.dm.model.activities.godwars.combat.impl.saradomin.CommanderZilyana",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 1192,

@@ -2,9 +2,8 @@ package io.dm.model.stat;
 
 import com.google.gson.annotations.Expose;
 import io.dm.cache.Color;
+import io.dm.deadman.Deadman;
 import io.dm.model.World;
-import io.dm.model.activities.summerevent.SummerTokens;
-import io.dm.model.activities.wilderness.Wilderness;
 import io.dm.model.content.upgrade.ItemEffect;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.dialogue.ItemDialogue;
@@ -126,8 +125,6 @@ public class StatList {
         Stat stat = stats[statId];
         double baseAmount = amount;
 
-        SummerTokens.xpDrop(player);
-
         for(Item item : player.getEquipment().getItems()) {
             if(item != null && item.getDef() != null) {
                 List<String> upgrades = AttributeExtensions.getEffectUpgrades(item);
@@ -155,49 +152,12 @@ public class StatList {
         }
 
         if(useMultiplier) {
-            if(World.xpMultiplier > 0)
-                amount += baseAmount * (World.xpMultiplier - 1);
-            amount += baseAmount * (Wilderness.getXPModifier(player, type));
-        }
-        /*
-         * XP Modes
-         */
-        if (useMultiplier) {
-            if (stat.fixedLevel >= 99) {
-                amount *= player.xpMode.getAfter99Rate();
-            } else {
-                if (type.isCombat()) {
-                    amount *= player.xpMode.getCombatRate();
-                } else {
-                    amount *= player.xpMode.getSkillRate();
-                }
-            }
+            if (Deadman.getOverworld().contains(player))
+                amount += baseAmount * (World.OVERWORLD_XP_MULT - 1);
+            else
+                amount += baseAmount * (Deadman.getConfig().XP_RATE - 1);
         }
 
-
-        /**
-         * 50% experience boost from scroll
-         */
-        if(player.expBonus.isDelayed())
-            amount *= 2.00;
-        /**
-         * 10% experience boost from first 3 days
-         */
-        if (player.first3.isDelayed())
-            amount *= 1.10;
-        /**
-         * 25% experience boost inside the wilderness
-         */
-        if(player.wildernessLevel > 1)
-            amount *= 1.25;
-
-        if (player.getEquipment().contains(new Item(773)))
-            amount *= 10.0;
-        /**
-         * 25% weekend experience boost
-         */
-        if(World.weekendExpBoost)
-            amount *= 1.25;
         double newXp = stat.experience + amount;
         if(newXp > Stat.MAX_XP)
             newXp = Stat.MAX_XP;
@@ -279,5 +239,15 @@ public class StatList {
 
     public boolean check(StatRequirement statRequirement) {
         return statRequirement.hasRequirement(player);
+    }
+
+    public void reset() {
+        for (StatType stat : StatType.values()) {
+            get(stat).currentLevel =    stat == StatType.Hitpoints ?    10 : 1;
+            get(stat).experience =      stat == StatType.Hitpoints ?    1154 : 0;
+            get(stat).updated = true;
+            player.getPacketSender().sendStat(stat.clientId, get(stat).currentLevel, (int) get(stat).experience);
+        }
+        player.getCombat().updateCombatLevel();
     }
 }

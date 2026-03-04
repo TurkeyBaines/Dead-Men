@@ -1,7 +1,7 @@
 [
   { #Kraken (291)
     "ids": [ 494, 496 ],
-    "handler": "io.ruin.model.activities.bosses.slayer.Kraken",
+    "handler": "io.dm.model.activities.bosses.slayer.Kraken",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 582,

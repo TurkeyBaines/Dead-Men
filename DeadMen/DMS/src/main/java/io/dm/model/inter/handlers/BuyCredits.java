@@ -1,16 +1,16 @@
-//package io.ruin.model.inter.handlers;
+//package io.dm.model.inter.handlers;
 //
 //import com.paypal.api.payments.*;
 //import com.paypal.base.rest.APIContext;
 //import com.paypal.base.rest.PayPalRESTException;
-//import io.ruin.api.utils.ServerWrapper;
-//import io.ruin.model.World;
-//import io.ruin.model.entity.player.Player;
-//import io.ruin.model.inter.InterfaceType;
-//import io.ruin.model.inter.dialogue.ItemDialogue;
-//import io.ruin.model.inter.dialogue.MessageDialogue;
-//import io.ruin.model.inter.dialogue.OptionsDialogue;
-//import io.ruin.model.inter.utils.Option;
+//import io.dm.api.utils.ServerWrapper;
+//import io.dm.model.World;
+//import io.dm.model.entity.player.Player;
+//import io.dm.model.inter.InterfaceType;
+//import io.dm.model.inter.dialogue.ItemDialogue;
+//import io.dm.model.inter.dialogue.MessageDialogue;
+//import io.dm.model.inter.dialogue.OptionsDialogue;
+//import io.dm.model.inter.utils.Option;
 //
 //import java.util.ArrayList;
 //import java.util.List;

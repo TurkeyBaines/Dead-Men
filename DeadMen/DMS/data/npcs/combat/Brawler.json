@@ -1,7 +1,7 @@
 [
   { #Brawler (51)
     "ids": [ 1734 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Brawler",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Brawler",
     //Combat Info
     "hitpoints": 53,
     "aggressive_level": 148,
@@ -44,7 +44,7 @@
   },
   { #Brawler (76)
     "ids": [ 1735 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Brawler",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Brawler",
     //Combat Info
     "hitpoints": 83,
     "aggressive_level": 152,
@@ -87,7 +87,7 @@
   },
   { #Brawler (101)
     "ids": [ 1736 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Brawler",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Brawler",
     //Combat Info
     "hitpoints": 113,
     "aggressive_level": 202,
@@ -130,7 +130,7 @@
   },
   { #Brawler (129)
     "ids": [ 1737 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Brawler",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Brawler",
     //Combat Info
     "hitpoints": 143,
     "aggressive_level": 258,

@@ -81,11 +81,18 @@ public enum Piles {
     }
 
     static {
+
+        //
+        //
+        // TODO
+        //    - Add list of allowed notables for Piles NPC, and check it on the ItemNPCAction below
+        //
+        //
+
         NPCAction.register(13, "talk-to", Piles::talk);
-        for (Piles exchangeableItem : values())
-            ItemDef.get(exchangeableItem.itemID).allowPilesToNote = true;
+
         ItemNPCAction.register("piles", (player, item, npc) -> {
-            if(item != null && item.getDef().allowPilesToNote) {
+            if(item != null) {
                 int amountOfItems = item.count();
                 int cost = amountOfItems * EXCHANGE_RATE;
                 String currencyName = "gold coins";

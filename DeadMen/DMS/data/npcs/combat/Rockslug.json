@@ -1,7 +1,7 @@
 [
   { #Rockslug (29)
     "ids": [ 421, 422 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.Rockslug",
+    "handler": "io.dm.model.activities.miscpvm.slayer.Rockslug",
     //Combat Info
     "hitpoints": 27,
     "aggressive_level": 58,

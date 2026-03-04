@@ -1,7 +1,7 @@
 [
   { #TzTok-Jad (702)
     "ids": [ 3127, 6506 ],
-    "handler": "io.ruin.model.activities.fightcaves.monsters.TzTokJad",
+    "handler": "io.dm.model.activities.fightcaves.monsters.TzTokJad",
     "pet": "TZREK_JAD",
     //Combat Info
     "hitpoints": 250,

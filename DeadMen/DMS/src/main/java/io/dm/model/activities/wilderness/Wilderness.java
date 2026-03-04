@@ -11,8 +11,6 @@ import io.dm.model.entity.player.PlayerAction;
 import io.dm.model.entity.shared.listeners.LoginListener;
 import io.dm.model.inter.Interface;
 import io.dm.model.inter.InterfaceType;
-import io.dm.model.inter.journal.toggles.EdgevilleBlacklist;
-import io.dm.model.inter.journal.toggles.RiskProtection;
 import io.dm.model.inter.utils.Config;
 import io.dm.model.item.Item;
 import io.dm.model.item.actions.ItemAction;
@@ -71,10 +69,8 @@ public class Wilderness {
         }*/
 
         players.add(player);
-        player.getPacketSender().sendDiscordPresence("Wilderness");
         player.attackPlayerListener = Wilderness::allowAttack;
         player.attackNpcListener = Wilderness::allowNPCAttack;
-        RiskProtection.monitorRiskProtection(player);
         player.getPacketSender().sendVarp(20003, 0); //custom to make sure client doesn't think pvp world
         player.openInterface(InterfaceType.WILDERNESS_OVERLAY, Interface.WILDERNESS_OVERLAY);
         if (!player.bountyHunterOverlay) {
@@ -118,7 +114,6 @@ public class Wilderness {
             player.insideWildernessAgilityCourse = false;
             player.getCombat().resetKillers(); //important
             //TODO: - clear hits???????????????
-            player.getPacketSender().sendDiscordPresence("Idle");
             Config.IN_PVP_AREA.set(player, 0);
             if(player.getBountyHunter().returnTicks == 0)
                 player.closeInterface(InterfaceType.WILDERNESS_OVERLAY);
@@ -158,27 +153,6 @@ public class Wilderness {
             return true;
         }
 
-        if(!player.inMulti() && !pTarget.inMulti()) {
-            RiskProtection.monitorRiskProtection(player);
-            RiskProtection.monitorRiskProtection(pTarget);
-            long playerProtection = RiskProtection.protectionValue(player);
-            long pTargetProtection = RiskProtection.protectionValue(pTarget);
-
-            if (player.riskedBloodMoney < pTargetProtection) {
-                player.sendMessage(Color.DARK_RED.wrap("This player is currently under risk protection. You must risk an additional " +
-                        NumberUtils.formatNumber(pTargetProtection - player.riskedBloodMoney) + " coins in order to attack them."));
-                return false;
-            }
-
-            if (playerProtection > pTarget.riskedBloodMoney) {
-                player.riskProtectionTier = 0;
-                player.riskProtectionExpirationDelay.delay(10 * 100); // 10 minutes
-                player.sendMessage("By attacking this player you forfeit your risk protection for 10 minutes.");
-//                if (player.journal == Journal.TOGGLES)
-//                    RiskProtection.INSTANCE.send(player);
-            }
-        }
-
         int wildernessLevel = player.wildernessLevel;
         int combatLevel = player.getCombat().getLevel();
         int targetWildernessLevel = pTarget.wildernessLevel;
@@ -189,7 +163,7 @@ public class Wilderness {
             return false;
         }
 
-        return EdgevilleBlacklist.canAttack(player, pTarget);
+        return true;
     }
 
     /**
@@ -285,22 +259,6 @@ public class Wilderness {
         setLevels(new Bounds(3027, 3525, 3032, 3530, -1), 0); //black knight fortress part 4
         setLevels(new Bounds(3003, 3537, 3004, 3538, -1), 0); //black knight fortress part 5
         setLevel(2997, 3525, 0, 0);
-
-        ItemAction.registerInventory(30104, "open", (player, item) -> {
-            Item reward = Random.get(RESOURCE_PACK_LOOT);
-            player.getInventory().remove(item.getId(), 1);
-            player.getInventory().add(reward);
-        });
-        ItemAction.registerInventory(30141, "read", (player, item) -> {
-            player.blackChinchompaBoost.addDelaySeconds((int) TimeUnit.MINUTES.toSeconds(30));
-            player.getInventory().remove(item);
-            player.sendMessage("You now have " + player.blackChinchompaBoost.remainingToMins() + " minutes of Black chinchompa skilling boost.");
-        });
-        ItemAction.registerInventory(30143, "read", (player, item) -> {
-            player.darkCrabBoost.addDelaySeconds((int) TimeUnit.MINUTES.toSeconds(30));
-            player.getInventory().remove(item);
-            player.sendMessage("You now have " + player.darkCrabBoost.remainingToMins() + " minutes of Dark crab skilling boost.");
-        });
 
         LoginListener.register(player -> {
             if (player.blackChinchompaBoostTimeLeft > 0) {
@@ -463,9 +421,6 @@ public class Wilderness {
     public static void rollClueKeyDrop(Player player, NPC npc, Position dropPosition) {
         int chance;
         Item[] table;
-        if (npc.wildernessSpawnLevel <= 0) {
-            return;
-        }
         switch (npc.getDef().name.toLowerCase()) {
             case "callisto":
             case "venenatis":
@@ -508,9 +463,6 @@ public class Wilderness {
 
     public static void bloodMoneyDrop(Player player, NPC npc) {
         int bloodMoney;
-        if (npc.wildernessSpawnLevel <= 0) {
-            return;
-        }
         switch (npc.getDef().name.toLowerCase()) {
             case "callisto":
             case "venenatis":
@@ -587,9 +539,6 @@ public class Wilderness {
                 break;
             default:
                 return;
-        }
-        if (Random.rollDie(chance)) {
-            new GroundItem(new Item(30104, 1)).position(npc.getPosition()).owner(player).spawn();
         }
     }
 

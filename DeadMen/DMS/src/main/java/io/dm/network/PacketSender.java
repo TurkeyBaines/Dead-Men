@@ -13,9 +13,8 @@ import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.ai.AIPlayer;
 import io.dm.model.inter.InterfaceType;
 import io.dm.model.inter.Widget;
-//import io.ruin.model.inter.handlers.BuyCredits;
+//import io.dm.model.inter.handlers.BuyCredits;
 import io.dm.model.inter.WidgetInfo;
-import io.dm.model.inter.journal.JournalCategory;
 import io.dm.model.item.Item;
 import io.dm.model.item.attributes.AttributeExtensions;
 import io.dm.model.map.Position;
@@ -614,42 +613,11 @@ public class PacketSender {
                 .addShort(id);
         write(out);
     }
-    //TODO: 184 Revision Fix Custom Packet
-    public void sendJournal(int type, List<JournalCategory> categories) {
-        /*OutBuffer out = new OutBuffer(255).sendVarShortPacket(87)
-                .addByte(type);
-        for(JournalCategory category : categories) {
-            out.addString(category.name);
-            out.addSmart(category.count);
-        }
-        write(out);*/
-    }
-    //TODO: 184 Revision Fix Custom Packet
-    public void sendJournalEntry(int childId, String text, int colorIndex) {
-        /*OutBuffer out = new OutBuffer(2 + Protocol.strLen(text) + 1).sendVarBytePacket(88)
-                .addSmart(childId)
-                .addString(text)
-                .addByte(colorIndex);
-        write(out);*/
-    }
-    //TODO: 184 Revision Fix Custom Packet
-    public void sendAccountManagement(String donatorStatus, String username, int unreadPMs) {
-        /*OutBuffer out = new OutBuffer(2 + Protocol.strLen(donatorStatus) + 5).sendVarShortPacket(92)
-                .addString(donatorStatus)
-                .addString(username).
-                addByte(unreadPMs);
-        write(out);*/
-    }
+
     //TODO: 184 Revision Fix Custom Packet
     public void sendSkillinterface(String donatorStatus) {
         /*OutBuffer out = new OutBuffer(2 + Protocol.strLen(donatorStatus)).sendVarShortPacket(95)
                 .addString(donatorStatus);
-        write(out);*/
-    }
-    //TODO: 184 Revision Fix Custom Packet
-    public void sendDiscordPresence(String discordStatus) {
-        /*OutBuffer out = new OutBuffer(2 + Protocol.strLen(discordStatus)).sendVarShortPacket(94)
-                .addString(discordStatus);
         write(out);*/
     }
 
@@ -691,49 +659,6 @@ public class PacketSender {
 
         write(out);
     }
-    //TODO: 184 Revision Fix Custom Packet
-    public void sendDropTable(String name, int petId, int petAverage, List<Integer[]> drops) {
-        OutBuffer out = new OutBuffer(3 + Protocol.strLen(name) + 4 + (drops.size() * 13)).sendVarShortPacket(90)
-                .addString(name)
-                .addShort(petId)
-                .addShort(petAverage);
-        for(Integer[] drop : drops) {
-            out.addShort(drop[0]);  //id
-            out.addByte(drop[1]);   //broadcast
-            out.addInt(drop[2]);    //min amount
-            out.addInt(drop[3]);    //max amount
-            out.addShort(drop[4]);  //average
-        }
-        write(out);
-    }
-    //TODO: 184 Revision Fix Custom Packet
-    public void sendLoyaltyRewards(int dayReward, int currentSpree, int highestSpree, int totalClaimedRewards, Item... loyaltyRewards) {
-        /*OutBuffer out = new OutBuffer(3 + 1 + 12 + (loyaltyRewards.length * 8)).sendVarShortPacket(93)
-                .addByte(dayReward)
-                .addInt(currentSpree)
-                .addInt(highestSpree)
-                .addInt(totalClaimedRewards);
-        for(Item reward : loyaltyRewards) {
-            out.addInt(reward.getId());
-            out.addInt(reward.getAmount());
-        }
-        write(out);*/
-    }
-    //TODO: 184 Revision Fix Custom Packet
-//    public void sendBuyCredits(String message, int discountPercent, int selectedCreditPack, int selectedPaymentMethod, BuyCredits... packs) {
-//        /*OutBuffer out = new OutBuffer(3 + Protocol.strLen(message) + 3 + (packs.length * 12)).sendVarShortPacket(12)
-//                .addString(message)
-//                .addByte(discountPercent)
-//                .addByte(selectedCreditPack)
-//                .addByte(selectedPaymentMethod);
-//        for(BuyCredits pack : packs) {
-//            out.addInt(pack.purchasePrice);
-//            out.addInt(pack.purchaseAmount);
-//            out.addInt(pack.freeAmount);
-//        }*/
-//        //todo@@ write(out);
-//    }
-
     public void sendWidget(Widget widget, int seconds) {
         OutBuffer out = new OutBuffer(4).sendVarShortPacket(91)
                 .addByte(widget.getSpriteId())

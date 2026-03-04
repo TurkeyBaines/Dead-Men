@@ -1,7 +1,7 @@
 [
   { #JalTok-Jad (900)
     "ids": [ 7700, 7704 ],
-    "handler": "io.ruin.model.activities.inferno.monsters.JalTokJad",
+    "handler": "io.dm.model.activities.inferno.monsters.JalTokJad",
     //Combat Info
     "hitpoints": 350,
     "aggressive_level": 1800,

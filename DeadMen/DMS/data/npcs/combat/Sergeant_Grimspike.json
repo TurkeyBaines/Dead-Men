@@ -1,7 +1,7 @@
 [
   { #Sergeant Grimspike (142)
     "ids": [ 2218 ],
-    "handler": "io.ruin.model.activities.godwars.combat.impl.bandos.SergeantGrimspike",
+    "handler": "io.dm.model.activities.godwars.combat.impl.bandos.SergeantGrimspike",
     //Combat Info
     "hitpoints": 146,
     "aggressive_level": 284,

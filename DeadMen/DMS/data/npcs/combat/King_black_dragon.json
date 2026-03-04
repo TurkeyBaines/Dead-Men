@@ -1,7 +1,7 @@
 [
   { #King Black Dragon (276)
     "ids": [ 239, 6502 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.KingBlackDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.KingBlackDragon",
     //Combat Info
     "hitpoints": 240,
     "aggressive_level": 552,

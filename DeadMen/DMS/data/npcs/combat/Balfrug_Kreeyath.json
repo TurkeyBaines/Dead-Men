@@ -1,7 +1,7 @@
 [
   { #Balfrug Kreeyath (151)
     "ids": [ 3132 ],
-    "handler": "io.ruin.model.activities.godwars.combat.impl.zamorak.BalfrugKreeyath",
+    "handler": "io.dm.model.activities.godwars.combat.impl.zamorak.BalfrugKreeyath",
     //Combat Info
     "hitpoints": 161,
     "aggressive_level": 302,

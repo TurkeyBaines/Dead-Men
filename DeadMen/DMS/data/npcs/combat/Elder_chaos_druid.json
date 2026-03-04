@@ -4,7 +4,7 @@
     "handler": "",
     //Combat Info
     "hitpoints": 150,
-    "handler": "io.ruin.model.activities.miscpvm.ElderChaosDruid",
+    "handler": "io.dm.model.activities.miscpvm.ElderChaosDruid",
     "aggressive_level": 258,
     "max_damage": 17,
     "attack_style": "CRUSH",

@@ -28,10 +28,6 @@ public class Inventory extends ItemContainer {
             player.sendMessage("Not enough space to spawn item (" + id + ", " + amount + ")");
 //            return;
         }
-        if(player.getDuel().stage >= 4) {
-            //player.sendMessage("You can't drop items in a duel.");
-            return;
-        }
         if(player.joinedTournament) {
             //player.sendMessage("You can't drop items while you're signed up for a tournament.");
             return;

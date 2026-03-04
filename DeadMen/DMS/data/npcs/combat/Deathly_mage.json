@@ -1,7 +1,7 @@
 [
   { #Deathly mage
     "ids": [ 7560 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.DeathlyMage",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.DeathlyMage",
     //Combat Info
     "hitpoints": 120,
     "aggressive_level": 0,

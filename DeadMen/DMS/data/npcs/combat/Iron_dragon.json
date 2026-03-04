@@ -1,7 +1,7 @@
 [
   { #Iron dragon (189)
     "ids": [ 272, 273 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.MetalDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.MetalDragon",
     //Combat Info
     "hitpoints": 165,
     "aggressive_level": 378,
@@ -44,7 +44,7 @@
   },
   { #Iron dragon (215)
     "ids": [ 7254 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.MetalDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.MetalDragon",
     //Combat Info
     "hitpoints": 195,
     "aggressive_level": 430,

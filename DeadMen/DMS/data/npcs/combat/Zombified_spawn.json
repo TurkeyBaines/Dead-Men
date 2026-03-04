@@ -1,7 +1,7 @@
 [
   { #Zombified spawn (64) - Vorkath spawn
     "ids": [ 8063 ],
-    "handler": "io.ruin.model.activities.bosses.vorkath.ZombifiedSpawn",
+    "handler": "io.dm.model.activities.bosses.vorkath.ZombifiedSpawn",
     //Combat Info
     "hitpoints": 38,
     "aggressive_level": 200,

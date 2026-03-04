@@ -87,7 +87,7 @@
   },
     { #Imp Rev (7)
     "ids": [ 7881 ],
-    "handler": "io.ruin.model.activities.miscpvm.Revenant",
+    "handler": "io.dm.model.activities.miscpvm.Revenant",
     //Combat Info
     "hitpoints": 10,
     "aggressive_level": 14,

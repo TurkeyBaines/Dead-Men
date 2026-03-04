@@ -1,7 +1,7 @@
 [
   { #Defiler (33)
     "ids": [ 1724, 1725 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Defiler",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Defiler",
     //Combat Info
     "hitpoints": 27,
     "aggressive_level": 148,
@@ -44,7 +44,7 @@
   },
   { #Defiler (50)
     "ids": [ 1726, 1727 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Defiler",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Defiler",
     //Combat Info
     "hitpoints": 45,
     "aggressive_level": 100,
@@ -87,7 +87,7 @@
   },
   { #Defiler (66)
     "ids": [ 1728 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Defiler",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Defiler",
     //Combat Info
     "hitpoints": 62,
     "aggressive_level": 132,
@@ -130,7 +130,7 @@
   },
   { #Defiler (67)
     "ids": [ 1729 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Defiler",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Defiler",
     //Combat Info
     "hitpoints": 62,
     "aggressive_level": 134,
@@ -173,7 +173,7 @@
   },
   { #Defiler (80)
     "ids": [ 1730, 1731 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Defiler",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Defiler",
     //Combat Info
     "hitpoints": 78,
     "aggressive_level": 160,
@@ -216,7 +216,7 @@
   },
   { #Defiler (97)
     "ids": [ 1732, 1733 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Defiler",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Defiler",
     //Combat Info
     "hitpoints": 97,
     "aggressive_level": 194,

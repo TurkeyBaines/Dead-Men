@@ -1,7 +1,7 @@
 [
   {
     "ids": [ 7551, 7554 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.GreatOlm",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.GreatOlm",
     //Combat Info
     "hitpoints": 800,
     "aggressive_level": 2086,

@@ -1,7 +1,7 @@
 [
   {
     "ids": [ 7288, 7289, 7290, 7291, 7292, 7293, 7294, 7295 ],
-    "handler": "io.ruin.model.activities.miscpvm.PassiveCombat",
+    "handler": "io.dm.model.activities.miscpvm.PassiveCombat",
     //Combat Info
     "hitpoints": 100,
     "aggressive_level": 0,

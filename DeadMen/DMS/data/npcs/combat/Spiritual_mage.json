@@ -130,7 +130,7 @@
   },
   { #Spiritual mage (122)
     "ids": [ 3168 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.ArmadylSpiritualMage",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.ArmadylSpiritualMage",
     //Combat Info
     "hitpoints": 75,
     "aggressive_level": 244,

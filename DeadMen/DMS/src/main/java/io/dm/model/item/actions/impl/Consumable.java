@@ -2,7 +2,6 @@ package io.dm.model.item.actions.impl;
 
 import io.dm.cache.ItemDef;
 import io.dm.model.World;
-import io.dm.model.activities.duelarena.DuelRule;
 import io.dm.model.combat.Hit;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.Widget;
@@ -111,13 +110,6 @@ public class Consumable {
                 player.sendFilteredMessage("You eat the anglerfish.");
         });
 
-        ItemAction.registerInventory(30089, "eat", (player, item) -> {
-            if(eatAngler(player, item)) {
-                player.sendFilteredMessage("You eat the molten eel.");
-                player.antifireTicks = 600;
-                player.getPacketSender().sendWidget(Widget.ANTIFIRE, (int) (600 * 0.6));
-            }
-        });
     }
 
     private static void registerEat(int id, int heal, String name) {
@@ -180,10 +172,6 @@ public class Consumable {
             return false;
         if(player.eatDelay.isDelayed() || player.karamDelay.isDelayed() || player.potDelay.isDelayed())
             return false;
-        if(DuelRule.NO_FOOD.isToggled(player)) {
-            player.sendMessage("Food has been disabled for this duel!");
-            return false;
-        }
         if (stackable)
             item.remove(1);
         else if(newId == -1)
@@ -202,10 +190,6 @@ public class Consumable {
             return false;
         if(player.karamDelay.isDelayed())
             return false;
-        if(DuelRule.NO_FOOD.isToggled(player)) {
-            player.sendMessage("Food has been disabled for this duel!");
-            return false;
-        }
         item.remove();
         animEat(player);
         player.incrementHp(18);
@@ -219,10 +203,6 @@ public class Consumable {
             return false;
         if(player.eatDelay.isDelayed() || player.karamDelay.isDelayed() || player.potDelay.isDelayed())
             return false;
-        if(DuelRule.NO_FOOD.isToggled(player)) {
-            player.sendMessage("Food has been disabled for this duel!");
-            return false;
-        }
         item.remove();
         animEat(player);
         int hp = player.getHp();
@@ -554,10 +534,6 @@ public class Consumable {
             return false;
         if(player.potDelay.isDelayed() || player.karamDelay.isDelayed())
             return false;
-        if(DuelRule.NO_DRINKS.isToggled(player)) {
-            player.sendMessage("Drinks have been disabled for this duel!");
-            return false;
-        }
         if (player.overloadBoostActive && (potion == Potion.OVERLOAD_PLUS || potion == Potion.OVERLOAD_REGULAR || potion == Potion.OVERLOAD_MINUS)) {
             player.sendMessage("Your overload boost is still active.");
             return false;
@@ -566,7 +542,7 @@ public class Consumable {
             player.sendMessage("Your prayer enhance boost is still active.");
             return false;
         }
-        if((potion == Potion.SARADOMIN_BREW || potion == Potion.GUTHIX_REST) && DuelRule.NO_FOOD.isToggled(player)) {
+        if((potion == Potion.SARADOMIN_BREW || potion == Potion.GUTHIX_REST)) {
             player.sendMessage("Food has been disabled for this duel!");
             return false;
         }

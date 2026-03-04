@@ -1,7 +1,7 @@
 [
   { #Callisto (470)
     "ids": [ 6503, 6609 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.Callisto",
+    "handler": "io.dm.model.activities.wilderness.bosses.Callisto",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 940,

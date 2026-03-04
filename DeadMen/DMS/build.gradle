@@ -29,11 +29,11 @@ dependencies {
 }
 
 application {
-    mainClassName = 'io.ruin.Server'
+    mainClassName = 'io.dm.Server'
 }
 
 application {
-    mainClassName = 'io.ruin.Server'
+    mainClassName = 'io.dm.Server'
     applicationDefaultJvmArgs = [
             "--add-exports=java.base/jdk.internal.vm=ALL-UNNAMED"
     ]

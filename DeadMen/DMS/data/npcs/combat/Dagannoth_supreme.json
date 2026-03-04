@@ -1,7 +1,7 @@
 [
   { #Dagannoth Supreme (303)
     "ids": [ 2265, 6496 ],
-    "handler": "io.ruin.model.activities.bosses.dagannothkings.DagannothSupreme",
+    "handler": "io.dm.model.activities.bosses.dagannothkings.DagannothSupreme",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 606,

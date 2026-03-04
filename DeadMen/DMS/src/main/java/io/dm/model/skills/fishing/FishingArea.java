@@ -285,7 +285,6 @@ public enum FishingArea {
         DONATOR_ZONE.add(FishingSpot.CAGE_HARPOON, 2);
         DONATOR_ZONE.add(FishingSpot.BIG_NET_HARPOON, 2);
         PVP_WORLD_37S.add(FishingSpot.CAGE, 3);
-        LAVA_MAZE.add(FishingSpot.MOLTEN_EEL, 3);
         HOME.add(FishingSpot.BIG_NET_HARPOON, 2);
         HOME.add(FishingSpot.KARAMBWAN_SPOT, 1);
         HOME.add(FishingSpot.CAGE_HARPOON, 1);

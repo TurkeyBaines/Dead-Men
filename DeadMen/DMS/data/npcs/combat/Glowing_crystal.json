@@ -1,7 +1,7 @@
 [
   { //Glowing crystal - Vasa Nistirio
   "ids": [ 7568 ],
-  "handler": "io.ruin.model.activities.miscpvm.PassiveCombat",
+  "handler": "io.dm.model.activities.miscpvm.PassiveCombat",
   //Combat Info
   "hitpoints": 120,
   "aggressive_level": 0,

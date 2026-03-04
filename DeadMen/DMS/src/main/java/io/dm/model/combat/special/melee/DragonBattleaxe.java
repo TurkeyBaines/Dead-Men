@@ -1,7 +1,6 @@
 package io.dm.model.combat.special.melee;
 
 import io.dm.cache.ItemDef;
-import io.dm.model.activities.duelarena.DuelRule;
 import io.dm.model.combat.special.Special;
 import io.dm.model.entity.player.Player;
 import io.dm.model.stat.StatType;
@@ -21,8 +20,6 @@ public class DragonBattleaxe implements Special {
     public boolean handleActivation(Player player) {
         if(!player.getCombat().useSpecialEnergy(100))
             return false; //don't allow it to be toggled on
-        if(DuelRule.NO_DRINKS.isToggled(player) || DuelRule.NO_SPECIALS.isToggled(player))
-            return false;
         player.animate(1056);
         player.graphics(246);
         player.forceText("Raarrrrrgggggghhhhhhh!");

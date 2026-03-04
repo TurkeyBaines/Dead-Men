@@ -1,7 +1,7 @@
 [
   { #Kalphite Queen (333) First form
     "ids": [ 963 ],
-    "handler": "io.ruin.model.activities.bosses.KalphiteQueen",
+    "handler": "io.dm.model.activities.bosses.KalphiteQueen",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 666,
@@ -45,7 +45,7 @@
   },
   { #Kalphite Queen (333) Second form
     "ids": [ 965 ],
-    "handler": "io.ruin.model.activities.bosses.KalphiteQueen",
+    "handler": "io.dm.model.activities.bosses.KalphiteQueen",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 666,

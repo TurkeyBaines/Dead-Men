@@ -1,7 +1,7 @@
 [
   { #Ravager (36)
     "ids": [ 1704 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Ravager",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Ravager",
     //Combat Info
     "hitpoints": 23,
     "aggressive_level": 72,
@@ -44,7 +44,7 @@
   },
   { #Ravager (53)
     "ids": [ 1705 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Ravager",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Ravager",
     //Combat Info
     "hitpoints": 38,
     "aggressive_level": 106,
@@ -87,7 +87,7 @@
   },
   { #Ravager (71)
     "ids": [ 1706 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Ravager",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Ravager",
     //Combat Info
     "hitpoints": 53,
     "aggressive_level": 142,
@@ -130,7 +130,7 @@
   },
   { #Ravager (89)
     "ids": [ 1707 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Ravager",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Ravager",
     //Combat Info
     "hitpoints": 68,
     "aggressive_level": 178,
@@ -173,7 +173,7 @@
   },
   { #Ravager (106)
     "ids": [ 1708 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Ravager",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Ravager",
     //Combat Info
     "hitpoints": 83,
     "aggressive_level": 212,

@@ -26,7 +26,6 @@ public class Blowpipe {
     private static final int UNCHARGED = 12924, CHARGED = 12926;
     private static final int MAX_AMOUNT = 0x3fff;
     private static final int TAZANITE_FANG = 12922;
-    private static final int UNCHARGED_MAGMA = 30048, CHARGED_MAGMA = 30049;
 
     public enum Dart {
 
@@ -180,8 +179,7 @@ public class Blowpipe {
     public static void update(Item blowpipe, Dart dart, int dartAmount, int scalesAmount) {
         if (dartAmount == 0)
             dart = Dart.NONE;
-        boolean magma = blowpipe.getId() == UNCHARGED_MAGMA || blowpipe.getId() == CHARGED_MAGMA;
-        int id = (dart != Dart.NONE || scalesAmount > 0) ? magma ? CHARGED_MAGMA : CHARGED : magma ? UNCHARGED_MAGMA : UNCHARGED;
+        int id = (dart != Dart.NONE || scalesAmount > 0) ?  CHARGED : UNCHARGED;
         if(blowpipe.getId() != id)
             blowpipe.setId(id);
         AttributeExtensions.putAttribute(blowpipe, AttributeTypes.AMMO_ID, dart.ordinal());
@@ -208,15 +206,10 @@ public class Blowpipe {
     static {
 
         ItemAction.registerInventory(UNCHARGED, "dismantle", Blowpipe::dismantle);
-        ItemAction.registerInventory(UNCHARGED_MAGMA, "dismantle", Blowpipe::dismantle);
         ItemAction.registerInventory(CHARGED, "check", Blowpipe::check);
         ItemAction.registerEquipment(CHARGED, "check", Blowpipe::check);
         ItemAction.registerInventory(CHARGED, "unload", Blowpipe::unload);
         ItemAction.registerInventory(CHARGED, "uncharge", Blowpipe::uncharge);
-        ItemAction.registerInventory(CHARGED_MAGMA, "check", Blowpipe::check);
-        ItemAction.registerEquipment(CHARGED_MAGMA, "check", Blowpipe::check);
-        ItemAction.registerInventory(CHARGED_MAGMA, "unload", Blowpipe::unload);
-        ItemAction.registerInventory(CHARGED_MAGMA, "uncharge", Blowpipe::uncharge);
 
         ItemItemAction.register(Tool.CHISEL, TAZANITE_FANG, (player, primary, secondary) -> {
             if(!player.getStats().check(StatType.Fletching, 53, CHISEL, TAZANITE_FANG, "do that"))
@@ -238,19 +231,8 @@ public class Blowpipe {
             }
         }
 
-        for(Dart dart : Dart.values()) {
-            if(dart != Dart.NONE) {
-                ItemItemAction loadAction = (player, blowpipe, dartItem) ->
-                        Blowpipe.load(player, blowpipe, dartItem, dart);
-                ItemItemAction.register(UNCHARGED_MAGMA, dart.id, loadAction);
-                ItemItemAction.register(CHARGED_MAGMA, dart.id, loadAction);
-            }
-        }
-
         ItemItemAction.register(UNCHARGED, SCALES, Blowpipe::charge);
         ItemItemAction.register(CHARGED, SCALES, Blowpipe::charge);
-        ItemItemAction.register(UNCHARGED_MAGMA, SCALES, Blowpipe::charge);
-        ItemItemAction.register(CHARGED_MAGMA, SCALES, Blowpipe::charge);
 
         ItemItemAction loadPoisonedAction = (player, primary, secondary) ->
                 player.sendMessage("You can't use that kind of dart - the venom doesn't mix with other poisons.");
@@ -258,22 +240,8 @@ public class Blowpipe {
             if(def.name.toLowerCase().contains("dart(p")) {
                 ItemItemAction.register(UNCHARGED, def.id, loadPoisonedAction);
                 ItemItemAction.register(CHARGED, def.id, loadPoisonedAction);
-                ItemItemAction.register(UNCHARGED_MAGMA, def.id, loadPoisonedAction);
-                ItemItemAction.register(CHARGED_MAGMA, def.id, loadPoisonedAction);
             }
         });
-
-        ItemItemAction.register(UNCHARGED, MAGMA_MUTAGEN, Blowpipe::dye);
-    }
-
-    private static void dye(Player player, Item item, Item dye) {
-        player.dialogue(new YesNoDialogue("Are you sure you want to combine these?", "If you combine these items, you will NOT be able to undo it!", item, () -> {
-            boolean charged = item.getId() == CHARGED;
-            int id = charged ? CHARGED_MAGMA : UNCHARGED_MAGMA;
-            item.setId(id);
-            dye.remove();
-            player.dialogue(new ItemDialogue().one(id, "You apply the mutagen to your blowpipe."));
-        }));
     }
 
 }

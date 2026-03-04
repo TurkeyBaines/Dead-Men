@@ -11,8 +11,6 @@ public abstract class NPCAttributes extends Entity {
 
     public boolean minnowsFish;
 
-    public int wildernessSpawnLevel;
-
     public Predicate<Entity> aggressionImmunity;
 
     public int ownerId = -1; //for pets

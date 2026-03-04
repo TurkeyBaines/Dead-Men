@@ -1,7 +1,7 @@
 [
   {
     "ids": [ 8609 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.Hydra",
+    "handler": "io.dm.model.activities.miscpvm.slayer.Hydra",
     //Combat Info
     "hitpoints": 300,
     "aggressive_level": 0,

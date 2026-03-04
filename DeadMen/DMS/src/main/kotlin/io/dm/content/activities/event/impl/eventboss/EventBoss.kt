@@ -9,7 +9,6 @@ import io.dm.model.combat.HitType
 import io.dm.model.entity.npc.NPC
 import io.dm.model.entity.shared.listeners.DeathListener
 import io.dm.model.map.ground.GroundItem
-import io.dm.services.discord.impl.EventBossEmbedMessage
 import io.dm.utility.Broadcast
 import io.dm.model.World
 
@@ -30,9 +29,6 @@ class EventBoss(val boss: EventBossType) : TimedEventImpl {
         npc.setIgnoreMulti(true)
         npc.combat.setAllowRespawn(false)
         globalEvent { Broadcast.WORLD_NOTIFICATION.sendNews(Icon.BLUE_INFO_BADGE, boss.message[random]) }
-        if (!World.isDev()) {
-            EventBossEmbedMessage.sendDiscordMessage(boss, boss.message[random])
-        }
         npc.deathEndListener = DeathListener { entity, _, killHit ->
             entity.combat.killers.forEach { (_, killer) ->
                 if (killer.damage >= 100) {

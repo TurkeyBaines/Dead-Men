@@ -19,10 +19,6 @@ public class CureOther extends Spell {
                 player.sendMessage("You can only use this spell on players.");
                 return false;
             }
-            if(entity.player.getDuel().stage >= 4) {
-                player.sendMessage("This player can't be cured right now.");
-                return false;
-            }
             if(Config.ACCEPT_AID.get(entity.player) == 0) {
                 player.sendMessage("This player is not accepting aid right now.");
                 return false;

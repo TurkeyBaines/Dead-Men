@@ -1,7 +1,7 @@
 [
   { #Nechryarch (300)
     "ids": [ 7411, 7412, 7414, 7415 ],
-    "handler": "io.ruin.model.activities.bosses.Nechryarch",
+    "handler": "io.dm.model.activities.bosses.Nechryarch",
     //Combat Info
     "hitpoints": 1000,
     "aggressive_level": 50,

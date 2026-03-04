@@ -67,7 +67,7 @@ public class XenUsername {
                 player.getInventory().remove(13190, 50);
                 player.dialogue(new MessageDialogue("You have successfully changed your username."));
                 player.setName(usernameRequested);
-                player.getPacketSender().sendAccountManagement(TabAccountManagement.getDonatorRank(player), TabAccountManagement.getUsername(player), player.getUnreadPMs());
+                //player.getPacketSender().sendAccountManagement(TabAccountManagement.getDonatorRank(player), TabAccountManagement.getUsername(player), player.getUnreadPMs());
                 player.unlock();
             });
         });

@@ -1,7 +1,7 @@
 [
   { #Muttadile (large) (raids)
     "ids": [ 7569, 7570, 7571, 7572 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.Guardian",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.Guardian",
     //Combat Info
     "hitpoints": 250,
     "aggressive_level": 126,

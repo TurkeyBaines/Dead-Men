@@ -14,18 +14,6 @@ defaultStock:
   - id: 12791
     amount: 10
     price: 150
-  - id: 30127
-    amount: 50
-    price: 90
-  - id: 30141
-    amount: 50
-    price: 300
-  - id: 30143
-    amount: 50
-    price: 300
-  - id: 30104
-    amount: 50
-    price: 20
   - id: 20724
     amount: 50
     price: 600

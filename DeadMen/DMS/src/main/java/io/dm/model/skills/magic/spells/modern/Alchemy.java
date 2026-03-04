@@ -1,7 +1,7 @@
 package io.dm.model.skills.magic.spells.modern;
 
+import io.dm.cache.ItemID;
 import io.dm.model.entity.player.Player;
-import io.dm.model.inter.journal.presets.Preset;
 import io.dm.model.item.Item;
 import io.dm.model.item.actions.impl.jewellery.BraceletOfEthereum;
 import io.dm.model.skills.magic.Spell;
@@ -46,7 +46,7 @@ public class Alchemy extends Spell {
     }
 
     private static boolean alch(Player player, Item item, Level level) {
-        if (item.getId() == 7462 || item.getId() == Preset.DRAGON_2H_SWORD || item.getId() == BraceletOfEthereum.REVENANT_ETHER) {
+        if (item.getId() == 7462 || item.getId() == BraceletOfEthereum.REVENANT_ETHER) {
             player.sendMessage("You can't alchemise this item.");
             return false;
         }

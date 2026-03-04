@@ -1,7 +1,7 @@
 [
   { #Banshee (23)
     "ids": [ 414 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.Banshee",
+    "handler": "io.dm.model.activities.miscpvm.slayer.Banshee",
     //Combat Info
     "hitpoints": 23,
     "aggressive_level": 46,

@@ -1,7 +1,7 @@
 [
   { #Death spawn (46)
     "ids": [ 10 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.DeathSpawn",
+    "handler": "io.dm.model.activities.miscpvm.slayer.DeathSpawn",
     //Combat Info
     "hitpoints": 60,
     "aggressive_level": 0,

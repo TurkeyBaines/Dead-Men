@@ -1,7 +1,7 @@
 [
   { #K\u0027ril Tsutsaroth (650)
     "ids": [ 3129, 6495 ],
-    "handler": "io.ruin.model.activities.godwars.combat.impl.zamorak.KrilTsutsaroth",
+    "handler": "io.dm.model.activities.godwars.combat.impl.zamorak.KrilTsutsaroth",
     //Combat Info
     "hitpoints": 255,
     "aggressive_level": 1300,

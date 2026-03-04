@@ -1,7 +1,7 @@
 [
   { #Jal-Zek (490)
     "ids": [ 7699, 7703 ],
-    "handler": "io.ruin.model.activities.inferno.monsters.JalZek",
+    "handler": "io.dm.model.activities.inferno.monsters.JalZek",
     //Combat Info
     "hitpoints": 220,
     "aggressive_level": 980,

@@ -9,8 +9,6 @@ import io.dm.model.skills.magic.spells.modern.ModernTeleport;
 public class RingOfLife {
 
     public static void check(Player player) {
-        if(player.getDuel().stage >= 4)
-            return;
         if (player.getHp() <= player.getMaxHp() * 0.10 && !player.getCombat().isDead()) {
             Item ring = player.getEquipment().get(Equipment.SLOT_RING);
             if (ring == null || ring.getId() != 2570)

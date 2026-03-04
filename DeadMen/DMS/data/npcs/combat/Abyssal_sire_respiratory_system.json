@@ -1,7 +1,7 @@
 [
   { #Abyssal Sire (350)
     "ids": [ 5914 ],
-    "handler": "io.ruin.model.activities.miscpvm.PassiveCombat",
+    "handler": "io.dm.model.activities.miscpvm.PassiveCombat",
     //Combat Info
     "hitpoints": 50,
     "aggressive_level": 0,

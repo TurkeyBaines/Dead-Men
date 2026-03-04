@@ -1,7 +1,7 @@
 [
   { #Kalphite Soldier (85)
     "ids": [ 138, 957, 958 ],
-    "handler": "io.ruin.model.activities.miscpvm.PoisonousKalphite",
+    "handler": "io.dm.model.activities.miscpvm.PoisonousKalphite",
     //Combat Info
     "hitpoints": 90,
     "aggressive_level": 170,
@@ -44,7 +44,7 @@
   },
     { #Kalphite Soldier (POH)
     "ids": [ 138 ],
-    "handler": "io.ruin.model.activities.miscpvm.PoisonousKalphite",
+    "handler": "io.dm.model.activities.miscpvm.PoisonousKalphite",
     //Combat Info
     "hitpoints": 90,
     "aggressive_level": 170,

@@ -1,7 +1,7 @@
 [
   { #Jewelled Crab (raids)
     "ids": [ 7576, 7577, 7578, 7579],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.JewelledCrab",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.JewelledCrab",
     //Combat Info
     "hitpoints": 150,
     "aggressive_level": 0,

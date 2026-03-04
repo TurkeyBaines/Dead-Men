@@ -112,10 +112,6 @@ public class Cooking {
 
     static {
         for (Food food : Food.values()) {
-            if (food.equals(Food.RAW_MOLTEN_EEL)) {
-                ItemObjectAction.register(food.rawID, "cauldron", (player, item, obj) -> Cooking.cook(player, food, obj, 896, false));
-                continue;
-            }
             ItemObjectAction.register(food.rawID, "range", (player, item, obj) -> Cooking.cook(player, food, obj, 896, false));
             ItemObjectAction.register(food.rawID, "cooking range", (player, item, obj) -> Cooking.cook(player, food, obj, 896, false));
             ItemObjectAction.register(food.rawID, "fire", (player, item, obj) -> Cooking.cook(player, food, obj, 897, true));

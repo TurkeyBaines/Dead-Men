@@ -24,7 +24,7 @@ public interface Special extends ItemDef.ItemDefPredicate {
     }
 
     static void load() throws Exception {
-        for(Class c : PackageLoader.load("io.ruin.model.combat.special", Special.class)) {
+        for(Class c : PackageLoader.load("io.dm.model.combat.special", Special.class)) {
             Special special = (Special) c.newInstance();
             ItemDef.forEach(def -> {
                 if(special.test(def))

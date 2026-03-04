@@ -1,7 +1,7 @@
 [
   { #Zakl\u0027n Gritch (142)
     "ids": [ 3131 ],
-    "handler": "io.ruin.model.activities.godwars.combat.impl.zamorak.ZaklnGritch",
+    "handler": "io.dm.model.activities.godwars.combat.impl.zamorak.ZaklnGritch",
     //Combat Info
     "hitpoints": 150,
     "aggressive_level": 284,

@@ -1,7 +1,7 @@
 [
   { #Tz-Kih (22)
     "ids": [ 2189, 2190, 3116, 3117 ],
-    "handler": "io.ruin.model.activities.fightcaves.monsters.TzKih",
+    "handler": "io.dm.model.activities.fightcaves.monsters.TzKih",
     //Combat Info
     "hitpoints": 10,
     "aggressive_level": 44,

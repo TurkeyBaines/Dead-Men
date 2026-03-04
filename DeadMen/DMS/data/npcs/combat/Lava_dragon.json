@@ -1,7 +1,7 @@
 [
   { #Lava dragon (252)
     "ids": [ 6593 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.ChromaticDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.ChromaticDragon",
     //Combat Info
     "hitpoints": 230,
     "aggressive_level": 504,

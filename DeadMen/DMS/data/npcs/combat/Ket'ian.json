@@ -1,7 +1,7 @@
 [
   { #Ket'ian
     "ids": [ 3358 ],
-    "handler": "io.ruin.model.activities.wilderness.bosses.custom.Ketian",
+    "handler": "io.dm.model.activities.wilderness.bosses.custom.Ketian",
     //Combat Info
     "hitpoints": 3600,
     "aggressive_level": 280,

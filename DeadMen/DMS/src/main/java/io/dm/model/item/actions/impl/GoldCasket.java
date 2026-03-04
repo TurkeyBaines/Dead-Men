@@ -82,9 +82,6 @@ public enum GoldCasket {
         if(RingOfWealth.wearingRingOfWealth(player)) {
             multiplier *= 1.1;
         }
-        if (npc.wildernessSpawnLevel > 0) {
-            multiplier *= 1.2;
-        }
         if (!casket.roll(npc, additiveBoost, multiplier)) {
             return null;
         }

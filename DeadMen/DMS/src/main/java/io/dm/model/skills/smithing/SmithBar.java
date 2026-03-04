@@ -281,14 +281,6 @@ public enum SmithBar {
             SmithItem.NONE,
             SmithItem.NONE,
             SmithItem.NONE
-    ),
-    CORRUPT(
-            30112, 8,
-            90, 60.0,
-            PlayerCounter.SMELTED_CORRUPT_BARS,
-            Arrays.asList(new Item(30109, 1), new Item(453, 2)),
-            new SmithItem(90, 50.0, 30119, 5, 1),
-            new SmithItem(90, 50.0, 30095, 1, 3)
     );
 
     public final int itemId;
@@ -329,10 +321,6 @@ public enum SmithBar {
             return;
         }
         SmithBar bar = findBestBar(player);
-        if(bar == null || bar.equals(SmithBar.CORRUPT)) {
-            player.dialogue(new MessageDialogue("You should select an item from your inventory and use it on the anvil."));
-            return;
-        }
         open(player, bar);
     }
 
@@ -377,7 +365,7 @@ public enum SmithBar {
                 /* player smithing level is too low */
                 continue;
             }
-            if(bestBar == null || bestBar.equals(SmithBar.CORRUPT)) {
+            if(bestBar == null) {
                 /* first smithable bar found */
                 bestBar = bar;
             } else if(minLevel > bestBar.smithItems[0].level) {
@@ -427,11 +415,8 @@ public enum SmithBar {
     static {
         ObjectAction.register("anvil", "smith", (player, obj) -> open(player));
         for(SmithBar bar : SmithBar.values()) {
-            if (bar.equals(SmithBar.CORRUPT))
-                continue;
             ItemObjectAction.register(bar.itemId, "anvil", (player, item, obj) -> open(player, item));
         }
-        ItemObjectAction.register(SmithBar.CORRUPT.itemId, "anvil", (player, item, obj) -> openCorrupt(player, item));
         InterfaceHandler.register(Interface.SMITHING, h -> {
             for(int i = 9; i <= 35; i++) {
                 int itemIndex = i - 9;

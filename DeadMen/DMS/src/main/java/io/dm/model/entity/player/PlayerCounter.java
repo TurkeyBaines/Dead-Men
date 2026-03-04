@@ -332,11 +332,6 @@ public enum PlayerCounter {
      */
     PRESETS_LOADED((p, amt) -> p.presetsLoaded = amt, p -> p.presetsLoaded),
 
-    /**
-     * Daily tasks
-     */
-    DAILY_TASKS_COMPLETED((p, amt) -> p.dailyTasksCompleted = amt, p -> p.dailyTasksCompleted),
-
     DEMON_KILLS((p, amt) -> p.demonKills = amt, p -> p.demonKills, Achievement.DEMON_SLAYER),
 
     IMPLINGS_CAUGHT((p, amt) -> p.implingCaught = amt, p -> p.implingCaught, Achievement.IMPLING_HUNTER),

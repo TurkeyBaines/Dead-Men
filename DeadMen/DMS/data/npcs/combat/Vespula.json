@@ -1,7 +1,7 @@
 [
   { #Vespula (raids) (flying)
     "ids": [ 7530, 7531 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.Vespula",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.Vespula",
     //Combat Info
     "hitpoints": 200,
     "aggressive_level": 126,
@@ -44,7 +44,7 @@
   },
     { #Vespula (raids) (grounded)
     "ids": [ 7532 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.Vespula",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.Vespula",
     //Combat Info
     "hitpoints": 200,
     "aggressive_level": 126,

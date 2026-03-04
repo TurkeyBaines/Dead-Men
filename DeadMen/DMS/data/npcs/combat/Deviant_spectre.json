@@ -1,7 +1,7 @@
 [
   { #Deviant spectre (169)
     "ids": [ 7279 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.AberrantSpectre",
+    "handler": "io.dm.model.activities.miscpvm.slayer.AberrantSpectre",
     //Combat Info
     "hitpoints": 190,
     "aggressive_level": 338,

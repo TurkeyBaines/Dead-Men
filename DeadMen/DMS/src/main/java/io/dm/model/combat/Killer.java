@@ -5,23 +5,15 @@ import io.dm.api.utils.TimeUtils;
 import io.dm.cache.Color;
 import io.dm.cache.Icon;
 import io.dm.model.World;
-import io.dm.model.activities.tasks.DailyTask;
-import io.dm.model.activities.wilderness.Hotspot;
 import io.dm.model.activities.wilderness.ResourceArea;
 import io.dm.model.activities.wilderness.StaffBounty;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerGroup;
 import io.dm.model.inter.utils.Config;
-import io.dm.model.item.Item;
 import io.dm.model.item.actions.impl.SkillLamp;
-import io.dm.model.item.actions.impl.WildernessDeadmanKey;
-import io.dm.model.item.actions.impl.WildernessKey;
-import io.dm.model.item.actions.impl.boxes.WildernessRewardBox;
 import io.dm.model.map.Bounds;
 import io.dm.model.stat.StatType;
 import io.dm.services.Loggers;
-import io.dm.services.discord.impl.KillingSpreeEmbedMessage;
-import io.dm.services.discord.impl.ShutdownEmbedMessage;
 import io.dm.utility.Broadcast;
 
 public class Killer {
@@ -71,7 +63,6 @@ public class Killer {
                 String spreeMessage = player.getName() + " is on a killing spree of " + killerSpree + ". Kill "
                         + (player.getAppearance().isMale() ? "him" : "her") + " for a bounty reward of " + (BASE_BM_REWARD + bountyValue(killerSpree)) + " Blood money!";
                 Broadcast.WORLD.sendPlain(KillingSpree.imgTag(killerSpree) + Color.DARK_GREEN.tag() + " " + spreeMessage);
-                KillingSpreeEmbedMessage.sendDiscordMessage(spreeMessage);
             }
             if(player.getCombat().isSkulled()) //Overheads start at sprees of 2, so this fits here.
                 player.getAppearance().setSkullIcon(KillingSpree.overheadId(player));
@@ -83,7 +74,6 @@ public class Killer {
         if(targetSpree >= 5) {
             String shutdownMessage = KillingSpree.shutdownMessage(player.getName(), pKilled.getName(), targetSpree);
             Broadcast.WORLD.sendPlain("<img=36> " + Color.DARK_GREEN.tag() + shutdownMessage);
-            ShutdownEmbedMessage.sendDiscordMessage(shutdownMessage);
             if(targetSpree > player.highestShutdown)
                 player.highestShutdown = targetSpree;
         }
@@ -109,10 +99,6 @@ public class Killer {
             bmAmount *= 1.05;
         else if (Random.rollDie(10))
             player.sendFilteredMessage("<col=6f0000>Set 2-FA and a bank pin to earn an additional 10% Blood money!");
-        if (player.getPosition().inBounds(Hotspot.ACTIVE.bounds)) {
-            bmAmount *= 2.0;
-            player.sendFilteredMessage("<col=6f0000>You get double blood money for killing a player in a hotspot!");
-        }
 
         bmAmount += bountyValue(targetSpree);
         bmAmount += streakValue(killerSpree);
@@ -163,25 +149,6 @@ public class Killer {
 
         player.rewardBm(pKilled, bmAmount);
 
-        /*
-         * Roll for the wilderness reward box
-         */
-        int wildernessRewardBox = WildernessRewardBox.rollForDrop(player);
-        if (wildernessRewardBox != -1) {
-            player.getInventory().addOrDrop(new Item(wildernessRewardBox, 1));
-        }
-
-        /*
-         * Roll for a wilderness key which can be exchanged for OSRS gold
-         */
-        if(World.wildernessKeyEvent) {
-            WildernessKey.rollForPlayerKill(player, pKilled);
-        }
-
-        if (World.wildernessDeadmanKeyEvent) {
-            WildernessDeadmanKey.rollForDeadmanKey(player, pKilled);
-        }
-
         if (player.insideWildernessAgilityCourse) {
             player.getStats().addXp(StatType.Agility, 50000, false);
             player.getInventory().addOrDrop(11849, 10);
@@ -197,11 +164,6 @@ public class Killer {
          * Adjust wilderness elo
          */
         WildernessRating.adjustEloRatings(pKilled, player);
-
-        /*
-         * Check daily
-         */
-        DailyTask.checkPlayerKill(player, pKilled);
     }
 
     private static double donatorBonus(Player player) {

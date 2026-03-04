@@ -130,7 +130,7 @@
   },
   { #Spiritual warrior (123)
     "ids": [ 3166 ],
-    "handler": "io.ruin.model.activities.godwars.combat.armadyl.ArmadylSpiritualWarrior",
+    "handler": "io.dm.model.activities.godwars.combat.armadyl.ArmadylSpiritualWarrior",
     //Combat Info
     "hitpoints": 98,
     "aggressive_level": 246,

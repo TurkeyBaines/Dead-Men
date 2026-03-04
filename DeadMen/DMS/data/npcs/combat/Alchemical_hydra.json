@@ -1,7 +1,7 @@
 [
   {
   "ids": [ 8615, 8616, 8617, 8618, 8619, 8620, 8621, 8622 ],
-  "handler": "io.ruin.model.activities.bosses.hydra.AlchemicalHydra",
+  "handler": "io.dm.model.activities.bosses.hydra.AlchemicalHydra",
     "pet": "IKKLE_HYDRA_GREEN",
   //Combat Info
   "hitpoints": 1100,

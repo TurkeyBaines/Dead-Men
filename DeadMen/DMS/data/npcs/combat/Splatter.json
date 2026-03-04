@@ -1,7 +1,7 @@
 [
   { #Splatter (22)
     "ids": [ 1689 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Splatter",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Splatter",
     //Combat Info
     "hitpoints": 13,
     "aggressive_level": 44,
@@ -44,7 +44,7 @@
   },
   { #Splatter (33)
     "ids": [ 1690 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Splatter",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Splatter",
     //Combat Info
     "hitpoints": 23,
     "aggressive_level": 66,
@@ -87,7 +87,7 @@
   },
   { #Splatter (44)
     "ids": [ 1691 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Splatter",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Splatter",
     //Combat Info
     "hitpoints": 33,
     "aggressive_level": 88,
@@ -130,7 +130,7 @@
   },
   { #Splatter (54)
     "ids": [ 1692 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Splatter",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Splatter",
     //Combat Info
     "hitpoints": 43,
     "aggressive_level": 108,
@@ -173,7 +173,7 @@
   },
   { #Splatter (65)
     "ids": [ 1693 ],
-    "handler": "io.ruin.model.activities.pestcontrol.npcs.Splatter",
+    "handler": "io.dm.model.activities.pestcontrol.npcs.Splatter",
     //Combat Info
     "hitpoints": 53,
     "aggressive_level": 130,

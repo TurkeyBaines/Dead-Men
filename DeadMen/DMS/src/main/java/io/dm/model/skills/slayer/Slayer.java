@@ -121,9 +121,6 @@ public class Slayer {
                         if (Random.rollDie((int) Math.ceil(combatLevelDropRate(npc) * 500), 1)) {
                             new GroundItem(12746, 1).owner(killer.player).position(npc.getPosition()).spawn(); //Drops the first emblem
                         }
-                        if (Random.rollDie((int) Math.ceil(combatLevelDropRate(npc) * 40), 1)) { //40-47
-                            new GroundItem(30104, 1).owner(killer.player).position(npc.getPosition()).spawn();
-                        }
                     }
                 };
             }

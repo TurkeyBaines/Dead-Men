@@ -1,7 +1,7 @@
 [
   { #Vanguard (inactive)
     "ids": [ 7525, 7526 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.Vanguard",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.Vanguard",
     //Combat Info
     "hitpoints": 150,
     "aggressive_level": 0,
@@ -44,7 +44,7 @@
   },
     { #Vanguard (melee)
     "ids": [ 7527 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.Vanguard",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.Vanguard",
     //Combat Info
     "hitpoints": 150,
     "aggressive_level": 0,
@@ -87,7 +87,7 @@
   },
       { #Vanguard (ranged)
     "ids": [ 7528 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.Vanguard",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.Vanguard",
     //Combat Info
     "hitpoints": 150,
     "aggressive_level": 0,
@@ -130,7 +130,7 @@
   },
         { #Vanguard (magic)
     "ids": [ 7529 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.Vanguard",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.Vanguard",
     //Combat Info
     "hitpoints": 150,
     "aggressive_level": 0,

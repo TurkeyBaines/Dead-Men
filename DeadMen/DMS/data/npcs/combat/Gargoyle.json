@@ -1,7 +1,7 @@
 [
   { #Gargoyle (111)
     "ids": [ 412, 413, 1543 ],
-	"handler": "io.ruin.model.activities.miscpvm.slayer.Gargoyle",
+	"handler": "io.dm.model.activities.miscpvm.slayer.Gargoyle",
     //Combat Info
     "hitpoints": 105,
     "aggressive_level": 222,

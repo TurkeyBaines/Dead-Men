@@ -12,7 +12,6 @@ import io.dm.model.combat.*;
 import io.dm.model.combat.special.Special;
 import io.dm.model.entity.Entity;
 import io.dm.model.entity.player.Player;
-import io.dm.model.inter.journal.presets.Preset;
 import io.dm.model.item.Item;
 import io.dm.model.item.actions.ItemAction;
 import io.dm.model.item.actions.ItemGroundItemAction;
@@ -105,8 +104,6 @@ public class ItemDef {
 
     public boolean tradeable;
 
-    public boolean wilderness;
-
     public String examine;
 
     public double weightInventory, weightEquipment;
@@ -135,9 +132,6 @@ public class ItemDef {
 
     public int lowAlchValue, highAlchValue;
 
-    public Achievement achievement;
-    public boolean achievementReqIsIronmanOnly;
-
     /**
      * Custom data
      */
@@ -146,7 +140,6 @@ public class ItemDef {
 
     public int protectValue;
     public boolean neverProtect;
-    public boolean dropAnnounce;
     public int equipOption = -1;
 
     public Special special;
@@ -186,8 +179,6 @@ public class ItemDef {
     public Rune staffRune;
 
     public boolean allowFruit;
-
-    public boolean allowPilesToNote;
 
     public SmithBar smithBar;
 
@@ -322,7 +313,7 @@ public class ItemDef {
             inventoryOptions[2] = null;
         }
 
-        if (id == Preset.DRAGON_2H_SWORD || id == 13024 || id == 13026 || id == 9243 || id == 6109 || id == 3751) {
+        if (id == 13024 || id == 13026 || id == 9243 || id == 6109 || id == 3751) {
             value = 0;
         }
 

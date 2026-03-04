@@ -1,7 +1,7 @@
 [
   { #Adamant dragon (338)
     "ids": [ 8030, 8090 ],
-    "handler": "io.ruin.model.activities.miscpvm.dragons.AdamantDragon",
+    "handler": "io.dm.model.activities.miscpvm.dragons.AdamantDragon",
     //Combat Info
     "hitpoints": 295,
     "aggressive_level": 608,

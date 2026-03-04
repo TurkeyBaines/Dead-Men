@@ -1,7 +1,7 @@
 [
   { #Tok-Xil (90)
     "ids": [ 2193, 2194, 3121, 3122 ],
-    "handler": "io.ruin.model.activities.fightcaves.monsters.TokXil",
+    "handler": "io.dm.model.activities.fightcaves.monsters.TokXil",
     //Combat Info
     "hitpoints": 40,
     "aggressive_level": 180,
@@ -44,7 +44,7 @@
   },
     { #Tok-Xil (90) POH
     "ids": [ 141 ],
-    "handler": "io.ruin.model.activities.fightcaves.monsters.TokXil",
+    "handler": "io.dm.model.activities.fightcaves.monsters.TokXil",
     //Combat Info
     "hitpoints": 40,
     "aggressive_level": 180,

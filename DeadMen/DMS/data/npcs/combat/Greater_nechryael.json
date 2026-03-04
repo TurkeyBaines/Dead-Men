@@ -1,7 +1,7 @@
 [
   { #Greater Nechryael (200)
     "ids": [ 7278 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.Nechryael",
+    "handler": "io.dm.model.activities.miscpvm.slayer.Nechryael",
     //Combat Info
     "hitpoints": 205,
     "aggressive_level": 400,

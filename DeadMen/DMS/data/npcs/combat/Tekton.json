@@ -1,7 +1,7 @@
 [
   { #Tekton (raids) (not enraged)
     "ids": [ 7540, 7541, 7542, 7545],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.Tekton",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.Tekton",
     //Combat Info
     "hitpoints": 300,
     "aggressive_level": 800,
@@ -44,7 +44,7 @@
   },
     { #Tekton (raids) (ENRAGED)
     "ids": [ 7543, 7544 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.Tekton",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.Tekton",
     //Combat Info
     "hitpoints": 600,
     "aggressive_level": 136,

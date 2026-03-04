@@ -1,7 +1,7 @@
 [
   { #Infernal Mage (66)
     "ids": [ 443, 444, 445, 446, 447 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.InfernalMage",
+    "handler": "io.dm.model.activities.miscpvm.slayer.InfernalMage",
     //Combat Info
     "hitpoints": 60,
     "aggressive_level": 0,

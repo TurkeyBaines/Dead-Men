@@ -1,7 +1,7 @@
  [
   { #Pyromancer (0)
     "ids": [ 7371, 7372 ],
-	"handler": "io.ruin.model.activities.wintertodt.Pyromancer",
+	"handler": "io.dm.model.activities.wintertodt.Pyromancer",
     //Combat Info
     "hitpoints": 14,
     "aggressive_level": 0,

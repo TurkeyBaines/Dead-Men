@@ -1,7 +1,7 @@
 [
   { #Skeletal mystic (raids)
     "ids": [ 7604, 7605, 7606 ],
-    "handler": "io.ruin.model.activities.raids.xeric.chamber.combat.SkeletalMystic",
+    "handler": "io.dm.model.activities.raids.xeric.chamber.combat.SkeletalMystic",
     //Combat Info
     "hitpoints": 160,
     "aggressive_level": 999,

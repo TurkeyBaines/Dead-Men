@@ -27,7 +27,6 @@ public enum Food {
     RAW_ANGLERFISH(84, 230.0, 13439, 13441, 13443, "an anglerfish", "anglerfish", 3, 99, 99, 98),
     RAW_DARK_CRAB(85, 215.0, 11934, 11936, 11938, "a dark crab", "dark crabs", 15, 99, 99, 99),
     RAW_MANTA_RAY(91, 216.2, 389, 391, 393, "a manta ray", "manta rays", 3, 99, 99, 99),
-    RAW_MOLTEN_EEL(96, 235.0, 30086, 30089, 3383, "a molten eel", "molten eels", 3, 102, 102, 99),
 
     //Raw Meat
     RAW_MEAT(1, 30.0, 2132, 2142, 2146, "a piece of meat", "meat", 3, 31, 31, 31),

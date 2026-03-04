@@ -1,7 +1,7 @@
 [
   { #Flockleader Geerin (149)
     "ids": [ 3164 ],
-    "handler": "io.ruin.model.activities.godwars.combat.impl.armadyl.FlockleaderGeerin",
+    "handler": "io.dm.model.activities.godwars.combat.impl.armadyl.FlockleaderGeerin",
     //Combat Info
     "hitpoints": 132,
     "aggressive_level": 298,

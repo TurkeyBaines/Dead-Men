@@ -1,7 +1,7 @@
 [
   { #Abyssal demon (124)
     "ids": [ 415, 416, 7241 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.AbyssalDemon",
+    "handler": "io.dm.model.activities.miscpvm.slayer.AbyssalDemon",
     //Combat Info
     "hitpoints": 150,
     "aggressive_level": 0,

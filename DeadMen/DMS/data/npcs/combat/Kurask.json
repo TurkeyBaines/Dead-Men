@@ -1,7 +1,7 @@
 [
   { #Kurask (106)
     "ids": [ 410, 411 ],
-    "handler": "io.ruin.model.activities.miscpvm.slayer.LeafVulnerableMonster",
+    "handler": "io.dm.model.activities.miscpvm.slayer.LeafVulnerableMonster",
     //Combat Info
     "hitpoints": 103,
     "aggressive_level": 212,

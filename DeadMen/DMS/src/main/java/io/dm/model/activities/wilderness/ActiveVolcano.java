@@ -11,7 +11,6 @@ import io.dm.model.entity.player.Player;
 import io.dm.model.inter.Interface;
 import io.dm.model.inter.InterfaceType;
 import io.dm.model.inter.dialogue.MessageDialogue;
-import io.dm.model.inter.journal.JournalEntry;
 import io.dm.model.map.Bounds;
 import io.dm.model.map.MapListener;
 import io.dm.model.map.Position;
@@ -234,36 +233,6 @@ public class ActiveVolcano {
                 minutes - TimeUnit.HOURS.toMinutes(hours),
                 TimeUnit.MILLISECONDS.toSeconds(ms) - TimeUnit.MINUTES.toSeconds(minutes)
         );
-    }
-
-    /**
-     * Entry
-     */
-    public static final class Entry extends JournalEntry {
-
-        public static final Entry INSTANCE = new Entry();
-
-        @Override
-        public void send(Player player) {
-            int minsLeft = (int) ((spawnTicks - Server.currentTick()) / 100);
-            if (minsLeft == 0)
-                send(player, "Active Volcano", "Active!", Color.GREEN);
-            else if (minsLeft == 1)
-                send(player, "Active Volcano", "1 minute", Color.YELLOW);
-            else if (minsLeft == 60)
-                send(player, "Active Volcano", "1 hour", Color.RED);
-            else if (minsLeft > 60) {
-                int mins = minsLeft - 60;
-                send(player, "Active Volcano", "1 hour " + mins + " minute" + (mins > 1 ? "s" : ""), Color.RED);
-            } else
-                send(player, "Active Volcano", minsLeft + " minutes", Color.RED);
-        }
-
-        @Override
-        public void select(Player player) {
-            Help.open(player, "active_volcano");
-        }
-
     }
 
 }
