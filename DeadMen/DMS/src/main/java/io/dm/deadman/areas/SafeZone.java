@@ -366,8 +366,6 @@ public class SafeZone {
         player.attackPlayerListener = SafeZone::allowAttack;
         player.attackNpcListener = SafeZone::allowNPCAttack;
         player.closeInterface(InterfaceType.WILDERNESS_OVERLAY);
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, false);
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, true);
         Config.IN_PVP_AREA.set(player, 0);
         player.setAction(1, PlayerAction.ATTACK);
         player.getEquipment().update(0);
@@ -387,8 +385,6 @@ public class SafeZone {
         player.attackPlayerListener = SafeZone::allowAttack;
         player.attackNpcListener = SafeZone :: allowNPCAttack;
         player.closeInterface(InterfaceType.WILDERNESS_OVERLAY);
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, true);
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, false);
         Config.IN_PVP_AREA.set(player, 1);
         player.setAction(1, PlayerAction.ATTACK);
         player.getEquipment().update(0);

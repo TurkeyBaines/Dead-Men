@@ -63,18 +63,13 @@ public class World extends EventWorker {
         return stage == WorldStage.DEV;
     }
 
-    public static boolean isBeta() {
-        return stage == WorldStage.BETA;
-    }
-
     public static boolean isLive() {
         return stage == WorldStage.LIVE;
     }
 
     public static final int spawnableOffset = 100000;
 
-    public static final Position HOME = Position.of(2028, 3577, 0);
-    public static final Position EDGEHOME = Position.of(3085, 3492, 0);
+    public static final Position HOME = Position.of(2970, 3343, 0);
 
     public static final double OVERWORLD_XP_MULT = 10;
 

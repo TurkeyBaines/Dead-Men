@@ -45,7 +45,7 @@ public class OverworldTools {
         ItemAction.registerInventory(11719, "Upgrade", (p, i) -> {
             // === Overworld Axe ===
 
-            if (maxUpgrade(p, Tool.AXE)) {
+            if (maxUpgrade(p, Tool.PICKAXE)) {
                 p.dialogue(new MessageDialogue("This item is already at the maximum upgrade state (Infernal)"));
                 return;
             }
@@ -77,7 +77,7 @@ public class OverworldTools {
         ItemAction.registerInventory(4051, "Upgrade", (p, i) -> {
             // === Overworld Axe ===
 
-            if (maxUpgrade(p, Tool.AXE)) {
+            if (maxUpgrade(p, Tool.FISHING)) {
                 p.dialogue(new MessageDialogue("This item is already at the maximum upgrade state (Infernal)"));
                 return;
             }

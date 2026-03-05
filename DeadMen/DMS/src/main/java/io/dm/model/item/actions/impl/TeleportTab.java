@@ -73,11 +73,7 @@ public enum TeleportTab {
                 if (override != null) {
                     player.getMovement().teleport(override);
                 } else {
-                    if (!player.edgeHome) {
-                        player.getMovement().teleport(x, y, z);
-                    } else {
-                        player.getMovement().teleport(World.EDGEHOME);
-                    }
+                    player.getMovement().teleport(x, y, z);
                 }
             } else
                 player.getMovement().teleport(x, y, z);

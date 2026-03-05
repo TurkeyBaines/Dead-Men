@@ -1002,21 +1002,8 @@ public class PlayerCombat extends Combat {
                  */
                 player.face(Direction.NORTH);
                 player.sendMessage("Oh dear, you are dead!");
-                if(player.wildernessLevel > 15)
-                    player.presetDelay.delaySeconds(10);
-                if (player.edgeHome) {
-                    player.getMovement().teleport(World.EDGEHOME);
-                } else {
-                    player.getMovement().teleport(2017, 3577, 0);
-                }
 
-
-                /**
-                 * HCIM - revoke status
-                 */
-                if (player.getGameMode().isHardcoreIronman()) {
-                    GameMode.hardcoreDeath(player, killHit);
-                }
+                player.getMovement().teleport(2973, 3338, 1);
             }
             resetSkull();
             resetSkullers();

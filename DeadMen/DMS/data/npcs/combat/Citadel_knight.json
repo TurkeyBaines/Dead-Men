@@ -1,10 +1,10 @@
 [
-  { #White Knight (36)
+  { #Citadel Knight (36)
     "ids": [ 1798, 4114 ],
     "handler": "",
     //Combat Info
     "hitpoints": 52,
-    "aggressive_level": 72,
+    "aggressive_level": 1,
     "max_damage": 6,
     "attack_style": "SLASH",
     //Slayer Info
@@ -42,12 +42,12 @@
     "defend_animation": 424,
     "death_animation": 836
   },
-  { #White Knight (38)
+  { #Citadel, Knight (38)
     "ids": [ 1799 ],
     "handler": "",
     //Combat Info
     "hitpoints": 52,
-    "aggressive_level": 76,
+    "aggressive_level": 1,
     "max_damage": 6,
     "attack_style": "SLASH",
     //Slayer Info
@@ -85,12 +85,12 @@
     "defend_animation": 424,
     "death_animation": 836
   },
-  { #White Knight (39)
+  { #Citadel, Knight (39)
     "ids": [ 1800 ],
     "handler": "",
     //Combat Info
     "hitpoints": 52,
-    "aggressive_level": 78,
+    "aggressive_level": 1,
     "max_damage": 6,
     "attack_style": "SLASH",
     //Slayer Info
@@ -128,12 +128,12 @@
     "defend_animation": 424,
     "death_animation": 836
   },
-  { #White Knight (42)
+  { #Citadel, Knight (42)
     "ids": [ 1829 ],
     "handler": "",
     //Combat Info
     "hitpoints": 55,
-    "aggressive_level": 84,
+    "aggressive_level": 1,
     "max_damage": 7,
     "attack_style": "SLASH",
     //Slayer Info

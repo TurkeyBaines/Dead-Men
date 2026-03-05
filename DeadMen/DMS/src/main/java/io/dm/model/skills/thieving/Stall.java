@@ -12,7 +12,6 @@ import io.dm.model.item.loot.LootTable;
 import io.dm.model.map.Bounds;
 import io.dm.model.map.object.GameObject;
 import io.dm.model.map.object.actions.ObjectAction;
-import io.dm.model.skills.BotPrevention;
 import io.dm.model.stat.StatType;
 
 import static io.dm.cache.ItemID.COINS_995;
@@ -38,7 +37,8 @@ public enum Stall {
             PlayerCounter.BAKER_STALL_THIEVES,
             new int[][]{
                     {6163, 6984},
-                    {11730, 634}
+                    {11730, 634},
+                    {630, 634}
             },
             new Item(22521, 1),
             new LootTable().addTable(1,
@@ -97,6 +97,7 @@ public enum Stall {
     SILK_STALL(20, 2, 24.0, 42000, "silk stall",
             PlayerCounter.SILK_STALL_THIEVES,
             new int[][]{
+                    {629, 634},
                     {6165, 6984},
                     {11729, 634},
             },
@@ -178,7 +179,8 @@ public enum Stall {
             )),
     SILVER_STALL(50, 5, 54.0, 19000, "silver stall",
             PlayerCounter.SILVER_STALL_THIEVES,
-            new int[][]{
+            new int[][] {
+                    {628, 234},
                     {6164, 6984},
                     {11734, 634},
             },
@@ -190,6 +192,7 @@ public enum Stall {
     SPICE_STALL(65, 5, 81.0, 13000, "spice stall",
             PlayerCounter.SPICE_STALL_THIEVES,
             new int[][]{
+                    {633, 634},
                     {6572, 6573},
                     {11733, 634},
                     {20348, 20349},
@@ -228,6 +231,7 @@ public enum Stall {
     GEM_STALL(75, 10, 160.0, 8500, "gem stall",
             PlayerCounter.GEM_STALL_THIEVES,
             new int[][]{
+                    {631, 634},
                     {6162, 6984},
                     {11731, 634},
             },
@@ -311,11 +315,6 @@ public enum Stall {
         if(player.edgevilleStallCooldown.isDelayed())
             return;
 
-        if(BotPrevention.isBlocked(player)) {
-            player.sendMessage("You can't steal from a stall while a guard is watching you.");
-            return;
-        }
-
         player.startEvent(event -> {
             player.sendFilteredMessage("You attempt to steal from the " + stall.name + "...");
             player.lock();
@@ -330,7 +329,6 @@ public enum Stall {
                 Pet.ROCKY.unlock(player);
             stall.counter.increment(player, 1);
             player.getStats().addXp(StatType.Thieving, stall.experience, true);
-            BotPrevention.attemptBlock(player);
             player.unlock();
         });
     }

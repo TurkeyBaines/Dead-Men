@@ -1,13 +1,17 @@
 package io.dm.deadman.areas;
 
 import io.dm.deadman.guard.DMMGuard;
+import io.dm.model.World;
 import io.dm.model.entity.npc.NPC;
+import io.dm.model.entity.npc.NPCAction;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerAction;
 import io.dm.model.entity.shared.LockType;
 import io.dm.model.inter.Interface;
 import io.dm.model.inter.InterfaceType;
+import io.dm.model.inter.dialogue.OptionsDialogue;
 import io.dm.model.inter.utils.Config;
+import io.dm.model.inter.utils.Option;
 import io.dm.model.item.Item;
 import io.dm.model.item.ItemContainer;
 import io.dm.model.map.Bounds;
@@ -27,8 +31,6 @@ public class Citadel {
 
     private static List<Player> players;
     private static HashMap<Player, DMMGuard> guards;
-    private static GameObject skillerPortal1;
-    private static GameObject skillerPortal2;
 
     private static Bounds bounds = new Bounds(new int[][] {
             {2957, 3356},
@@ -59,8 +61,6 @@ public class Citadel {
         players = new ArrayList<>();
         guards = new HashMap<>();
 
-        skillerPortal2 = new GameObject(10251, new Position(2537, 3871, 0), 1, 3);
-
         ObjectAction.register(10251, 1, ((player, obj) -> {
             player.startEvent(e -> {
                 player.lock(LockType.FULL);
@@ -86,6 +86,21 @@ public class Citadel {
                 player.unlock();
             });
         }));
+
+        NPC death = new NPC(5567);
+        death.spawn(2971, 3338, 1, Direction.EAST, 0);
+        NPCAction.register(5567, "Escape", (p, n) -> {
+            p.startEvent(e -> {
+                p.lock();
+                p.animate(2820);
+                e.delay(5);
+                p.getMovement().teleport(World.HOME);
+                e.delay(2);
+                p.animate(-1);
+                e.delay(2);
+                p.unlock();
+            });
+        });
 
         MapListener.registerBounds(bounds)
                 .onEnter(Citadel::entered)
@@ -191,5 +206,27 @@ public class Citadel {
 
     public Position getRandomSpawnPoint() {
         return spawnPoints.randomPosition();
+    }
+
+    public void sendTeleportMenu(Player p, int page) {
+        switch(page) {
+            case 0:
+                p.dialogue(new OptionsDialogue("Select a location... [1/2]",
+                        new Option("Varrock", () -> p.getMovement().teleport(3182, 3440)),
+                        new Option("Falador", () -> p.getMovement().teleport(3016, 3357)),
+                        new Option("Lumbridge", () -> p.getMovement().teleport(0, 0)),
+                        new Option("Seers Village", () -> p.getMovement().teleport(0, 0)),
+                        new Option("> Next >", () -> sendTeleportMenu(p, 1))));
+                break;
+
+            case 1:
+                p.dialogue(new OptionsDialogue("Select a location... [2/2]",
+                        new Option("Ardougne", () -> p.getMovement().teleport(0, 0)),
+                        new Option("Rellekka", () -> p.getMovement().teleport(0, 0)),
+                        new Option("Edgeville", () -> p.getMovement().teleport(0, 0)),
+                        new Option("Canifis", () -> p.getMovement().teleport(0, 0)),
+                        new Option("< Back <", () -> sendTeleportMenu(p, 0))));
+                break;
+        }
     }
 }

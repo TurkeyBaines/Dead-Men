@@ -36,16 +36,7 @@ public class HomeTeleport extends Spell {
                     return;
                 }
             }
-            Position override = getHomeTeleportOverride(p);
-            if (override != null) {
-                ModernTeleport.teleport(p, override.getX(), override.getY(), override.getZ());
-            } else {
-                if (p.edgeHome) {
-                    ModernTeleport.teleport(p, World.EDGEHOME);
-                    return;
-                }
-                consumer.accept(p);
-            }
+            consumer.accept(p);
         };
     }
 

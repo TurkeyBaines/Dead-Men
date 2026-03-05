@@ -11,7 +11,6 @@ import io.dm.model.entity.shared.LockType;
 import io.dm.model.item.actions.impl.skillcapes.ThievingSkillCape;
 import io.dm.model.item.loot.LootItem;
 import io.dm.model.item.loot.LootTable;
-import io.dm.model.skills.BotPrevention;
 import io.dm.model.stat.StatType;
 
 import static io.dm.cache.ItemID.COINS_995;
@@ -211,11 +210,6 @@ public enum PickPocket {
             return;
         }
 
-        if(BotPrevention.isBlocked(player)) {
-            player.sendMessage("You can't pickpocket an NPC while a guard is watching you.");
-            return;
-        }
-
         player.startEvent(event -> {
             player.lock(LockType.FULL_REGULAR_DAMAGE);
             player.sendFilteredMessage("You attempt to pick the " + pickpocket.identifier + " pocket.");
@@ -237,7 +231,6 @@ public enum PickPocket {
                 event.delay(1);
                 player.stun(pickpocket.stunSeconds, true);
             }
-            BotPrevention.attemptBlock(player);
             player.unlock();
         });
     }

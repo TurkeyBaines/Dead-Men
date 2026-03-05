@@ -15,17 +15,7 @@ public class RoyalSeedPod {
                 event.delay(3);
                 player.getAppearance().setNpcId(716);
                 event.delay(3);
-                Position override = HomeTeleport.getHomeTeleportOverride(player);
-                if (override != null) {
-                    player.getMovement().teleport(override);
-                } else {
-                    if (!player.edgeHome) {
-                        player.getMovement().teleport(World.HOME);
-                    } else {
-                        player.getMovement().teleport(World.EDGEHOME);
-
-                    }
-                }
+                player.getMovement().teleport(World.HOME);
                 event.delay(2);
                 player.graphics(769);
                 event.delay(2);

@@ -36,11 +36,7 @@ public class PlayerRestore {
             player.inTutorial = false;
             player.newPlayer = false;
             player.setTutorialStage(0);
-            if (player.edgeHome) {
-                player.getMovement().teleport(World.EDGEHOME);
-            } else {
-                player.getMovement().teleport(World.HOME);
-            }
+            player.getMovement().teleport(World.HOME);
             //reconstructItemContainers(player); //forget about items
             reconstructStats(player);
             giveRestoreStarter(player);
