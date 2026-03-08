@@ -386,7 +386,7 @@ public final class ItemID
 	public static final int BONE_BEADS = 618;
 	public static final int PARAMAYA_TICKET = 619;
 	public static final int PARAMAYA_TICKET_620 = 620;
-	public static final int SHIP_TICKET = 621;
+	public static final int TOURNAMENT_TICKET = 621;
 	public static final int SWORD_POMMEL = 623;
 	public static final int BERVIRIUS_NOTES = 624;
 	public static final int WAMPUM_BELT = 625;
@@ -8385,7 +8385,7 @@ public final class ItemID
 	public static final int INCOMPLETE_BLASTER = 13184;
 	public static final int EASTER_BLASTER = 13185;
 	public static final int VOLATILE_MINERAL = 13186;
-	public static final int PACKAGE = 13187;
+	public static final int STARTER_KIT = 13187;
 	public static final int DIANGOS_CLAWS = 13188;
 	public static final int OLD_SCHOOL_BOND = 13190;
 	public static final int OLD_SCHOOL_BOND_UNTRADEABLE = 13192;

@@ -67,7 +67,7 @@ public class RuneRemoval {
                  */
                 continue;
             }
-            if(reqRune == Rune.WATER && (player.getEquipment().hasId(21006) || player.getEquipment().hasId(30181))) {
+            if(reqRune == Rune.WATER && (player.getEquipment().hasId(21006))) {
                 /**
                  * Kodai wand
                  */
@@ -99,7 +99,7 @@ public class RuneRemoval {
             }
         }
         RuneRemoval removal = new RuneRemoval(toRemove);
-        if(wepDef != null && (wepDef.id == 11791 || wepDef.id == 12902 || wepDef.id == 12904 || wepDef.id == 21006 || wepDef.id == 30181))
+        if(wepDef != null && (wepDef.id == 11791 || wepDef.id == 12902 || wepDef.id == 12904 || wepDef.id == 21006))
             removal.keep = Random.get() <= 0.125;
         return removal;
     }

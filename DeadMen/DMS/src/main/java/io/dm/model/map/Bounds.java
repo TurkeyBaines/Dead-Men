@@ -285,4 +285,32 @@ public class Bounds {
         return new Bounds(sw.swX, sw.swY, ne.neX, ne.neY, -1);
     }
 
+    public void forEachEdgePos(Consumer<Position> consumer) {
+        // If it's a rectangle, we convert it to a 4-point polygon for uniform logic
+        int[][] poly = isPolygon() ? this.points : rectToPoly(this);
+
+        for (int i = 0; i < poly.length; i++) {
+            int[] p1 = poly[i];
+            int[] p2 = poly[(i + 1) % poly.length]; // Connects last point back to first
+
+            int x1 = p1[0], y1 = p1[1];
+            int x2 = p2[0], y2 = p2[1];
+
+            // Calculate distance to determine how many steps to take
+            int dx = Math.abs(x2 - x1);
+            int dy = Math.abs(y2 - y1);
+            int steps = Math.max(dx, dy);
+
+            for (int s = 0; s <= steps; s++) {
+                // Linear interpolation to find every tile between vertices
+                int x = (steps == 0) ? x1 : x1 + (s * (x2 - x1) / steps);
+                int y = (steps == 0) ? y1 : y1 + (s * (y2 - y1) / steps);
+
+                // Handle height (if -1, you might want to default to 0 or handle multiple)
+                int targetZ = (this.z == -1) ? 0 : this.z;
+                consumer.accept(new Position(x, y, targetZ));
+            }
+        }
+    }
+
 }

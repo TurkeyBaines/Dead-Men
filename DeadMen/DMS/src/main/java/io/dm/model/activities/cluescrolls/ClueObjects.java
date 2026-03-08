@@ -1,7 +1,6 @@
 package io.dm.model.activities.cluescrolls;
 
 import io.dm.cache.ObjectDef;
-import io.dm.content.activities.lms.LastManStanding;
 import io.dm.model.activities.motherlodemine.MotherlodeMine;
 import io.dm.model.inter.dialogue.ItemDialogue;
 import io.dm.model.map.Position;
@@ -19,7 +18,6 @@ public class ClueObjects {
 			if (def.name.equalsIgnoreCase("mine cart") || def.name.equalsIgnoreCase("bookcase")
 					|| def.name.equalsIgnoreCase("chest") || def.name.equalsIgnoreCase("open chest")
 					|| def.name.contains("wardrobe") || def.name.equalsIgnoreCase("drawers")
-					|| (def.id != LastManStanding.LOOT_CRATE_ID && def.name.equalsIgnoreCase("crate")) || def.name.equalsIgnoreCase("boxes")
 					|| def.name.equalsIgnoreCase("wheelbarrow") || def.name.equalsIgnoreCase("bush")
 					|| def.name.equalsIgnoreCase("stones") || def.name.equalsIgnoreCase("crates")) {
 				ObjectAction.register(def.id, "search", (player, obj) -> {

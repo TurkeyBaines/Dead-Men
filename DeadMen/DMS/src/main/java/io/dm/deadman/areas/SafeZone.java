@@ -21,7 +21,7 @@ public class SafeZone {
     private static List<Player> players;
     private static HashMap<Player, DMMGuard> guards;
 
-    private static Bounds varrock = new Bounds(
+    public static Bounds varrock = new Bounds(
             new int[][] {
                     {3143,3517},
                     {3158,3517},
@@ -81,7 +81,7 @@ public class SafeZone {
                     {3138,3513}},
             0);
 
-    private static Bounds lumbridge = new Bounds(
+    public static Bounds lumbridge = new Bounds(
             new int[][] {
                 {3256,3190},
                 {3260,3206},
@@ -118,7 +118,7 @@ public class SafeZone {
                 {3247,3190}
             }, 0);
 
-    private static Bounds yanille = new Bounds(new int[][] {
+    public static Bounds yanille = new Bounds(new int[][] {
             {2539,3107},
             {2541,3107},
             {2543,3109},
@@ -135,7 +135,7 @@ public class SafeZone {
             {2539,3077}
     }, 0);
 
-    private static Bounds ardougne = new Bounds(new int[][] {
+    public static Bounds ardougne = new Bounds(new int[][] {
             {2559,3263},
             {2559,3337},
             {2564,3342},
@@ -167,7 +167,7 @@ public class SafeZone {
             {2560,3263}
     }, 0);
 
-    private static Bounds tree_gnome = new Bounds(new int[][] {
+    public static Bounds tree_gnome = new Bounds(new int[][] {
             {2385,3523},
             {2393,3523},
             {2394,3524},
@@ -276,7 +276,7 @@ public class SafeZone {
             {2384,3522}
     }, 0);
 
-    private static Bounds rellekka = new Bounds(new int[][] {
+    public static Bounds rellekka = new Bounds(new int[][] {
             {2652,3712},
             {2689,3712},
             {2691,3710},
@@ -323,7 +323,7 @@ public class SafeZone {
             {2652,3709}
     }, 0);
 
-    private static Bounds pest_control = new Bounds(2629,2633,2680,2682, 0);
+    public static Bounds pest_control = new Bounds(2629,2633,2680,2682, 0);
 
     static {
 

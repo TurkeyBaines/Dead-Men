@@ -59,7 +59,7 @@ public class DisplayHandler implements Incoming {
         ps.sendInterface(218, 165, 14, 1);
         ps.sendInterface(Config.FRIENDS_AND_IGNORE_TOGGLE.get(player) == 0 ? Interface.FRIENDS_LIST : Interface.IGNORE_LIST, 165, 17, 1);
         //ps.sendInterface(432, 165, 16, 1);
-        ps.sendInterface(Interface.QUEST_TAB, 165, 16, 1);
+        ps.sendInterface(Interface.ACCOUNT_MANAGEMENT, 165, 16, 1);
         ps.sendInterface(182, 165, 18, 1);
         ps.sendInterface(261, 165, 19, 1);
         ps.sendInterface(216, 165, 20, 1);

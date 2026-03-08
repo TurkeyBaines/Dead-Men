@@ -5,6 +5,10 @@ import io.dm.Server;
 import io.dm.api.utils.Random;
 import io.dm.cache.Color;
 import io.dm.cache.ItemDef;
+import io.dm.deadman.sigils.Sigil;
+import io.dm.deadman.sigils.Sigils;
+import io.dm.deadman.sigils.combat.FormidableFighter;
+import io.dm.deadman.sigils.combat.MenacingMage;
 import io.dm.model.World;
 import io.dm.model.activities.pvp.leaderboard.Leaderboard;
 import io.dm.model.activities.raids.xeric.ChambersOfXeric;
@@ -346,6 +350,19 @@ public class PlayerCombat extends Combat {
         attackAnim();
 
         target.hit(new Hit(player, style, type).randDamage(maxDamage).setAttackWeapon(player.getEquipment().getDef(Equipment.SLOT_WEAPON)));
+
+        if (player != null) {
+            if (Sigil.sigilActive(player, Sigils.Formidable_Fighter)) {
+                FormidableFighter menacingMage = (FormidableFighter) Sigil.get(Sigils.Formidable_Fighter);
+                if (target.player != null && Sigil.canActivate(player)) {
+                    target.player.getCombat().curse();
+                    menacingMage.effect(player, target.player);
+                } else {
+                    target.npc.getCombat().curse();
+                    menacingMage.effect(player, target.npc);
+                }
+            }
+        }
     }
 
     /**
@@ -369,10 +386,6 @@ public class PlayerCombat extends Combat {
         }
         if(rangedWep == RangedWeapon.TOXIC_BLOWPIPE) {
             attackWithBlowpipe(wep);
-            return;
-        }
-        if (rangedWep == RangedWeapon.CORRUPTED_JAVELIN) {
-            attackWithCorruptedJavelin(wep);
             return;
         }
         Item ammo = null;
@@ -436,6 +449,20 @@ public class PlayerCombat extends Combat {
                 return;
 
             target.hit(hit);
+
+            if (player != null) {
+                if (Sigil.sigilActive(player, Sigils.Ruthless_Ranger)) {
+                    MenacingMage menacingMage = (MenacingMage) Sigil.get(Sigils.Ruthless_Ranger);
+                    if (target.player != null && target.player.getCombat().canCurse()) {
+                        target.player.getCombat().curse();
+                        menacingMage.effect(player, target.player);
+                    } else {
+                        target.npc.getCombat().curse();
+                        menacingMage.effect(player, target.npc);
+                    }
+                }
+            }
+
             if (chins) {
                 target.graphics(157, 100, delay);
                 if (target.inMulti()) {
@@ -484,30 +511,6 @@ public class PlayerCombat extends Combat {
         }
     }
 
-    private void attackWithCorruptedJavelin(Item wep) {
-        if (AttributeExtensions.getCharges(wep) <= 0) {
-            player.sendMessage("Your javelin isn't charged with any essence.");
-            reset();
-            return;
-        }
-        AttackStyle style = attackSet.style;
-        AttackType type = attackSet.type;
-        int maxDamage = CombatUtils.getMaxDamage(player, style, type);
-        int attackTicks = type == AttackType.RAPID_RANGED ? weaponType.attackTicks - 1 : weaponType.attackTicks;
-        if(target.npc != null)
-            attackTicks--;
-        updateLastAttack(attackTicks);
-        Hit hit = new Hit(player, style, type)
-                .setAttackWeapon(wep.getDef())
-                .setRangedAmmo(ItemDef.get(11230));
-        player.graphics(5006, 96, 0);
-        attackAnim();
-        Projectile proj =  Projectile.javelin(5019)[0];
-        int delay = proj.send(player, target);
-        hit.randDamage(maxDamage).clientDelay(delay);
-        target.hit(hit);
-    }
-
     private void attackWithBlowpipe(Item blowpipe) {
         Blowpipe.Dart dart = Blowpipe.getDart(blowpipe);
         int dartAmount = Blowpipe.getDartAmount(blowpipe);
@@ -549,6 +552,19 @@ public class PlayerCombat extends Combat {
         if(Random.rollDie(3, 2))
             scalesAmount--;
         Blowpipe.update(blowpipe, dart, dartAmount, scalesAmount);
+
+        if (player != null) {
+            if (Sigil.sigilActive(player, Sigils.Ruthless_Ranger)) {
+                MenacingMage menacingMage = (MenacingMage) Sigil.get(Sigils.Ruthless_Ranger);
+                if (target.player != null && target.player.getCombat().canCurse()) {
+                    target.player.getCombat().curse();
+                    menacingMage.effect(player, target.player);
+                } else {
+                    target.npc.getCombat().curse();
+                    menacingMage.effect(player, target.npc);
+                }
+            }
+        }
     }
 
     public void removeAmmo(Item ammo, Hit... hits) {

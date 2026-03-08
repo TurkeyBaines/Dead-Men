@@ -98,6 +98,14 @@ public class MapListener {
         return listener;
     }
 
+    public static void remove(MapListener listener) {
+        List<MapListener> list = new ArrayList<>();
+        if(LISTENERS != null)
+            Collections.addAll(list, LISTENERS);
+        list.remove(listener);
+        LISTENERS = list.toArray(new MapListener[0]);
+    }
+
     /**
      * Action types (Yes I know I can use consumers, but this is a little bit more noob friendly for koders.)
      */

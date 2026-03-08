@@ -280,6 +280,7 @@ public class ItemDef {
                 break;
             decode(buffer, opcode);
         }
+
         if(id == 2742) {
             name = "Coin Casket (small)";
             inventoryOptions[1] = null;
@@ -300,69 +301,8 @@ public class ItemDef {
             inventoryOptions[1] = null;
         }
 
-        if (id == 1464) {
-            name = "Vote Lottery Ticket";
-            stackable = false;
-        }
-
-        if(id == 13190) { //bond
-            name = World.type.getWorldName() + " Credit";
-            stackable = true;
-            value = 0; //important for sigmund
-            inventoryOptions[0] = "Claim";
-            inventoryOptions[2] = null;
-        }
-
-        if (id == 13024 || id == 13026 || id == 9243 || id == 6109 || id == 3751) {
-            value = 0;
-        }
-
-        if(id == 6199) {
-            inventoryOptions[2] = "Gift";
-        }
-
-        if(id == 290) {
-            name = "Super Mystery Box";
-            inventoryOptions[1] = "Open";
-            inventoryOptions[2] = "Gift";
-        }
-        if(id == 30185) {
-            name = "Summer Mystery Box";
-            inventoryOptions[1] = "Open";
-            inventoryOptions[2] = "Gift";
-        }
-
-        if(id == 6828) {
-            name = "Pet Mystery Box";
-            inventoryOptions[1] = "Open";
-            inventoryOptions[2] = "Gift";
-        }
-
-        if(id == 6829) {
-            name = "Voting Mystery Box";
-            inventoryOptions[1] = "Open";
-            inventoryOptions[2] = "Gift";
-        }
-
-        if(id == 6831) {
-            name = "3rd age Mystery Box";
-            inventoryOptions[1] = "Open";
-            inventoryOptions[2] = "Gift";
-        }
-
-        if(id == 1505) {
-            name = "Obelisk destination scroll";
-        }
-
         if(id == 4067) {
             name = "Vote ticket";
-        }
-
-        if(id == 10834) {
-            name = "Dice bag";
-            inventoryOptions[0] = "Roll 4-sided";
-            inventoryOptions[1] = "Roll 12-sided";
-            inventoryOptions[2] = "Roll 100-sided";
         }
 
         if (id == 9477) {
@@ -372,92 +312,34 @@ public class ItemDef {
             tradeable = true;
         }
 
-        if (id == 3455 || id == 3457 || id == 3458) {
-            name = "Clue key";
-            inventoryOptions[3] = "Check-Hint";
-        }
-
-        if(id == 6806) {
-            name = "Green Skin Scroll";
-            inventoryOptions[0] = "Redeem";
-        }
-
-        if(id == 6807) {
-            name = "Blue Skin Scroll";
-            inventoryOptions[0] = "Redeem";
-        }
-
-        if(id == 6808) {
-            name = "Purple Skin Scroll";
-            inventoryOptions[0] = "Redeem";
-        }
-
-        if(id == 19625) {
-            name = "Home teleport";
-        }
         if(id == 8007) {
             inventoryOptions[1] = null;
         }
+
         if(id >= 1567 && id <= 1572)
             name = "Overgrown cat";
+
         /* Quick option for repairing all broken items */
+
         if(name.endsWith("(broken)"))
             inventoryOptions[0] = "Fix";
+
         if(id == 11169) {
             name = World.type.getWorldName() + " Herald";
             inventoryOptions[0] = "View-updates";
             inventoryOptions[1] = null;
             inventoryOptions[4] = "Destroy";
         }
+
         if(id == 12746 || (id >= 12748 && id <= 12756)) {
             inventoryOptions[0] = "Info";
             inventoryOptions[1] = "Redeem";
         }
+
         if(id == 621) {
             name = "Tournament voucher";
-        }
-        if(id == BLOOD_FRAGMENT) {
-            name = "Blood Fragments";
-        }
-        if(id == 607) {
-            name = "Rare Drop Scroll";
-            inventoryOptions[0] = "Activate";
-        }
-        if(id == 608) {
-            name = "Pet Drop Scroll";
-            inventoryOptions[0] = "Activate";
-        }
-        if(id == 6758) {
-            name = "Bonus Exp Scroll";
-            inventoryOptions[0] = "Activate";
-        }
-        if(id  == 7671)
-            name += " (red)";
-        if (id == 7673)
-            name += " (blue)";
-
-        if(id == 2730) {
-            name = "Wilderness Reward Box (small)";
-            inventoryOptions[0] = "Open";
-            inventoryOptions[1] = null;
-        }
-
-        if(id == 2732) {
-            name = "Wilderness Reward Box (medium)";
-            inventoryOptions[0] = "Open";
-            inventoryOptions[1] = null;
-        }
-
-        if(id == 2734) {
-            name = "Wilderness Reward Box (large)";
-            inventoryOptions[0] = "Open";
-            inventoryOptions[1] = null;
-        }
-
-        if(id == 2736) {
-            name = "Wilderness Reward Box (giant)";
-            inventoryOptions[0] = "Open";
-            inventoryOptions[1] = null;
+            inventoryOptions[0] = "Info";
+            inventoryOptions[1] = "Claim";
         }
 
         if(id == 13215) {
@@ -465,88 +347,55 @@ public class ItemDef {
             stackable = true;
         }
 
-        if(id == 22330) {
-            name = "PVP Armour Mystery Box";
-            inventoryOptions[0] = "Open";
-            inventoryOptions[1] = "Gift";
-        }
-
-        if(id == 3606) {
-            name = "Bloody key (easy)";
-        }
-
-        if(id == 3608) {
-            name = "Bloody key (medium)";
-        }
-
-        if(id == 7297) {
-            name = "Bloody key (hard)";
-        }
-
-        if(id == 11918) {
-            name = "Santa Outfit Box";
-            inventoryOptions[0] = "Open";
-        }
-
-        if(id == 12897) {
-            name = "Anti-Santa Outfit Box";
-            inventoryOptions[0] = "Open";
-        }
-
-        if(id == 22816 || id == 22817) {
+        if (id == 13187) {
+            name = "Starter Kit";
+            inventoryOptions[0] = "Take-All";
+            inventoryOptions[1] = "Peek";
             inventoryOptions[4] = "Destroy";
-        }
-
-        if(id == 21227) {
-            name = "Easter Egg";
-            inventoryOptions[0] = "Open";
-        }
-
-        if(id == 11028) {
-            stackable = true;
+            tradeable = false;
         }
 
         if(id == 8943) {
-            name = "Wilderness key (1M OSRS)";
-            inventoryOptions[0] = "Information";
+            name = "Breach Event Key";
+            inventoryOptions[0] = "Peek";
             inventoryOptions[3] = null;
             inventoryOptions[4] = "Destroy";
         }
 
         if(id == 8944) {
-            name = "Wilderness key (5M OSRS)";
-            inventoryOptions[0] = "Information";
+            name = "Chest Event Key";
+            inventoryOptions[0] = "Peek";
             inventoryOptions[3] = null;
             inventoryOptions[4] = "Destroy";
         }
 
         if(id == 8945) {
-            name = "Wilderness key (10M OSRS)";
-            inventoryOptions[0] = "Information";
+            name = "Goblin Event Key";
+            inventoryOptions[0] = "Peek";
             inventoryOptions[3] = null;
             inventoryOptions[4] = "Destroy";
         }
 
-        if(id == 8946) {
-            name = "Wilderness key (25M OSRS)";
-            inventoryOptions[0] = "Information";
-            inventoryOptions[3] = null;
-            inventoryOptions[4] = "Destroy";
-        }
-
-        if(id == 8947) {
-            name = "Wilderness key (50M OSRS)";
-            inventoryOptions[0] = "Information";
-            inventoryOptions[3] = null;
-            inventoryOptions[4] = "Destroy";
-        }
-
-        if(id == 8948) {
-            name = "Wilderness key (100M OSRS)";
-            inventoryOptions[0] = "Information";
-            inventoryOptions[3] = null;
-            inventoryOptions[4] = "Destroy";
-        }
+//        if(id == 8946) {
+//            name = "Wilderness key (25M OSRS)";
+//            inventoryOptions[0] = "Information";
+//            inventoryOptions[3] = null;
+//            inventoryOptions[4] = "Destroy";
+//        }
+//
+//        if(id == 8947) {
+//            name = "Wilderness key (50M OSRS)";
+//            inventoryOptions[0] = "Information";
+//            inventoryOptions[3] = null;
+//            inventoryOptions[4] = "Destroy";
+//        }
+//
+//        if(id == 8948) {
+//            name = "Wilderness key (100M OSRS)";
+//            inventoryOptions[0] = "Information";
+//            inventoryOptions[3] = null;
+//            inventoryOptions[4] = "Destroy";
+//        }
     }
 
     private void decode(InBuffer buffer, int opcode) {

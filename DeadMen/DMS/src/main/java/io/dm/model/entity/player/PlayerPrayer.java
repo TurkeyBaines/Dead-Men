@@ -228,10 +228,6 @@ public class PlayerPrayer {
     }
 
     public void process() {
-        //If a player is in a LMS session, don't drain at all.
-        if (player.lmsSession != null) {
-            return;
-        }
         if(drainTotal == 0)
             return;
         if(drainSkip == 0) {

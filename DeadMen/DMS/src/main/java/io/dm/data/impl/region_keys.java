@@ -6,6 +6,7 @@ import io.dm.model.map.MultiZone;
 import io.dm.model.map.Region;
 import io.dm.model.map.dynamic.DynamicMap;
 
+import java.util.Arrays;
 import java.util.Map;
 
 public class region_keys extends DataFile {
@@ -29,7 +30,7 @@ public class region_keys extends DataFile {
         for(int regionId = 0; regionId < Region.LOADED.length; regionId++) {
             Region region = new Region(regionId);
             if((region.keys = keys.get(regionId)) != null && !isValid(region.id, region.keys)) {
-                //System.err.println("Invalid Keys for Region (" + regionId + "): base=(" + region.baseX + ", " + region.baseY + ") keys=" + Arrays.toString(region.keys));
+                System.err.println("Invalid Keys for Region (" + regionId + "): base=(" + region.baseX + ", " + region.baseY + ") keys=" + Arrays.toString(region.keys));
                 region.keys = null;
             }
             Region.LOADED[regionId] = region;

@@ -140,95 +140,21 @@ public class NPCDef {
         /**
          * Keep updated with client lol
          */
-        if(id == 5527) {
-            /* Twiggy O'Korn */
-            options[2] = "Rewards";
-        } else if(id == 315) {
-            options[0] = "Talk-to";
-            options[1] = "Set-skull";
-            options[2] = "Reset-kdr";
-            options[3] = null;
-            options[4] = null;
-        } else if(id == 1815) {
-            name = "Vote Manager";
-            options[0] = "Trade";
-            options[2] = "Cast-votes";
-            options[3] = "Claim-votes";
-            options[4] = "Lottery-info";
-        } else if(id == 2108) {
-            name = "Donation Manager";
-            options[0] = "Open-Shop";
-            options[2] = "Claim-purchases";
-        } else if(id == 306) {
-            name = World.type.getWorldName() + " Expert";
-            options[0] = "Talk-to";
-            options[2] = "View-help";
-            options[3] = "View-guide";
-            options[4] = "Task-rewards";
-        } else if(id == 5442) {
+        if(id == 5442) {
             name = "Security Advisor";
             options[2] = "Check Pin Settings";
             options[3] = "Check 2FA Settings";
         } else if(id == 2882) {
             /* Horvik */
             options[0] = "Repair-items";
-            options[2] = "Upgrade-items";
         } else if(id == 3894) {
             /* Sigmund the Merchant */
             options[0] = "Buy-items";
             options[2] = "Sell-items";
             options[3] = "Sets";
             options[4] = null;
-        } else if (id == 5523) {
-            /* Gambling man */
-            name = "Gambler";
-            options[0] = null;
-            options[2] = "Trade";
-        } else if(id == 4398) {
-            /* ECO Wizard */
-            name = World.type.getWorldName() + " Wizard";
-            options[0] = "Teleport";
-            options[2] = "Teleport-previous";
-        } else if(id == 4159) {
-            name = World.type.getWorldName() + " Wizard";
-            options[0] = null;
-            options[1] = null;
-            options[2] = null;
-            options[3] = null;
-        } else if(id == 2462) {
-            /* Shanomi */
-            options[2] = "Trade";
-        } else if(id == 6481) {
-            combatLevel = 0;
-        } else if(id == 3343) {
-            name = World.type.getWorldName() + " Nurse";
-        } else if(id == 1603) {
-            /* Kolodion */
-            name = "Battle Point Exchange";
-            options[2] = "Trade";
-            options[3] = "Check-points";
         } else if(id == 3278) {
             name = "Construction Worker";
-        } else if(id == 1307) {
-            options[0] = "Change-looks";
-            options[2] = "Skin-unlocks";
-            options[3] = "Title-unlocks";
-            options[4] = null;
-        } else if(id == 4225) {
-            name = "Shop";
-            options[0] = "Untradeable";
-        } else if(id == 1199) {
-            name = "Shop";
-            options[0] = "Consumable";
-        } else if(id == 5081) {
-            name = "Shop";
-            options[0] = "Magic";
-        } else if(id == 2153) {
-            name = "Shop";
-            options[0] = "Melee";
-        } else if(id == 4579) {
-            name = "Shop";
-            options[0] = "Misc";
         } else if(id == 2668) {
             name = "Max hit dummy";
             options[2] = options[3] = options[4] = null;
@@ -246,39 +172,13 @@ public class NPCDef {
         } else if("Pick-up".equals(options[0]) && "Talk-to".equals(options[2]) && "Chase".equals(options[3]) && "Interact".equals(options[4])) {
             options[3] = "Age";
             options[4] = null;
-        } else if(id == 1849) {
-            name = "Loyalty Fairy";
-            options[0] = "About";
-        } else if(id == 8407) {
-            options[1] = "View Trading Post";
         } else if(id == 7759) {
             options[0] = options[2] = null;
-        } else if(id == 7316) {
-            name = "Tournament Manager";
-            options[0] = "Sign-up";
         } else if(id == 7941) {
             options[2] = options[3] = options[4] = null;
-        } else if(id == 3080) { // man at home. remove attack option so people can't be assholes to newbies that are just starting out
-            options[1] = null;
-            combatLevel = 0;
-        } else if (id == 307) { // second guide npc (with no options); originally dr jekyll
-            name = World.type.getWorldName() + " Expert";
-            options[0] = null;
-            options[4] = null;
-            standAnimation = 813;
-            walkAnimation = 1205;
-        } else if(id == 311) {
-            name = "Ironman";
-            options[1] = "Open-shop";
-            options[2] = null;
-        } else if(id == 7951) {
-            name = "PvP Event Manager";
-            options[0] = "Join-event";
-            options[1] = "Create-event";
         } else if(id == 8009) {
             options[3] = "Metamorphosis";
         } else if(id == 8507) {
-            name = "Bloody Merchant";
             options[0] = "Trade";
         } else if(id == 7297) { // Skotizo (For eco world)
             // Replaces Mistag
@@ -291,29 +191,15 @@ public class NPCDef {
         } else if(id == 8500) {
             name = "Old man";
             options[1] = "Trade";
-        } else if (id == 7411) {
-            name = "Exodia the Forbidden one";
-        } else if(id == 7412) { //Nechryarch Melee
-            copy(7411);
-            headIcon = 0;
-            name = "Exodia the Forbidden one";
-        } else if(id == 7414) { //Nechryarch Range
-            copy(7411);
-            headIcon = 1;
-            name = "Exodia the Forbidden one";
-        } else if(id == 7415) { //Nechryarch Mage
-            copy(7411);
-            headIcon = 2;
-            name = "Exodia the Forbidden one";
-        } else if(id == 8300) { //Ranalph Devere Melee
-            copy(3966);
-            headIcon = 0;
-        } else if(id == 8301) { //Ranalph Devere Range
-            copy(3966);
-            headIcon = 1;
-        } else if(id == 8302) { //Ranalph Devere Mage
-            copy(3966);
-            headIcon = 2;
+        }
+        /* START OF DM CUSTOM NPC DEFS */
+        else if (id == 5567) { // Death
+            options[1] = "Escape";
+        } else if (id == 1798 || id == 8149 || id == 1799 || id == 1800 || id == 1829) { // White Knights > Citadel Guards
+            name = "Citadel Guard";
+            combatLevel = 700;
+            options[2] = "Talk-to";
+            options[1] = "Attack";
         }
 
         if(name != null) {

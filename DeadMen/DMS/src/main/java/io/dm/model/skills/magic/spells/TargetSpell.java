@@ -1,5 +1,8 @@
 package io.dm.model.skills.magic.spells;
 
+import io.dm.deadman.sigils.Sigil;
+import io.dm.deadman.sigils.Sigils;
+import io.dm.deadman.sigils.combat.MenacingMage;
 import io.dm.model.combat.AttackStyle;
 import io.dm.model.combat.AttackType;
 import io.dm.model.combat.CombatUtils;
@@ -228,6 +231,20 @@ public class TargetSpell extends Spell {
                     break;
             }
         }
+
+        if (entity.player != null) {
+            if (Sigil.sigilActive(entity.player, Sigils.Menacing_Mage)) {
+                MenacingMage menacingMage = (MenacingMage) Sigil.get(Sigils.Menacing_Mage);
+                if (target.player != null && target.player.getCombat().canCurse()) {
+                    target.player.getCombat().curse();
+                    menacingMage.effect(entity.player, target.player);
+                } else {
+                    target.npc.getCombat().curse();
+                    menacingMage.effect(entity.player, target.npc);
+                }
+            }
+        }
+
         return true;
     }
 

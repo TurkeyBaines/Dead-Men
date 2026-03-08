@@ -1,6 +1,7 @@
 package io.dm.model.map.object.actions.impl;
 
 import io.dm.cache.ObjectDef;
+import io.dm.cache.ObjectID;
 import io.dm.model.World;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.dialogue.MessageDialogue;
@@ -55,7 +56,7 @@ public class PrayerAltar {
          * Registering all prayer altars
          */
         ObjectDef.forEach(def -> {
-            if(def.hasOption("pray-at"))
+            if(def.hasOption("pray-at") && def.id != ObjectID.ALTAR_6552)
                 ObjectAction.register(def.id, "pray-at", (player, obj) -> pray(player));
         });
         /**

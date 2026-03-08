@@ -2,14 +2,13 @@ package io.dm.model.inter.handlers;
 
 import io.dm.cache.Color;
 import io.dm.model.World;
-import io.dm.model.entity.npc.actions.edgeville.CreditManager;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerGroup;
-import io.dm.model.entity.shared.listeners.LoginListener;
 import io.dm.model.inter.Interface;
 import io.dm.model.inter.InterfaceHandler;
 import io.dm.model.inter.actions.SimpleAction;
 import io.dm.model.inter.dialogue.ItemDialogue;
+import io.dm.model.inter.dialogue.MessageDialogue;
 import io.dm.model.inter.dialogue.OptionsDialogue;
 import io.dm.model.inter.utils.Option;
 import io.dm.model.item.Item;
@@ -32,49 +31,15 @@ public class TabAccountManagement {
          * Interface buttons
          */
         InterfaceHandler.register(Interface.ACCOUNT_MANAGEMENT, h -> {
-            h.actions[3] = (SimpleAction) p -> p.dialogue(
-                    new OptionsDialogue("Would you like to open our store?",
-                            new Option("Yes", () -> p.openUrl(World.type.getWorldName() + " Store", CreditManager.STORE_URL)),
-                            new Option("No", p::closeDialogue)
-                    )
-            );
-            h.actions[8] = (SimpleAction) p -> p.dialogue(
-                    new OptionsDialogue("Would you like to open the credit purchase page?",
-                            new Option("Yes", () -> p.openUrl(World.type.getWorldName() + " Store", CreditManager.STORE_URL)),
-                            new Option("No", p::closeDialogue)
-                    )
-            );
-            h.actions[15] = (SimpleAction) p -> p.dialogue(
-                    new OptionsDialogue("Would you like to open your forum inbox?",
-                            new Option("Yes", () -> p.openUrl(World.type.getWorldName() + " Inbox", FORUM_INBOX_URL)),
-                            new Option("No", p::closeDialogue)
-                    )
-            );
-            h.actions[22] = (SimpleAction) p -> {
-              Item credits = p.getInventory().findItem(OSPVP_CREDITS);
-              if(credits == null || credits.getAmount() < 50) {
-                  p.dialogue(new ItemDialogue().one(OSPVP_CREDITS, "You need at least " + Color.COOL_BLUE.wrap("50 " + World.type.getWorldName() + " Credits") + " to change your username. You can purchase credits from our store." +
-                          "<br>Would you like to view the store?"),
-                          new OptionsDialogue("Would you like to open our store?",
-                                  new Option("Yes", () -> p.openUrl(World.type.getWorldName() + " Store", CreditManager.STORE_URL)),
-                                  new Option("No", p::closeDialogue)
-                          ));
-                  return;
-              }
-              p.nameInput("What would you like to change your display name to?", reqName -> {
-                  XenUsername.requestNameChange(p, reqName);
-              });
-            };
+            h.actions[3] = (SimpleAction) p -> p.dialogue( new MessageDialogue("We may bring a cosmetic store in the future, but all p2w has been removed."));
+            h.actions[8] = (SimpleAction) p -> p.dialogue( new MessageDialogue("We may bring a cosmetic store in the future, but all p2w has been removed."));
+            h.actions[15] = (SimpleAction) p -> p.dialogue( new MessageDialogue("We can show new update information here maybe?"));
+            h.actions[22] = (SimpleAction) p -> p.dialogue(  new MessageDialogue("We may bring a cosmetic store in the future, but all p2w has been removed.") );
             h.actions[29] = (SimpleAction) p -> p.dialogue(new OptionsDialogue("Would you like to vote now?",
                     new Option("Yes", () -> p.openUrl(World.type.getWorldName() + " Vote", VOTE_URL)),
                     new Option("No", p::closeDialogue)
-                    )
-            );
-            h.actions[32] = (SimpleAction) p -> p.dialogue(new OptionsDialogue("Would you like to view the hiscores?",
-                            new Option("Yes", () -> p.openUrl(World.type.getWorldName() + " Hiscores", HISCORES)),
-                            new Option("No", p::closeDialogue)
-                    )
-            );
+                    ));
+            h.actions[32] = (SimpleAction) p -> p.dialogue( new MessageDialogue("We need to hook this up to a server highscores list."));
         });
     }
 

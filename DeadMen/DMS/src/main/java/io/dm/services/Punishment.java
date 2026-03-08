@@ -40,9 +40,6 @@ public class Punishment {
      */
 
     public static void jail(Player p1, Player p2, int ores) {
-        if (p2.lmsSession != null) {
-            p2.lmsSession.eliminatePlayer(p2);
-        }
 
         p1.sendMessage("Jailing " + p2.getName() + " to " + ores + " ores...");
         p2.jailerName = p1.getName();
@@ -60,9 +57,6 @@ public class Punishment {
     }
 
     public static void jail(Player player, NPC npc, int ores) {
-        if (player.lmsSession != null) {
-            player.lmsSession.eliminatePlayer(player);
-        }
         player.jailerName = npc.getDef().name;
         player.jailOresAssigned = ores;
         player.jailOresCollected = 0;

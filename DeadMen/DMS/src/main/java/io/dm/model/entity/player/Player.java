@@ -223,7 +223,7 @@ public class Player extends PlayerAttributes {
     public boolean isStaff() {
         return  isGroup(PlayerGroup.MODERATOR) ||  isGroup(PlayerGroup.SUPPORT)
                 || isGroup(PlayerGroup.ADMINISTRATOR) || isGroup(PlayerGroup.OWNER) || isGroup(PlayerGroup.DEVELOPER)
-                 || isGroup(PlayerGroup.COMMUNITY_MANAGER) || isGroup(PlayerGroup.ADMINISTRATOR);
+                || isGroup(PlayerGroup.COMMUNITY_MANAGER) || isGroup(PlayerGroup.ADMINISTRATOR);
     }
 
     public boolean isSapphire() {
@@ -985,6 +985,14 @@ public class Player extends PlayerAttributes {
 
     private void validateMapListeners() {
         if(!activeMapListeners.isEmpty()) {
+
+            if (activeStaticMapListeners.length != MapListener.LISTENERS.length) {
+                activeStaticMapListeners = new boolean[MapListener.LISTENERS.length];
+                for (int i = 0; i < MapListener.LISTENERS.length; i++) {
+                    activeStaticMapListeners[i] = false;
+                }
+            }
+
             activeMapListeners.removeIf(listener -> {
                 if(!listener.isActive(this)) {
                     if(listener.exitAction != null)
@@ -997,12 +1005,12 @@ public class Player extends PlayerAttributes {
             });
         }
         for(int i = 0; i < MapListener.LISTENERS.length; i++) {
-            if(activeStaticMapListeners[i])
+            if (activeStaticMapListeners[i])
                 continue;
             MapListener listener = MapListener.LISTENERS[i];
-            if(listener.isActive(this)) {
+            if (listener.isActive(this)) {
                 addActiveMapListener(listener);
-                if(listener.enterAction != null)
+                if (listener.enterAction != null)
                     listener.enterAction.entered(this);
                 activeStaticMapListeners[i] = true;
             }
@@ -1396,7 +1404,7 @@ public class Player extends PlayerAttributes {
         if (player.darkCrabBoost.remaining() > 0) {
             player.darkCrabBoostTimeLeft = player.darkCrabBoost.remaining();
         }
-		GameEventProcessor.killFor(this);
+        GameEventProcessor.killFor(this);
         Hunter.collapseAll(this);
         resetActions(true, true, true);
         bankPin.loggedOut();
@@ -1719,7 +1727,7 @@ public class Player extends PlayerAttributes {
     }
 
     public Title getTitle() {
-            return title;
+        return title;
     }
 
     public House getCurrentHouse() {

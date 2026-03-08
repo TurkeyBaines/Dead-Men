@@ -216,6 +216,9 @@ public class BankActions {
     public static void markTiles(GameObject obj) {
         //This will only mark tiles for objects in cache.
         //Custom objects will require custom exceptions!
+        if (obj.getDef() == null) {
+            System.out.println("Null Object: " + obj.id + " | x:" + obj.getPosition().getX() + ", y:" + obj.getPosition().getY());
+        }
         if(obj.getDef().bank)
             markTiles(obj.x, obj.y, obj.z);
     }

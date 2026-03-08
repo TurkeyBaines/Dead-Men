@@ -1,7 +1,6 @@
 package io.dm.model.inter.dialogue;
 
 import io.dm.model.World;
-import io.dm.model.entity.npc.actions.edgeville.CreditManager;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.Interface;
 import io.dm.model.inter.InterfaceHandler;
@@ -56,14 +55,7 @@ public class LinkDialogue implements Dialogue {
     static {
         InterfaceHandler.register(Interface.LINK_DIALOGUE, h -> {
             h.actions[5] = (SimpleAction) Player::continueDialogue;
-            h.actions[8] = (SimpleAction) player -> {
-                player.dialogue(
-                        new OptionsDialogue("Would you like to open our store?",
-                                new Option("Yes", () -> player.openUrl(World.type.getWorldName() + " Store", CreditManager.STORE_URL)),
-                                new Option("No", player::closeDialogue)
-                        )
-                );
-            };
+            h.actions[8] = (SimpleAction) player -> player.dialogue( new MessageDialogue("We may bring a cosmetic store in the future, but all p2w has been removed."));
             h.actions[6] = (SimpleAction) player -> {
                 player.dialogue(
                         new OptionsDialogue("Are you sure you'd like to vote now?",

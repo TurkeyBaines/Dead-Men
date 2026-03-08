@@ -144,54 +144,17 @@ public class ObjectDef {
                 break;
             decode(in, opcode);
         }
-        if (id == ObjectID.GRAND_EXCHANGE_BOOTH) {
-            name = "Trading Post";
-            options[0] = "Open";
-            options[1] = "Coffer";
-            options[2] = "Guide";
-        } else if (id == 50001) {
-            //custom home altar
-            options[0] = "Pray-at";
-            options[1] = "Spellbook";
-        } else if (id == 23311) {
-            //custom home altar
-            options[0] = "Teleport";
-            options[1] = "Previous Teleport";
-        } else if (id == 11833) {
+
+        if (id == 11833) {
             //fight caves entrance
             options[1] = "Practice";
-        } else if (id == 32758) {
-            //rfd chest
-            name = "Loyalty Chest";
-            options[0] = "Loot";
-            options[1] = "About";
-            options[2] = null;
-            options[3] = null;
-            options[4] = null;
-        } else if(id == 32759) {
-            name = "Loyalty Chest";
-            options[0] = null;
-            options[1] = null;
-            options[2] = null;
-            options[3] = null;
-            options[4] = null;
         } else if(id == 3192) {
-            name = "PvP Leaderboard";
-            options[0] = "Edge PKing";
-            options[1] = "Deep Wild PKing";
-            options[2] = null;
+            name = "Dead Men Leaderboard";
+            options[0] = "Current Tournament";
+            options[1] = "Seasonal";
+            options[2] = "All Time";
             options[3] = null;
             options[4] = null;
-        } else if (id == 31379) {
-            //uhh i hope 31379 isn't ever used
-            name = "Donation table";
-            type22Int = 1;
-            xLength = yLength = 2;
-            type22Boolean = false;
-            unknownOpcode75 = 1;
-            showIds = null;
-            modelIds = new int[]{32153};
-            varpBitId = -1;
         } else if (id == 31380) {
             //uhh i hope 31380 isn't ever used
             name = "Rejuvenation pool";
@@ -208,11 +171,6 @@ public class ObjectDef {
             unknownOpcode29 = 40;
             modelIds = new int[]{32101};
             varpBitId = -1;
-        } else if (id == PORTAL_OF_CHAMPIONS) {
-            //home teleport portal - where is this portal even used on real rs?
-            name = "Kronos Teleporter";
-            options[0] = "Teleport";
-            options[1] = "Teleport-previous";
         } else if (id == 25203) {
             //decapitated elvarg corpse
             options[0] = "Loot";
@@ -223,10 +181,6 @@ public class ObjectDef {
         } else if (id == 6045) {
             //jail mine cart
             options[0] = "Dump-ore";
-        } else if (id == 3581) {
-            //tournament ticket exchange
-            name = "Ticket exchange";
-            options[0] = "Use";
         } else if (id == 15477) {
             //raids mumbo jumbo
             name = "Chambers of Xeric";
@@ -240,34 +194,6 @@ public class ObjectDef {
         } else if (id == 11508 || id == 11509) {
             //curtain
             clipType = 0;
-        } else if (id == 30352) {
-            name = "test";
-            options[1] = "Practice";
-        } else if(id == 539) {
-            name = "Donator Area";
-        } else if(id == 33114) {
-            name = "PvP Supply Chest";
-            options[0] = "Check-timer";
-        } else if(id == 33115) {
-            name = "PvP Supply Chest";
-        } else if(id == 31583) {
-            name = "PvP Supply Chest";
-        } else if(id == 32572) {
-            name = "Bloody Chest";
-            options[1] = "Information";
-        } else if(id == 31622) {
-            name = "Ket'ian Wilderness Boss Portal";
-        } else if(id == 31621) {
-            name = "Wilderness Portal";
-        } else if(id == 31626) {
-            name = "Tournament Entrance";
-        } else if(id == 32573) {
-            name = "Bloody Chest";
-            options[0] = null;
-            options[1] = null;
-            options[2] = null;
-            options[3] = null;
-            options[4] = null;
         } else if (id == 30169) { // Dagannoth kings crack
             options[0] = "Instance";
             options[1] = "Peek";
@@ -286,79 +212,19 @@ public class ObjectDef {
         } else if (id >= 26502 && id <= 26505) { // GWD boss doors
             options[1] = "Instance";
             options[2] = "Peek";
-        } else if (id == 4407) { // pvm instance portal
-            name = "Boss instance portal";
-            options[0] = "Use";
-        } else if(id == 19038) { //christmas tree
-            name = "Christmas tree";
-            options[0] = "Grab-present";
-        } else if(id == 29709) {
-            name = "Snowball Exchange";
-            options[0] = "Open";
-            options[1] = "Information";
-        } else if (id == 40000) {
-            copy(32546);
-            name = "Giveaway booth";
-        } else if(id == 40001) {
-            copy(4525);
-            options[0] = "Exit";
-            options[1] = null;
-            options[2] = null;
-        } else if(id == 40002) {
-            copy(32424);
-            name = "Consumables";
-        } else if(id == 40003) {
-            copy(32425);
-            name = "Equipment";
-        } else if(id == 2654) {
-            name = "Bloody Fountain";
-            options[0] = "Drink";
-            options[1] = null;
-            render0x2 = 200;
-            render0x1 = 200;
-            render0x4 = 200;
-            xLength = 3;
-            yLength = 3;
-        } else if(id == 40004) {
-            copy(29241);
-            options[4] = null;
-        } else if(id == 40005) {
-            copy(31858);
-            options[0] = "Pray-at";
-            options[1] = "Spellbook";
-            options[2] = null;
-            options[3] = null;
-            options[4] = null;
-        } else if(id == 40006) {
-            copy(4537);
-            options[4] = null;
-        } else if(id == 40007) {
-            copy(13619);
-            name = "Fun PVP Portal";
-            options[4] = null;
-        } else if(id == 40008) {
-            copy(20839);
-            name = "Tournament Barrier";
-            options[0] = "Use";
-        } else if(id == 40009) {
-            copy(26714);
-            name = "Mounted Max Cape";
-            options[0] = null;
-            options[1] = null;
-            options[2] = null;
-            options[3] = null;
-            options[4] = null;
-        } else if(id == 31846) {
-            name = "Tournament Information";
-            options[0] = "Read";
-        } else if(id == 29087) {
-            name = "Ticket Exchange";
-            options[0] = "Use";
-        } else if (id == 4451 || id == 14321 || id == 14329 || id == 14324 || id == 14333) { // Asset non-projectile clip for pc portal decortations.
-            clipType = 0;
-            tall = false;
-        } else if (id == 4390) {
-            name = "Donator Zone portal";
+        } else if (id == 11097) { // Pickaxe Rock
+            options[0] = "Take-pickaxe";
+        } else if (id == 30971) { // Fishing Chest
+            name = "Fisherman's Chest";
+            options[0] = "Take-tool";
+        } else if (id == 26674) { // Resource Hopper
+            name = "Resource Hopper";
+            options[0] = "Deposit";
+            options[1] = "Note";
+            options[2] = "Points";
+        } else if (id == 35834) {
+            name = "Overworld Herbs";
+            options[0] = "Pick";
         }
     }
 

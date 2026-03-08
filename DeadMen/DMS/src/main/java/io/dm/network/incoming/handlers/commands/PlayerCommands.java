@@ -1,12 +1,26 @@
 package io.dm.network.incoming.handlers.commands;
 
+import io.dm.cache.ItemID;
 import io.dm.model.World;
 import io.dm.model.entity.player.Player;
+import io.dm.model.inter.utils.Config;
 
 public class PlayerCommands {
 
     public void process(Player player, String... args) {
         switch (args[0]) {
+
+            case "maxset":
+                maxset(player);
+                break;
+
+            case "heal":
+                heal(player);
+                break;
+
+            case "spec":
+                spec(player);
+                break;
 
             case "god": case "godmode":
                 god(player);
@@ -44,6 +58,10 @@ public class PlayerCommands {
                     return;
                 }
                 switch (args[1]) {
+                    case "heal":
+                        heal(p2);
+                        break;
+
                     case "god": case "godmode":
                         god(p2);
                         break;
@@ -59,6 +77,48 @@ public class PlayerCommands {
                 break;
 
         }
+    }
+
+    private void maxset(Player p) {
+        p.getInventory().clear();
+        p.getEquipment().clear();
+
+        p.getEquipment().add(ItemID.NEITIZNOT_FACEGUARD);
+        p.getEquipment().add(ItemID.VESTAS_CHAINBODY);
+        p.getEquipment().add(ItemID.VESTAS_PLATESKIRT);
+        p.getEquipment().add(ItemID.INFERNAL_CAPE);
+        p.getEquipment().add(ItemID.PRIMORDIAL_BOOTS);
+        p.getEquipment().add(ItemID.BARROWS_GLOVES);
+        p.getEquipment().add(ItemID.AMULET_OF_FURY);
+        p.getEquipment().add(ItemID.BERSERKER_RING_I);
+        p.getEquipment().add(ItemID.AVERNIC_DEFENDER);
+        p.getEquipment().add(ItemID.VESTAS_SPEAR);
+
+        p.getInventory().add(ItemID.COINS_995, 2147483647);
+        p.getInventory().add(ItemID.ZURIELS_HOOD, 1);
+        p.getInventory().add(ItemID.ZURIELS_ROBE_TOP, 1);
+        p.getInventory().add(ItemID.ZURIELS_ROBE_BOTTOM, 1);
+        p.getInventory().add(ItemID.ZURIELS_STAFF, 1);
+        p.getInventory().add(ItemID.BLOOD_RUNE, 2147483647);
+        p.getInventory().add(ItemID.DEATH_RUNE, 2147483647);
+        p.getInventory().add(ItemID.WATER_RUNE, 2147483647);
+        p.getInventory().add(ItemID.ETERNAL_BOOTS, 1);
+        p.getInventory().add(ItemID.SEERS_RING_I, 1);
+
+        p.getInventory().add(ItemID.CRYSTAL_HELM, 1);
+        p.getInventory().add(ItemID.CRYSTAL_BODY, 1);
+        p.getInventory().add(ItemID.CRYSTAL_LEGS, 1);
+        p.getInventory().add(ItemID.CRYSTAL_BOW, 1);
+        p.getInventory().add(ItemID.PEGASIAN_BOOTS, 1);
+        p.getInventory().add(ItemID.ARCHERS_RING_I, 1);
+    }
+
+    private void heal(Player p) {
+        p.setHp(p.getMaxHp()+25);
+    }
+
+    private void spec(Player p) {
+        Config.SPECIAL_ENERGY.set(p, 500);
     }
 
     private void god(Player player) {

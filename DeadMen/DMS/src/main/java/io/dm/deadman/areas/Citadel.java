@@ -1,5 +1,6 @@
 package io.dm.deadman.areas;
 
+import io.dm.cache.Color;
 import io.dm.deadman.guard.DMMGuard;
 import io.dm.model.World;
 import io.dm.model.entity.npc.NPC;
@@ -20,6 +21,7 @@ import io.dm.model.map.MapListener;
 import io.dm.model.map.Position;
 import io.dm.model.map.object.GameObject;
 import io.dm.model.map.object.actions.ObjectAction;
+import io.dm.model.skills.magic.SpellBook;
 import io.dm.model.stat.StatList;
 import io.dm.model.stat.StatType;
 
@@ -60,51 +62,12 @@ public class Citadel {
     public Citadel() {
         players = new ArrayList<>();
         guards = new HashMap<>();
-
-        ObjectAction.register(10251, 1, ((player, obj) -> {
-            player.startEvent(e -> {
-                player.lock(LockType.FULL);
-                player.face(Direction.EAST);
-                swapOverworld(player);
-                if (!player.getPosition().isWithinDistance(new Position(2963, 3346, 0)))
-                    player.getMovement().teleport(2963, 3346, 0);
-                else
-                    player.getMovement().teleport(2540, 3872, 0);
-                player.unlock();
-            });
-        }));
-
-        ObjectAction.register(11005, "Pass-through", ((player, obj) ->  {
-            player.startEvent(e -> {
-                player.lock();
-                player.animate(535);
-                e.delay(1);
-                if (player.getPosition().getY() < 3353)
-                    player.getMovement().teleport(player.getPosition().getX(), 3354, 0);
-                else
-                    player.getMovement().teleport(player.getPosition().getX(), 3352, 0);
-                player.unlock();
-            });
-        }));
-
-        NPC death = new NPC(5567);
-        death.spawn(2971, 3338, 1, Direction.EAST, 0);
-        NPCAction.register(5567, "Escape", (p, n) -> {
-            p.startEvent(e -> {
-                p.lock();
-                p.animate(2820);
-                e.delay(5);
-                p.getMovement().teleport(World.HOME);
-                e.delay(2);
-                p.animate(-1);
-                e.delay(2);
-                p.unlock();
-            });
-        });
+        register();
 
         MapListener.registerBounds(bounds)
                 .onEnter(Citadel::entered)
                 .onExit(Citadel::exited);
+
         System.out.println("Registered Bounds");
 
     }
@@ -214,19 +177,73 @@ public class Citadel {
                 p.dialogue(new OptionsDialogue("Select a location... [1/2]",
                         new Option("Varrock", () -> p.getMovement().teleport(3182, 3440)),
                         new Option("Falador", () -> p.getMovement().teleport(3016, 3357)),
-                        new Option("Lumbridge", () -> p.getMovement().teleport(0, 0)),
-                        new Option("Seers Village", () -> p.getMovement().teleport(0, 0)),
-                        new Option("> Next >", () -> sendTeleportMenu(p, 1))));
+                        new Option("Lumbridge", () -> p.getMovement().teleport(3224, 3226)),
+                        new Option("Seers Village", () -> p.getMovement().teleport(2729, 3492)),
+                        new Option("next...", () -> sendTeleportMenu(p, 1))));
                 break;
 
             case 1:
                 p.dialogue(new OptionsDialogue("Select a location... [2/2]",
-                        new Option("Ardougne", () -> p.getMovement().teleport(0, 0)),
-                        new Option("Rellekka", () -> p.getMovement().teleport(0, 0)),
-                        new Option("Edgeville", () -> p.getMovement().teleport(0, 0)),
-                        new Option("Canifis", () -> p.getMovement().teleport(0, 0)),
-                        new Option("< Back <", () -> sendTeleportMenu(p, 0))));
+                        new Option("Ardougne", () -> p.getMovement().teleport(2653, 3281)),
+                        new Option("Rellekka", () -> p.getMovement().teleport(2658, 3679)),
+                        new Option("Edgeville", () -> p.getMovement().teleport(3091, 3494)),
+                        new Option(Color.DARK_RED.wrap("Canifis"), () -> p.getMovement().teleport(3511, 3476)),
+                        new Option("back...", () -> sendTeleportMenu(p, 0))));
                 break;
         }
+    }
+
+    public void register() {
+        registerAltars();
+        registerDeath();
+        registerPortals();
+    }
+
+    private void registerAltars() {
+        ObjectAction.register(6552, 1, (p, o) -> {
+            p.dialogue(
+                    new OptionsDialogue(
+                            "Pick a spellbook to swap to",
+                            new Option("normal", () -> SpellBook.MODERN.setActive(p)),
+                            new Option("ancients", () -> SpellBook.ANCIENT.setActive(p)),
+                            new Option("lunar", () -> SpellBook.LUNAR.setActive(p)),
+                            new Option("arceuus", () -> SpellBook.ARCEUUS.setActive(p))
+                    )
+            );
+        });
+    }
+
+    private void registerDeath() {
+        NPC death = new NPC(5567);
+        death.spawn(2971, 3338, 1, Direction.EAST, 0);
+        NPCAction.register(5567, "Escape", (p, n) -> {
+            p.startEvent(e -> {
+                p.lock();
+                p.animate(2820);
+                e.delay(5);
+                p.getMovement().teleport(World.HOME);
+                e.delay(2);
+                p.animate(-1);
+                e.delay(2);
+                p.unlock();
+            });
+        });
+    }
+
+    private void registerPortals() {
+        ObjectAction.register(10251, 1, ((player, obj) -> {
+            player.startEvent(e -> {
+                player.lock(LockType.FULL);
+                player.face(Direction.EAST);
+                swapOverworld(player);
+                if (!player.getPosition().isWithinDistance(new Position(2963, 3346, 0)))
+                    player.getMovement().teleport(2963, 3346, 0);
+                else
+                    player.getMovement().teleport(2540, 3872, 0);
+                player.unlock();
+            });
+        }));
+
+        ObjectAction.register(33181, "Enter", (p, o) -> sendTeleportMenu(p, 0));
     }
 }

@@ -11,6 +11,7 @@ import io.dm.deadman.tournament.Stage;
 import io.dm.deadman.tournament.Tournament;
 import io.dm.deadman.tournament.TournamentConfig;
 import io.dm.deadman.tournament.stages.Lobby;
+import io.dm.deadman.tournament.stages.Main;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.shared.listeners.LoginListener;
 import io.dm.model.inter.dialogue.OptionsDialogue;
@@ -19,6 +20,8 @@ import io.dm.model.item.Item;
 import io.dm.model.item.ItemContainer;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.concurrent.TimeUnit;
 
 public class Deadman {
 
@@ -142,6 +145,34 @@ public class Deadman {
         if (!getCitadel().contains(p) && !getOverworld().contains(p)) {
             p.getMovement().teleport(2970, 3343, 0);
         }
+    }
+
+    public static String timeUntilChange() {
+        long millis = 0;
+        if (stage.stageName() == Tournament.StageName.LOBBY) {
+            Lobby lobby = (Lobby) stage;
+            millis = (lobby.startTime + lobby.duration) - System.currentTimeMillis();
+        } else if (stage.stageName() == Tournament.StageName.MAIN) {
+            Main main = (Main) stage;
+            millis = (main.startTime + main.duration) - System.currentTimeMillis();
+        }
+
+        long hours = TimeUnit.MILLISECONDS.toHours(millis);
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60;
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % 60;
+
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+    }
+
+    public static String timeUntilEvent() {
+        Main main = (Main) stage;
+        long millis = main.nextEvent - System.currentTimeMillis();
+
+        long hours = TimeUnit.MILLISECONDS.toHours(millis);
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60;
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % 60;
+
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 
 }

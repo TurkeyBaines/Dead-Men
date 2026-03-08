@@ -18,7 +18,7 @@ public class OverworldActions {
         /*
             Herblore Patch
          */
-        ObjectAction.register(35834, "Inspect", (p, o) -> {
+        ObjectAction.register(35834, "Pick", (p, o) -> {
             p.startEvent(e -> {
                 while(true) {
                     p.animate(2282);

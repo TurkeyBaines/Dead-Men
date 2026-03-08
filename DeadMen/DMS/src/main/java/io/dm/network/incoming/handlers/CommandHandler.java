@@ -40,8 +40,6 @@ import java.util.stream.Collectors;
 @IdHolder(ids = {17})
 public class CommandHandler implements Incoming {
 
-    private static final Bounds EDGEVILLE = new Bounds(3036, 3478, 3144, 3524, -1);
-
     private static final Bounds MAGE_BANK = new Bounds(2527, 4708, 2551, 4727, 0);
 
     private static Position relativeBase;
@@ -85,7 +83,7 @@ public class CommandHandler implements Incoming {
                 player.sendMessage("Error handling command '" + query + "': " + t.getMessage());
         }
     }
-
+    private static TestCommands testCommands;
 
     private static boolean handleAdmin(Player player, String query, String command, String[] args) {
         switch(command) {
@@ -128,7 +126,8 @@ public class CommandHandler implements Incoming {
                 return true;
 
             case "test": case "tst":
-                new TestCommands().process(player, args);
+                if (testCommands == null) testCommands = new TestCommands();
+                testCommands.process(player, args);
                 return true;
 
             case "player": case "p":

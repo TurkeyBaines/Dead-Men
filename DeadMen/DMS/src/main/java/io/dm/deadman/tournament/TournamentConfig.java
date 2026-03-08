@@ -14,19 +14,25 @@ public abstract class TournamentConfig {
     public TeamSize TEAM_SIZE_MAX = TeamSize.SOLO;
 
     public enum TeamSize {
-        SOLO
+        SOLO(1);
+        public int asInt;
+        TeamSize(int asInt) {
+            this.asInt = asInt;
+        }
     }
 
     public enum Timespan {
-        ONE_HOUR(3600000, 900000),          // 1 Hour   | 15 Mins
-        THREE_HOURS(10800000, 1800000),     // 3 Hours  | 30 Mins
-        SIX_HOURS(21600000, 1800000),       // 6 Hours  | 30 Mins
-        TWELVE_HOURS(43200000, 2700000);    // 12 Hours | 45 Mins
+        ONE_HOUR("1 Hour", 3600000, 900000),          // 1 Hour   | 15 Mins
+        THREE_HOURS("3 Hours", 10800000, 1800000),     // 3 Hours  | 30 Mins
+        SIX_HOURS("6 Hours", 21600000, 1800000),       // 6 Hours  | 30 Mins
+        TWELVE_HOURS("12 Hours", 43200000, 2700000);    // 12 Hours | 45 Mins
 
+        public String text;
         public long runtime;
         public long finals;
 
-        Timespan(long runtime, long finals) {
+        Timespan(String text, long runtime, long finals) {
+            this.text = text;
             this.runtime = runtime;
             this.finals = finals;
         }

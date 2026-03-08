@@ -1,9 +1,6 @@
 package io.dm.model.entity.player;
 
 import com.google.gson.annotations.Expose;
-import io.dm.content.activities.lms.LastManStandingQueue;
-import io.dm.content.activities.lms.LastManStandingSession;
-import io.dm.content.objects.Cannon;
 import io.dm.deadman.areas.Miscellania.OverworldTools;
 import io.dm.model.achievements.Achievement;
 import io.dm.model.achievements.AchievementStage;
@@ -986,11 +983,6 @@ public abstract class PlayerAttributes extends Entity {
     @Expose public boolean ringOfSufferingEffect = true;
 
     /**
-     * Buy Credits
-     */
-    public int selectedCreditPackage, selectedPaymentMethod;
-
-    /**
      *
      */
     @Expose public long rejuvenationPool = 0;
@@ -1002,11 +994,6 @@ public abstract class PlayerAttributes extends Entity {
     public Title title;
     @Expose public String customTitle;
     @Expose public boolean hasCustomTitle;
-
-    /*
-     * Summer Event
-     */
-    @Expose public long lastSacrifice;
 
     /**
      * Intro achievements fields
@@ -1044,12 +1031,6 @@ public abstract class PlayerAttributes extends Entity {
     @Expose public boolean showHitAsExperience = false;
 
     /**
-     * Mystery box incentives
-     */
-    @Expose public boolean firstMysteryBoxReward = true;
-    @Expose public int guaranteedMysteryBoxLoot = 1;
-
-    /**
      * Equip timer to prevent animations
      */
     public TickDelay recentlyEquipped = new TickDelay();
@@ -1081,12 +1062,10 @@ public abstract class PlayerAttributes extends Entity {
      * Supply chest wilderness event
      */
     public boolean supplyChestRestricted = false;
-    @Expose public boolean supplyChestWarning = true;
 
     /**
      * Blood money key wilderness event
      */
-    public boolean bloodyKeyRestricted = false;
     @Expose public boolean bloodyKeyWarning = true;
 
     /**
@@ -1100,8 +1079,6 @@ public abstract class PlayerAttributes extends Entity {
     public boolean dragonfireShieldSpecial = false;
     public TickDelay dragonfireShieldCooldown = new TickDelay();
 
-    @Expose public ArrayList<Item> unlockedIronmanItems = new ArrayList<>();
-
     /**
      * Ring of wealth attributes for features
      */
@@ -1113,16 +1090,7 @@ public abstract class PlayerAttributes extends Entity {
 
     public boolean insideWildernessAgilityCourse = false;
 
-    public TickDelay presetDelay = new TickDelay();
-
     public StatType selectedSkillLampSkill;
-
-    /**
-     * Risk protection toggle
-     */
-    @Expose public int riskProtectionTier = 10;
-    @Expose public long riskedBloodMoney = 0;
-    public TickDelay riskProtectionExpirationDelay = new TickDelay();
 
     /**
      * Magic skillcape attributes
@@ -1135,38 +1103,17 @@ public abstract class PlayerAttributes extends Entity {
      */
     public PVMInstance currentInstance;
 
-    public boolean claimedBox = true;
-    public boolean easterEgg = false;
-
     /**
      * Idle timer
      */
     public int idleTicks;
     public boolean isIdle = false;
 
-    /**
-     * Christmas 2018
-     */
-    @Expose public boolean gotChristmasPresent = false;
-    @Expose public boolean snowballPeltOption = false;
-    @Expose public int snowballPoints = 0;
-    public TickDelay snowballCooldown = new TickDelay();
-
-    /**
-     * Giveaway
-     */
-    @Expose public int giveawayId = -1;
-    @Expose public int giveawayEntries = 0;
-
     public TickDelay specTeleportDelay = new TickDelay();
-
-    @Expose public boolean bloodyMerchantTradeWarning = true;
 
     @Expose public boolean broadcastBossEvent = true;
     @Expose public boolean broadcastActiveVolcano = true;
-    @Expose public boolean broadcastHotspot = true;
     @Expose public boolean broadcastSupplyChest = true;
-    @Expose public boolean broadcastBloodyMechant = true;
     @Expose public boolean broadcastAnnouncements = true;
     @Expose public boolean broadcastTournaments = true;
 
@@ -1194,12 +1141,6 @@ public abstract class PlayerAttributes extends Entity {
 
 
     @Expose public int refundedCredits = 0;
-
-
-    public NPC botPreventionNPC;
-    public boolean dismissBotPreventionNPC;
-    public TickDelay botPreventionJailDelay = new TickDelay();
-    public TickDelay botPreventionNpcShoutDelay = new TickDelay();
 
     @Expose public int claimedVotes;
 
@@ -1238,8 +1179,6 @@ public abstract class PlayerAttributes extends Entity {
     @Expose public boolean unlockedWhiteSkin;
     @Expose public boolean unlockedBlackSkin;
 
-    public LastManStandingSession lmsSession;
-    public LastManStandingQueue lmsQueue;
     public int lmsSessionKills;
     @Expose public int lmsKills;
     @Expose public int lmsWins;
@@ -1249,7 +1188,6 @@ public abstract class PlayerAttributes extends Entity {
     @Expose public int mysteriousStrangerVarp;
     public boolean rigging = false;
 
-    @Expose public Cannon cannon;
     @Expose public Position cannonPosition;
     @Expose public int cannonBallsLoaded;
 
