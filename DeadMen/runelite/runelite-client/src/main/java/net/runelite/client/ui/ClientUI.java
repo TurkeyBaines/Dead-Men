@@ -305,7 +305,7 @@ public class ClientUI
 				return false;
 			}
 
-			frame.setTitle(RuneLiteProperties.getTitle() + " - " + name);
+			frame.setTitle("Dead Men - " + name);
 			return true;
 		});
 	}
@@ -327,7 +327,7 @@ public class ClientUI
 			// Try to enable fullscreen on OSX
 			OSXUtil.tryEnableFullscreen(frame);
 
-			frame.setTitle(RuneLiteProperties.getTitle());
+			frame.setTitle("Dead Men");
 			frame.setIconImage(ICON);
 			frame.getLayeredPane().setCursor(Cursor.getDefaultCursor()); // Prevent substance from using a resize cursor for pointing
 			frame.setLocationRelativeTo(frame.getOwner());
@@ -882,12 +882,12 @@ public class ClientUI
 
 			if (player != null && player.getName() != null)
 			{
-				frame.setTitle(RuneLiteProperties.getTitle() + " - " + player.getName());
+				frame.setTitle("Dead Men - " + player.getName());
 			}
 		}
 		else
 		{
-			frame.setTitle(RuneLiteProperties.getTitle());
+			frame.setTitle("Dead Men");
 		}
 
 		if (frame.isAlwaysOnTopSupported())
