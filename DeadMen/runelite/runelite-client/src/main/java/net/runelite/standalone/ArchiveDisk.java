@@ -386,7 +386,7 @@ public final class ArchiveDisk {
          Login.field766 = 2;
          PlayerType.method3939("Your account has not logged out from its last", "session or the server is too busy right now.", "Please try again in a few minutes.");
       } else if(var0 == 68 || !Client.onMobile && var0 == 6) {
-         PlayerType.method3939("Kronos has been updated!", "Please reload this page.", "");
+         PlayerType.method3939("Dead Men has been updated!", "Please reload this page.", "");
       } else if(var0 == 7) {
          PlayerType.method3939("This world is full.", "Please use a different world.", "");
       } else if(var0 == 8) {

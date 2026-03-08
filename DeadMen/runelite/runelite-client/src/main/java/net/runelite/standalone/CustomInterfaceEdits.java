@@ -5,7 +5,7 @@ public class CustomInterfaceEdits {
     public static void childLoaded(Widget inter) {
         int parentId = inter.id >> 16;
         int childId = inter.id & 0xffff;
-        inter.text = inter.text.replace("RuneScape", CustomMain.worldType.getName()).replace("Kronos", CustomMain.worldType.getName());
+        inter.text = inter.text.replace("RuneScape", CustomMain.worldType.getName()).replace("Dead Men", CustomMain.worldType.getName());
 
         if(parentId == 24) { //barrows overlay
             if(childId == 9 || childId == 10) {

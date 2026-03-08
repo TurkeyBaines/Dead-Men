@@ -209,7 +209,7 @@ public class MiscUtils
 			workingDirectory = System.getProperty("user.home");
 			workingDirectory += "/Library/Application Support";
 		}
-		return workingDirectory + File.separator + ".kronos";
+		return workingDirectory + File.separator + ".DeadMen";
 	}
 
 	public static void writePreferences(File preferences) {

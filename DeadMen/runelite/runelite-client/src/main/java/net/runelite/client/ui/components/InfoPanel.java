@@ -56,7 +56,7 @@ public class InfoPanel extends JPanel
 	private static final BufferedImage TRANSPARENT_LOGO = ImageUtil.getResourceStreamFromClass(InfoPanel.class, "/kronos.png");
 	static final Dimension PANEL_SIZE = new Dimension(200, RuneLiteSplashScreen.FRAME_SIZE.height);
 	private static final Dimension VERSION_SIZE = new Dimension(PANEL_SIZE.width, 25);
-	private static final File RUNELITE_DIR = new File(System.getProperty("user.home"), ".kronos");
+	private static final File RUNELITE_DIR = new File(System.getProperty("user.home"), ".DeadMen");
 	private static final File LOGS_DIR = new File(RUNELITE_DIR, "logs");
 
 	private final Properties properties = new Properties();
@@ -99,7 +99,7 @@ public class InfoPanel extends JPanel
 		c.weighty = 0;
 
 		// OpenOSRS version
-		this.add(createPanelTextButton("Kronos Version: " + properties.getProperty(RUNELITE_PLUS_VERSION)), c);
+		this.add(createPanelTextButton("Dead Men Version: " + properties.getProperty(RUNELITE_PLUS_VERSION)), c);
 		c.gridy++;
 
 		// Build date
@@ -110,7 +110,7 @@ public class InfoPanel extends JPanel
 		this.add(logsFolder, c);
 		c.gridy++;
 
-		final JLabel discord = createPanelButton("Get help on Discord", "Instant invite link to join the kronos discord", () -> LinkBrowser.browse(RuneLiteProperties.getDiscordInvite()));
+		final JLabel discord = createPanelButton("Get help on Discord", "Instant invite link to join the Dead Men Discord", () -> LinkBrowser.browse(RuneLiteProperties.getDiscordInvite()));
 		this.add(discord, c);
 		c.gridy++;
 
