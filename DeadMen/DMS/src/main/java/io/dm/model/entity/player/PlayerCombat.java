@@ -841,7 +841,7 @@ public class PlayerCombat extends Combat {
         }
 
         /* twisted bow */
-        if(hit.attackStyle != null && hit.attackStyle.isRanged() && (player.getEquipment().hasId(20997) || player.getEquipment().hasId(30036) || player.getEquipment().hasId(30037) || player.getEquipment().hasId(30183))) {
+        if(hit.attackStyle != null && hit.attackStyle.isRanged() && (player.getEquipment().hasId(20997))) {
             double magicLevel = target.getCombat().getLevel(StatType.Magic);
             double accuracy = 140D + ((3 * magicLevel - 10D) / 100D) - ((Math.pow(3 * magicLevel / 10D - 100D, 2) / 100D));
             accuracy = Math.min(140, accuracy);

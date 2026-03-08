@@ -597,6 +597,10 @@ public abstract class NPCCombat extends Combat {
         }
     }
 
+    public final void setAggression(int level) {
+        info.aggressive_level = level;
+    }
+
     protected Entity findAggressionTarget() {
         if (npc.localPlayers().isEmpty())
             return null;

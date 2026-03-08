@@ -67,6 +67,7 @@ public class NpcManager
 			NpcDefinition npc = loader.load(f.getFileId(), f.getContents());
 			npcs.put(f.getFileId(), npc);
 		}
+
 	}
 
 	public Collection<NpcDefinition> getNpcs()

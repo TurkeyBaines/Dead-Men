@@ -1,8 +1,11 @@
 package io.dm.network.incoming.handlers.commands;
 
 import io.dm.Server;
+import io.dm.cache.NPCDef;
 import io.dm.deadman.Deadman;
 import io.dm.deadman.areas.SafeZone;
+import io.dm.deadman.areas.overworld.combat.CombatTask;
+import io.dm.deadman.areas.overworld.combat.tasks.ChickenTask;
 import io.dm.deadman.gas.GasArea;
 import io.dm.deadman.mutators.impl.StaticGasMutator;
 import io.dm.model.entity.player.Player;
@@ -23,6 +26,14 @@ public class TestCommands {
 
             case "gas":
                 gas(p, args);
+                break;
+
+            case "task":
+                task(p, args);
+                break;
+
+            case "check":
+                check(p, args);
                 break;
         }
     }
@@ -96,6 +107,48 @@ public class TestCommands {
                     gasMutator = new StaticGasMutator();
                     gasMutator.action();
                 }
+        }
+
+    }
+
+    private void task(Player p, String... args) {
+        System.out.println("args length: " + args.length);
+        if (args.length == 2) {
+            if (args[1].equalsIgnoreCase("print")) {
+                CombatTask.TASK_MONSTER taskMonster = p.overworldTaskMonster;
+                if (taskMonster == CombatTask.TASK_MONSTER.NONE) {
+                    p.sendMessage("NO TASK");
+                    return;
+                }
+                String taskName = taskMonster.name();
+                int total = p.overworldTaskTotal;
+                int remain = p.overworldTaskRemaining;
+                p.sendMessage("Task: " + taskName + " [" + remain + "/" + total + "]");
+                return;
+            }
+        }
+
+        new ChickenTask(p, 1);
+    }
+
+    public void check(Player p, String... args) {
+        System.out.println("Type: " + args[1]);
+        System.out.println("ID: " + args[2]);
+        switch (args[1]) {
+            case "npc":
+                NPCDef def = NPCDef.get(Integer.parseInt(args[2]));
+                p.sendMessage("NPC Def for id: " + args[2]);
+                p.sendMessage("Name: " + def.name);
+                p.sendMessage("Desc Name: " + def.descriptiveName);
+                if (def.combatInfo != null) {
+                    p.sendMessage("Combat Level: " + def.combatLevel);
+                    p.sendMessage("Respawn Ticks: " + def.combatInfo.respawn_ticks);
+                    p.sendMessage("Aggression Level: " + def.combatInfo.aggressive_level);
+                }
+                for (int i = 0; i < def.options.length; i++) {
+                    p.sendMessage("Action (" + i + "): " + def.options[i]);
+                }
+                break;
         }
 
     }

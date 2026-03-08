@@ -1,8 +1,8 @@
 package io.dm.model.entity.player;
 
 import com.google.gson.annotations.Expose;
-import io.dm.deadman.Deadman;
-import io.dm.deadman.areas.Miscellania.OverworldTools;
+import io.dm.deadman.areas.overworld.OverworldTools;
+import io.dm.deadman.areas.overworld.combat.CombatTask;
 import io.netty.channel.Channel;
 import io.dm.Server;
 import io.dm.api.protocol.login.LoginInfo;
@@ -1283,6 +1283,13 @@ public class Player extends PlayerAttributes {
                     OverworldTools.Tier.Bronze
             };
         }
+
+        if (overworldTaskMonster == null) {
+            overworldTaskMonster = CombatTask.TASK_MONSTER.NONE;
+            overworldTaskTotal = -1;
+            overworldTaskRemaining = -1;
+        }
+
     }
 
     /**

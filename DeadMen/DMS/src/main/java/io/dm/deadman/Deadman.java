@@ -2,7 +2,7 @@ package io.dm.deadman;
 
 import io.dm.cache.Color;
 import io.dm.deadman.areas.Citadel;
-import io.dm.deadman.areas.Miscellania.Overworld;
+import io.dm.deadman.areas.overworld.Overworld;
 import io.dm.deadman.areas.MultiZone;
 import io.dm.deadman.areas.SafeZone;
 import io.dm.deadman.sigils.Sigil;

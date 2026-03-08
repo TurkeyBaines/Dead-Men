@@ -134,7 +134,9 @@ public class CommandHandler implements Incoming {
                 new PlayerCommands().process(player, args);
                 return true;
 
-
+            case "goto": case "gt":
+                new GoToCommands().process(player, args);
+                return true;
 
 
 

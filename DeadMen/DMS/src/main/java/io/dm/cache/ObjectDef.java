@@ -225,6 +225,12 @@ public class ObjectDef {
         } else if (id == 35834) {
             name = "Overworld Herbs";
             options[0] = "Pick";
+            options[1] = "null";
+            options[2] = "null";
+            options[3] = "null";
+            options[4] = "null";
+        } else if (id == 628 || id == 633 || id == 629 || id == 631) {
+            options[0] = "Steal-from";
         }
     }
 

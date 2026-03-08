@@ -1,7 +1,8 @@
 package io.dm.model.entity.player;
 
 import com.google.gson.annotations.Expose;
-import io.dm.deadman.areas.Miscellania.OverworldTools;
+import io.dm.deadman.areas.overworld.OverworldTools;
+import io.dm.deadman.areas.overworld.combat.CombatTask;
 import io.dm.model.achievements.Achievement;
 import io.dm.model.achievements.AchievementStage;
 import io.dm.model.activities.ActivityTimer;
@@ -63,6 +64,10 @@ public abstract class PlayerAttributes extends Entity {
     @Expose @Getter @Setter public boolean dmmNeedsReset;
     @Expose @Getter public int overworldPoints;
     @Expose @Getter public OverworldTools.Tier[] overworldToolTier;
+
+    @Expose @Getter public CombatTask.TASK_MONSTER overworldTaskMonster;
+    @Expose @Getter public int overworldTaskTotal;
+    @Expose @Getter public int overworldTaskRemaining;
 
     @Expose @Getter public boolean[] unlockedSigils;
     @Expose @Getter public int[] activeSigils;

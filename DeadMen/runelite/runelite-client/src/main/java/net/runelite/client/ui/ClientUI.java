@@ -102,6 +102,7 @@ import org.pushingpixels.substance.internal.utils.SubstanceTitlePaneUtilities;
 /**
  * Client UI.
  */
+@SuppressWarnings("removal")
 @Slf4j
 @Singleton
 public class ClientUI

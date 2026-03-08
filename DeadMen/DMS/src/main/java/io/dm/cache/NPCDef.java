@@ -198,8 +198,18 @@ public class NPCDef {
         } else if (id == 1798 || id == 8149 || id == 1799 || id == 1800 || id == 1829) { // White Knights > Citadel Guards
             name = "Citadel Guard";
             combatLevel = 700;
-            options[2] = "Talk-to";
-            options[1] = "Attack";
+            options[1] = "Talk-to";
+            options[2] = "Attack";
+        } else if (id == 2713) {
+            System.out.println("WE EDITED THE WISE OLD MAN SHIT!");
+            options[0] = "Talk-to";
+            options[1] = "Check-task";
+            options[2] = "Quick-task";
+            options[3] = "Cancel-task";
+            System.out.println("[0]=" + options[0]);
+            System.out.println("[1]=" + options[1]);
+            System.out.println("[2]=" + options[2]);
+            System.out.println("[3]=" + options[3]);
         }
 
         if(name != null) {
