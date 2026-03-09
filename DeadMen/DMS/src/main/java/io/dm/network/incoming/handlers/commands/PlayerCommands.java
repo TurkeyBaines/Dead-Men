@@ -51,6 +51,14 @@ public class PlayerCommands {
                 debug(player);
                 break;
 
+            case "lock":
+                lock(player, false);
+                break;
+
+            case "unlock":
+                lock(player, true);
+                break;
+
             default:
                 Player p2 = World.getPlayer(args[0].replace("_", " "));
                 if (p2 == null) {
@@ -72,6 +80,14 @@ public class PlayerCommands {
 
                     case "debug": case "db":
                         debug(p2);
+                        break;
+
+                    case "lock":
+                        lock(p2, false);
+                        break;
+
+                    case "unlock":
+                        lock(p2, true);
                         break;
                 }
                 break;
@@ -184,6 +200,13 @@ public class PlayerCommands {
     private void debug(Player player) {
         player.debug = !player.debug;
         player.sendMessage("Player > Debug: " + player.debug);
+    }
+
+    private void lock(Player p, boolean unlock) {
+        if (unlock)
+            p.unlock();
+        else
+            p.lock();
     }
 
 }

@@ -12,6 +12,11 @@ public class StaticGasMutator extends Mutator {
     private GasArea gasArea;
 
     @Override
+    public String name() {
+        return "Static Gas";
+    }
+
+    @Override
     public boolean hasAction() {
         return true;
     }

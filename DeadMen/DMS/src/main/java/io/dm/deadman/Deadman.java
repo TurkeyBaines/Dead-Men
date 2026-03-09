@@ -34,6 +34,8 @@ public class Deadman {
 
     @Getter @Setter private static Stage stage;
     @Getter @Setter private static TournamentConfig config;
+    @Getter @Setter private static TournamentConfig next_config;
+    @Getter @Setter private static String next_Config_Name;
 
 
     public void update() {
@@ -57,7 +59,6 @@ public class Deadman {
         LoginListener.register(player -> {
             if (stage.stageName() == Tournament.StageName.LOBBY) {
                 player.sendMessage(Color.GOLD.wrap("[Tournament] ") + "A new tournament is due to start shortly.");
-
                 teleToCitadel(player);
 
                 if (player.dmmNeedsReset) {
@@ -83,6 +84,7 @@ public class Deadman {
                 teleToCitadel(player);
                 player.dmmNeedsReset = true;
             }
+            getConfig().printConfig();
         });
     }
 
@@ -174,5 +176,14 @@ public class Deadman {
 
         return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
+
+    public static boolean canOverrideConfig() {
+        return next_config == null;
+    }
+
+    public static void overrideConfig(TournamentConfig config) {
+        next_config = config;
+    }
+
 
 }

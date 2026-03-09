@@ -975,377 +975,70 @@ public class ItemDefinition extends DualNode implements RSItemDefinition {
    }
 
    public void postDecode() {
-      if(id == 2742) {
-         name = "Coin Casket (small)";
-         inventoryActions[1] = null;
+
+      switch (id) {
+         case 2742:
+            name = "Coin Casket (small)";
+            inventoryActions[1] = null;
+            break;
+
+         case 2744:
+            name = "Coin Casket (medium)";
+            inventoryActions[1] = null;
+            break;
+
+         case 2746:
+            name = "Coin Casket (large)";
+            inventoryActions[1] = null;
+            break;
+
+         case 2748:
+            name = "Coin Casket (giant)";
+            inventoryActions[1] = null;
+            break;
+
+         case 4067:
+            name = "Vote ticket";
+            break;
+
+         case 9477:
+            name = "Coinbox";
+            inventoryActions[0] = "Open";
+            isStackable = 0;
+            setTradeable(false);
+            break;
+
+         case 1567: case 1568: case 1569: case 1570:
+         case 1571: case 1572:
+            name = "Overgrown cat";
+
+         case 621:
+            name = "Tournament voucher";
+            inventoryActions[0] = "Info";
+            inventoryActions[1] = "Claim";
+            inventoryActions[2] = null;
+            break;
+
+         case 13187:
+            name = "Starter kit";
+            inventoryActions[0] = "Take-all";
+            inventoryActions[1] = "Peek";
+            inventoryActions[4] = "Destroy";
+            setTradeable(false);
+            break;
+
+         case 8943:
+         case 8944:
+         case 8945:
+         case 8946:
+         case 8947:
+         case 8948:
+            name = "Event Reward Key";
+            inventoryActions[0] = "Peek";
+            inventoryActions[3] = null;
+            inventoryActions[4] = "Drop";
+            setTradeable(true);
       }
 
-      if(id == 2744) {
-         name = "Coin Casket (medium)";
-         inventoryActions[1] = null;
-      }
-
-      if(id == 2746) {
-         name = "Coin Casket (large)";
-         inventoryActions[1] = null;
-      }
-
-      if(id == 2748) {
-         name = "Coin Casket (giant)";
-         inventoryActions[1] = null;
-      }
-
-      if (id == 3455 || id == 3457 || id == 3458) {
-         name = "Clue key";
-         inventoryActions[3] = "Check-Hint";
-      }
-
-      if(id == 13190) { //bond
-         name = CustomMain.worldType.getName() + " Credit";
-         isStackable = 1;
-         inventoryActions[0] = "Claim";
-         inventoryActions[2] = null;
-      }
-
-      if (id == 13302) {
-         name = "PK Key";
-      }
-      if(id == 6199) {
-         inventoryActions[2] = "Gift";
-      }
-
-      if(id == 290) {
-         name = "Super Mystery Box";
-         inventoryActions[1] = "Open";
-         inventoryActions[2] = "Gift";
-      }
-
-      if(id == 6828) {
-         name = "Pet Mystery Box";
-         inventoryActions[1] = "Open";
-         inventoryActions[2] = "Gift";
-      }
-
-      if(id == 6829) {
-         name = "Voting Mystery Box";
-         inventoryActions[1] = "Open";
-         inventoryActions[2] = "Gift";
-      }
-
-      if(id == 6831) {
-         name = "3rd Age Mystery Box";
-         inventoryActions[1] = "Open";
-         inventoryActions[2] = "Gift";
-      }
-
-      if(id == 1505) {
-         name = "Obelisk destination scroll";
-      }
-
-      if (id == 621) {
-         name = "Tournament voucher";
-      }
-
-      if(id == 4067) {
-         name = "Vote ticket";
-      }
-
-      if (id == 9477) {
-         name = "Coinbox";
-         inventoryActions[0] = "Open";
-         isStackable = 0;
-      }
-
-      if (id == 3455 || id == 3457 || id == 3458) {
-         inventoryActions[3] = "Check-Hint";
-      }
-      if(id == 10834) {
-         name = "Dice bag";
-         inventoryActions[0] = "Roll 4-sided";
-         inventoryActions[1] = "Roll 12-sided";
-         inventoryActions[2] = "Roll 100-sided";
-      }
-
-      if (id == 1464) {
-         name = "Vote Lottery Ticket";
-         isStackable = 0;
-      }
-
-      if(id == 6306) {
-         name = "LMS Sticks";
-         isTradable = false;
-      }
-
-      if(id == 6806) {
-         name = "Green Skin Scroll";
-         inventoryActions[0] = "Redeem";
-      }
-
-      if(id == 6807) {
-         name = "Blue Skin Scroll";
-         inventoryActions[0] = "Redeem";
-      }
-
-      if(id == 6808) {
-         name = "Purple Skin Scroll";
-         inventoryActions[0] = "Redeem";
-      }
-
-      if(id == 19625) {
-         name = "Home teleport";
-      }
-      if(id == 8007) {
-         inventoryActions[1] = null;
-      }
-      if(id >= 1567 && id <= 1572)
-         name = "Overgrown cat";
-      /* Quick option for repairing all broken items */
-      if(name.endsWith("(broken)"))
-         inventoryActions[0] = "Fix";
-
-      if(id == 11169) {
-         name = CustomMain.worldType.getName() + " Herald";
-         inventoryActions[0] = "View-updates";
-         inventoryActions[1] = null;
-         inventoryActions[4] = "Destroy";
-      }
-      if(id == 12746 || (id >= 12748 && id <= 12756)) {
-         inventoryActions[0] = "Info";
-         inventoryActions[1] = "Redeem";
-      }
-      if (id == 2399) {
-         name = "Deadman supply key";
-      }
-
-      if(id == 21532) {
-         name = "Blood Fragments";
-      }
-
-      if(id == 607) {
-         name = "Rare Drop Scroll";
-         inventoryActions[0] = "Activate";
-      }
-      if(id == 608) {
-         name = "Pet Drop Scroll";
-         inventoryActions[0] = "Activate";
-      }
-      if(id == 6758) {
-         name = "Bonus Exp Scroll";
-         inventoryActions[0] = "Activate";
-      }
-
-      if(id == 2730) {
-         name = "Wilderness Reward Box (small)";
-         inventoryActions[0] = "Open";
-         inventoryActions[1] = null;
-      }
-
-      if(id == 2732) {
-         name = "Wilderness Reward Box (medium)";
-         inventoryActions[0] = "Open";
-         inventoryActions[1] = null;
-      }
-
-      if(id == 2734) {
-         name = "Wilderness Reward Box (large)";
-         inventoryActions[0] = "Open";
-         inventoryActions[1] = null;
-      }
-
-      if(id == 2736) {
-         name = "Wilderness Reward Box (giant)";
-         inventoryActions[0] = "Open";
-         inventoryActions[1] = null;
-      }
-
-      if (id == 13215) {
-         ItemDefinition platinumTokenClone = Occluder.getItemDefinition(13204);
-         price = platinumTokenClone.price;
-         femaleModel1 = platinumTokenClone.femaleModel1;
-         femaleOffset = platinumTokenClone.femaleOffset;
-         inventoryActions = platinumTokenClone.inventoryActions;
-         model = platinumTokenClone.model;
-         maleModel = platinumTokenClone.maleModel;
-         isMembersOnly = platinumTokenClone.isMembersOnly;
-         name = "Bloody Token";
-         isStackable = platinumTokenClone.isStackable;
-         xan2d = platinumTokenClone.xan2d;
-         yan2d = platinumTokenClone.yan2d;
-         offsetY2d = platinumTokenClone.offsetY2d;
-         zoom2d = platinumTokenClone.zoom2d;
-         offsetX2d = platinumTokenClone.offsetX2d;
-         zan2d = platinumTokenClone.zan2d;
-         recolorFrom = new short[]{5813, 9139, 26006};
-         recolorTo = new short[]{947, 948, 949};
-         countco = new int[]{2, 3, 4, 5, 0, 0, 0, 0, 0, 0};
-         countobj = new int[]{13216, 13217, 13218, 13218, 0, 0, 0, 0, 0, 0};
-      }
-
-      if (id == 13216) {
-         ItemDefinition platinumTokenClone = Occluder.getItemDefinition(3985);
-         price = platinumTokenClone.price;
-         femaleModel1 = platinumTokenClone.femaleModel1;
-         name = "Bloody Token";
-         femaleOffset = platinumTokenClone.femaleOffset;
-         inventoryActions = platinumTokenClone.inventoryActions;
-         model = platinumTokenClone.model;
-         maleModel = platinumTokenClone.maleModel;
-         isMembersOnly = platinumTokenClone.isMembersOnly;
-         isStackable = platinumTokenClone.isStackable;
-         xan2d = platinumTokenClone.xan2d;
-         yan2d = platinumTokenClone.yan2d;
-         offsetY2d = platinumTokenClone.offsetY2d;
-         zoom2d = platinumTokenClone.zoom2d;
-         offsetX2d = platinumTokenClone.offsetX2d;
-         zan2d = platinumTokenClone.zan2d;
-         recolorFrom = new short[]{5813, 9139, 26006};
-         recolorTo = new short[]{947, 948, 949};
-      }
-
-      if (id == 13217) {
-         ItemDefinition platinumTokenClone = Occluder.getItemDefinition(3987);
-         price = platinumTokenClone.price;
-         femaleModel1 = platinumTokenClone.femaleModel1;
-         name = "Bloody Token";
-         femaleOffset = platinumTokenClone.femaleOffset;
-         inventoryActions = platinumTokenClone.inventoryActions;
-         model = platinumTokenClone.model;
-         maleModel = platinumTokenClone.maleModel;
-         isMembersOnly = platinumTokenClone.isMembersOnly;
-         isStackable = platinumTokenClone.isStackable;
-         xan2d = platinumTokenClone.xan2d;
-         yan2d = platinumTokenClone.yan2d;
-         offsetY2d = platinumTokenClone.offsetY2d;
-         zoom2d = platinumTokenClone.zoom2d;
-         offsetX2d = platinumTokenClone.offsetX2d;
-         zan2d = platinumTokenClone.zan2d;
-         recolorFrom = new short[]{5813, 9139, 26006};
-         recolorTo = new short[]{947, 948, 949};
-      }
-
-      if (id == 13218) {
-         ItemDefinition platinumTokenClone = Occluder.getItemDefinition(3989);
-         price = platinumTokenClone.price;
-         femaleModel1 = platinumTokenClone.femaleModel1;
-         femaleOffset = platinumTokenClone.femaleOffset;
-         name = "Bloody Token";
-         inventoryActions = platinumTokenClone.inventoryActions;
-         model = platinumTokenClone.model;
-         maleModel = platinumTokenClone.maleModel;
-         isMembersOnly = platinumTokenClone.isMembersOnly;
-         isStackable = platinumTokenClone.isStackable;
-         xan2d = platinumTokenClone.xan2d;
-         yan2d = platinumTokenClone.yan2d;
-         offsetY2d = platinumTokenClone.offsetY2d;
-         zoom2d = platinumTokenClone.zoom2d;
-         offsetX2d = platinumTokenClone.offsetX2d;
-         zan2d = platinumTokenClone.zan2d;
-         recolorFrom = new short[]{5813, 9139, 26006};
-         recolorTo = new short[]{947, 948, 949};
-      }
-
-      if(id == 22330) {
-         name = "PVP Armour Mystery Box";
-         inventoryActions[0] = "Open";
-         inventoryActions[1] = "Gift";
-         inventoryActions[2] = null;
-         inventoryActions[3] = null;
-      }
-
-      if (id == 3606 || id == 3608 || id == 7297) {
-         ItemDefinition bloodyKey = Occluder.getItemDefinition(20526);
-
-         switch (id) {
-            case 3606:
-               name = "Bloody key (easy)";
-               break;
-            case 3608:
-               name = "Bloody key (medium)";
-               break;
-            case 7297:
-               name = "Bloody key (hard)";
-               break;
-         }
-
-         model = bloodyKey.model;
-         xan2d = bloodyKey.xan2d;
-         offsetY2d = bloodyKey.offsetY2d;
-         yan2d = bloodyKey.yan2d;
-         offsetX2d = bloodyKey.offsetX2d;
-         zoom2d = bloodyKey.zoom2d;
-      }
-
-      if(id == 22521 || id == 22522 || id == 22523 || id == 22524) {
-         String size = "";
-         if(id == 22521)
-            size = "(small)";
-         else if(id == 22522)
-            size = "(medium)";
-         else if(id == 22523)
-            size = "(large)";
-         else if(id == 22524)
-            size = "(giant)";
-         name = "Blood money pouch " + size;
-         recolorFrom = new short[]{6798};
-         recolorTo = new short[]{948};
-      }
-
-      if(id == 2528) {
-         name = "Skill Lamp";
-      }
-
-      if(id == 11918) {
-         name = "Santa Outfit Box";
-         inventoryActions[0] = "Open";
-      }
-
-      if(id == 12897) {
-         name = "Anti-Santa Outfit Box";
-         inventoryActions[0] = "Open";
-      }
-
-      if(id == 22816 || id == 22817) {
-         inventoryActions[4] = "Destroy";
-      }
-
-      if(id == 21227) {
-         name = "Easter Egg";
-         inventoryActions[0] = "Open";
-      }
-
-      if (id == 8943 || id == 8944 || id == 8945 || id == 8946 || id == 8947 || id == 8948) {
-         ItemDefinition bloodyKey = Occluder.getItemDefinition(20526);
-
-         switch (id) {
-            case 8943:
-               name = "Wilderness key (1M OSRS)";
-               break;
-            case 8944:
-               name = "Wilderness key (5M OSRS)";
-               break;
-            case 8945:
-               name = "Wilderness key (10M OSRS)";
-               break;
-            case 8946:
-               name = "Wilderness key (25M OSRS)";
-               break;
-            case 8947:
-               name = "Wilderness key (50M OSRS)";
-               break;
-            case 8948:
-               name = "Wilderness key (100M OSRS)";
-               break;
-         }
-
-         inventoryActions[0] = "Information";
-         inventoryActions[3] = null;
-         inventoryActions[4] = "Destroy";
-         model = bloodyKey.model;
-         xan2d = bloodyKey.xan2d;
-         offsetY2d = bloodyKey.offsetY2d;
-         yan2d = bloodyKey.yan2d;
-         offsetX2d = bloodyKey.offsetX2d;
-         zoom2d = bloodyKey.zoom2d;
-      }
    }
 }

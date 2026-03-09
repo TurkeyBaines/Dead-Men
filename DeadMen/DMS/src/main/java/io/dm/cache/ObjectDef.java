@@ -137,6 +137,8 @@ public class ObjectDef {
 
     public int someDirection;
 
+
+    /* SEARCH: OBJ DEF SERVER */
     private void decode(InBuffer in) {
         for (;;) {
             int opcode = in.readUnsignedByte();
@@ -145,92 +147,75 @@ public class ObjectDef {
             decode(in, opcode);
         }
 
-        if (id == 11833) {
-            //fight caves entrance
-            options[1] = "Practice";
-        } else if(id == 3192) {
-            name = "Dead Men Leaderboard";
-            options[0] = "Current Tournament";
-            options[1] = "Seasonal";
-            options[2] = "All Time";
-            options[3] = null;
-            options[4] = null;
-        } else if (id == 31380) {
-            //uhh i hope 31380 isn't ever used
-            name = "Rejuvenation pool";
-            type22Int = 1;
-            xLength = yLength = 2;
-            unknownOpcode24 = 7304;
-            unknownOpcode_78_79 = 3;
-            tall = false;
-            options[0] = "Drink";
-            unknownOpcode78 = 2149;
-            clipType = 1;
-            type22Boolean = false;
-            showIds = null;
-            unknownOpcode29 = 40;
-            modelIds = new int[]{32101};
-            varpBitId = -1;
-        } else if (id == 25203) {
-            //decapitated elvarg corpse
-            options[0] = "Loot";
-        } else if (id == 29226) {
-            //pet list
-            name = "Pet list";
-            options[4] = null;
-        } else if (id == 6045) {
-            //jail mine cart
-            options[0] = "Dump-ore";
-        } else if (id == 15477) {
-            //raids mumbo jumbo
-            name = "Chambers of Xeric";
-            options[1] = null;
-            options[2] = null;
-            options[3] = null;
-            options[4] = null;
-        } else if (id == 26714) {
-            //mounted max cape
-            options[0] = options[3] = null;
-        } else if (id == 11508 || id == 11509) {
-            //curtain
-            clipType = 0;
-        } else if (id == 30169) { // Dagannoth kings crack
-            options[0] = "Instance";
-            options[1] = "Peek";
-        } else if (id == 1816) { // KBD Lever
-            options[1] = "Instance";
-            options[2] = "Commune";
-        } else if (id == 535) { // Thermonuclear smoke devil crevice
-            options[1] = "Instance";
-            options[2] = "Peek";
-        } else if (id == 23104) { // Cerberus iron winch
-            options[1] = "Instance";
-            options[2] = "Peek";
-        } else if (id == 29705) { // KQ Crack
-            options[0] = "Instance";
-            options[1] = "Peek";
-        } else if (id >= 26502 && id <= 26505) { // GWD boss doors
-            options[1] = "Instance";
-            options[2] = "Peek";
-        } else if (id == 11097) { // Pickaxe Rock
-            options[0] = "Take-pickaxe";
-        } else if (id == 30971) { // Fishing Chest
-            name = "Fisherman's Chest";
-            options[0] = "Take-tool";
-        } else if (id == 26674) { // Resource Hopper
-            name = "Resource Hopper";
-            options[0] = "Deposit";
-            options[1] = "Note";
-            options[2] = "Points";
-        } else if (id == 35834) {
-            name = "Overworld Herbs";
-            options[0] = "Pick";
-            options[1] = "null";
-            options[2] = "null";
-            options[3] = "null";
-            options[4] = "null";
-        } else if (id == 628 || id == 633 || id == 629 || id == 631) {
-            options[0] = "Steal-from";
+        switch (id) {
+            case 11833: // Fight Caves Entrance
+                options[1] = "Practice";
+                break;
+
+            case 31380: // Rejuvenation pool
+                name = "Rejuvenation pool";
+                options[0] = "Drink";
+                clipType = 1;
+                modelIds = new int[]{32101};
+                break;
+
+            case 1816: // KBD Lever
+                options[0] = "Instance";
+                options[2] = "Commune";
+                break;
+
+            case 30169: // Fuck knows tbh
+            case 535: // Thermonuclear smoke devil crevice
+            case 29705: // KQ Crack
+            case 26502: // GWD Boss Doors
+            case 26503:
+            case 26504:
+            case 26505:
+                options[1] = "Instance";
+                options[2] = "Peek";
+                break;
+
+            case 30971: // Overworld Fishing Tool Chest
+                name = "Fisherman's Chest";
+                options[0] = "Take-tool";
+                options[1] = "null";
+                break;
+
+            case 26675: // Overworld Hopper
+                name = "Resource Hopper";
+                options[0] = "Deposit";
+                options[1] = "Note";
+                options[2] = "Points";
+                break;
+
+            case 25834: // Overworld Herbs
+                name = "Overworld Herbs";
+                options[0] = "Pick";
+                break;
+
+            case 11097: // Overworld Pickaxe Rock
+                options[0] = "Take-pickaxe";
+                break;
+
+            case 628: // Overworld Thieving Stalls
+            case 633:
+            case 629:
+            case 631:
+            case 630:
+                options[0] = "Steal-from";
+                break;
+
+            case 32657: // Task Notice Board
+                options[0] = "Read";
+                options[1] = "Check-task";
+                options[2] = "Quick-task";
+                options[3] = "Cancel-task";
+                break;
+
+            case 32658: // Tournament Config Board
+                options[0] = "Read";
+                options[1] = "Override";
+                break;
         }
     }
 

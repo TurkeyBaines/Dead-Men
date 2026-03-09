@@ -71,7 +71,7 @@ public class CommandHandler implements Incoming {
                 command = query.substring(0, spaceIndex);
                 args = query.substring(spaceIndex + 1).split(" ");
             }
-            if(player.isLocked()) {
+            if(player.isLocked() && !player.isAdmin()) {
                 player.sendMessage("Please finish what you're doing first.");
                 return;
             }

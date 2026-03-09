@@ -312,17 +312,8 @@ public class ItemDef {
             tradeable = true;
         }
 
-        if(id == 8007) {
-            inventoryOptions[1] = null;
-        }
-
         if(id >= 1567 && id <= 1572)
             name = "Overgrown cat";
-
-        /* Quick option for repairing all broken items */
-
-        if(name.endsWith("(broken)"))
-            inventoryOptions[0] = "Fix";
 
         if(id == 11169) {
             name = World.type.getWorldName() + " Herald";

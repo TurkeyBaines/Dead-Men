@@ -130,6 +130,8 @@ public class NPCDef {
     int contrast = 0;
     public HashMap<Object, Object> attributes;
 
+
+    /*SEARCH: NPCDEF SERVER*/
     void decode(InBuffer buffer) {
         for(;;) {
             int opcode = buffer.readUnsignedByte();
@@ -201,15 +203,11 @@ public class NPCDef {
             options[1] = "Talk-to";
             options[2] = "Attack";
         } else if (id == 2713) {
-            System.out.println("WE EDITED THE WISE OLD MAN SHIT!");
+            name = "Wise Old Task Man";
             options[0] = "Talk-to";
             options[1] = "Check-task";
             options[2] = "Quick-task";
             options[3] = "Cancel-task";
-            System.out.println("[0]=" + options[0]);
-            System.out.println("[1]=" + options[1]);
-            System.out.println("[2]=" + options[2]);
-            System.out.println("[3]=" + options[3]);
         }
 
         if(name != null) {

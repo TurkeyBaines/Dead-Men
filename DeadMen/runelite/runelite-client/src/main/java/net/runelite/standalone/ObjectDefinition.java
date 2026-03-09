@@ -866,210 +866,77 @@ public class ObjectDefinition extends DualNode implements RSObjectDefinition {
       return var9;
    }
 
+   /* SEARCH: OBJ DEF CLIENT */
    void postDecode() {
-      if (id == 10060) {
-         name = "Trading Post";
-         actions[0] = "Open";
-         actions[1] = "Coffer";
-        actions[2] = "Guide";
-      } else if(id == 1534) {
-         /* home room curtains */
-         actions[0] = null;
-      } else if(id == 18258) {
-         /* custom altar */
-         actions[0] = "Pray-at";
-         actions[1] = "Spellbook";
-      } else if(id == 11833) {
-         actions[1] = "Practice";
-      } else if(id == 32758) {
-         name = "Loyalty Chest";
-         actions[0] = "Loot";
-         actions[1] = "About";
-         actions[2] = null;
-         actions[3] = null;
-         actions[4] = null;
-      } else if(id == 3192) {
-         name = "PvP Leaderboard";
-         actions[0] = "Edge PKing";
-         actions[1] = "Deep Wild PKing";
-         actions[2] = null;
-         actions[3] = null;
-         actions[4] = null;
-      } else if(id == 32759) {
-         name = "Loyalty Chest";
-         actions[0] = null;
-         actions[1] = null;
-         actions[2] = null;
-         actions[3] = null;
-         actions[4] = null;
-      } else if(id == 31379) { //is this obj ever used?????????
-         name = "Donation table";
-         int1 = 1;
-         sizeX = sizeY = 2;
-         boolean2 = false;
-         int3 = 1;
-         transforms = null;
-         modelIds = new int[]{32153};
-         transformVarbit = -1;
-      } else if(id == 25203) { // decapitated elvarg corpse
-         actions[0] = "Loot";
-      } else if(id == 29226) {
-         name = "Pet list";
-         actions[4] = null;
-      } else if(id == 6045) {
-         actions[0] = "Dump-ore";
-      } else if(id == 3581) {
-         name = "Ticket exchange";
-         actions[0] = "Use";
-      } else if(id == 11508 || id == 11509) {
-         //curtain
-         clipType = 0;
-      } else if (id == 31618) { // home portal
-         name = "World Portal";
-         actions[0] = "Teleport";
-         actions[1] = "Teleport-previous";
-      } else if(id == 31380) {
-         //uhh i hope 31380 isn't ever used
-         name = "Rejuvenation pool";
-         int1 = 1;
-         sizeX = sizeY = 2;
-         animationId = 7304;
-         int4 = 3;
-         boolean1 = false;
-         actions[0] = "Drink";
-         ambientSoundId = 2149;
-         clipType = 1;
-         boolean2 = false;
-         transforms = null;
-         ambient = 40;
-         modelIds = new int[]{32101};
-         transformVarbit = -1;
-      } else if(id == 30352) {
-         name = "test";
-         actions[1] = "Practice";
-      } else if(id == 539) {
-         name = "Donator Area";
-      } else if(id == 33114) {
-         name = "PvP Supply Chest";
-         actions[0] = "Check-timer";
-      } else if(id == 33115) {
-         name = "PvP Supply Chest";
-      } else if(id == 31583) {
-         name = "PvP Supply Chest";
-      } else if(id == 32572) {
-         name = "Bloody Chest";
-         actions[1] = "Information";
-      } else if(id == 32573) {
-         name = "Bloody Chest";
-         actions[0] = null;
-         actions[1] = null;
-         actions[2] = null;
-         actions[3] = null;
-         actions[4] = null;
-      } else if (id == 30169) { // Dagannoth kings crack
-         actions[0] = "Instance";
-         actions[1] = "Peek";
-      } else if (id == 1816) { // KBD Lever
-         actions[1] = "Instance";
-         actions[2] = "Commune";
-      } else if (id == 535) { // Thermonuclear smoke devil crevice
-         actions[1] = "Instance";
-         actions[2] = "Peek";
-      } else if (id == 23104) { // Cerberus iron winch
-         actions[1] = "Instance";
-         actions[2] = "Peek";
-      } else if (id == 29705) { // KQ Crack
-         actions[0] = "Instance";
-         actions[1] = "Peek";
-      } else if (id >= 26502 && id <= 26505) { // GWD boss doors
-         actions[1] = "Instance";
-         actions[2] = "Peek";
-      } else if (id == 4407) { // pvm instance portal
-         name = "Boss instance portal";
-         actions[0] = "Use";
-      } else if(id == 19038) { //christmas tree
-         name = "Christmas tree";
-         actions[0] = "Grab-present";
-      } else if(id == 29709) {
-         name = "Snowball Exchange";
-         actions[0] = "Open";
-         actions[1] = "Information";
-      } else if (id == 40000) {
-         copy(32546);
-         name = "Giveaway booth";
-         actions[0] = "Use";
-      } else if(id == 40001) {
-         copy(4525);
-         actions[0] = "Exit";
-         actions[1] = null;
-         actions[4] = null;
-      } else if(id == 40002) {
-         copy(32424);
-         name = "Consumables";
-      } else if(id == 40003) {
-         copy(32425);
-         name = "Equipment";
-      } else if(id == 28925) {
-         name = "Fun PVP Portal";
-      } else if(id == 31622) {
-         name = "Ket'ian Wilderness Boss Portal";
-      } else if(id == 31621) {
-         name = "Wilderness Portal";
-      } else if(id == 31626) {
-         name = "Tournament Entrance";
-      } else if(id == 2654) {
-         name = "Bloody Fountain";
-         actions[0] = "Drink";
-         actions[1] = null;
-         modelHeight = 200;
-         modelSizeX = 200;
-         modelSizeY = 200;
-         sizeX = 3;
-         sizeY = 3;
-      } else if(id == 4470) {
-         name = "Donator Zone";
-         actions[0] = "Enter";
-      } else if(id == 40004) {
-         copy(29241);
-         actions[4] = null;
-      } else if(id == 40005) {
-         copy(31858);
-         actions[0] = "Pray-at";
-         actions[1] = "Spellbook";
-         actions[2] = null;
-         actions[3] = null;
-         actions[4] = null;
-      } else if(id == 40006) {
-         copy(4537);
-         actions[4] = null;
-      } else if(id == 40007) {
-         copy(13619);
-         name = "Fun PVP Portal";
-         actions[4] = null;
-      } else if(id == 40008) {
-         copy(20839);
-         name = "Tournament Barrier";
-         actions[0] = "Use";
-      } else if(id == 40009) {
-         copy(26714);
-         name = "Mounted Max Cape";
-         actions[0] = null;
-         actions[1] = null;
-         actions[2] = null;
-         actions[3] = null;
-         actions[4] = null;
-      } else if(id == 31846) {
-         name = "Tournament Information";
-         actions[0] = "Read";
-      } else if(id == 29087) {
-         name = "Ticket Exchange";
-         actions[0] = "Use";
-      } else if(id == 172) {
-         name = "Crystal Chest";
-      } else if (id == 27290) {
-         name = "PK Chest";
-      } else if (id == 4390) {
-         name = "Donator Zone portal";
+      switch (id) {
+         case 11833: // Fight Caves Entrance
+            actions[1] = "Practice";
+            break;
+
+         case 31380: // Rejuvenation pool
+            name = "Rejuvenation pool";
+            actions[0] = "Drink";
+            clipType = 1;
+            modelIds = new int[]{32101};
+            break;
+
+         case 1816: // KBD Lever
+            actions[0] = "Instance";
+            actions[2] = "Commune";
+            break;
+
+         case 30169: // Fuck knows tbh
+         case 535: // Thermonuclear smoke devil crevice
+         case 29705: // KQ Crack
+         case 26502: // GWD Boss Doors
+         case 26503:
+         case 26504:
+         case 26505:
+            actions[1] = "Instance";
+            actions[2] = "Peek";
+            break;
+
+         case 30971: // Overworld Fishing Tool Chest
+            name = "Fisherman's Chest";
+            actions[0] = "Take-tool";
+            actions[1] = "null";
+            break;
+
+         case 26675: // Overworld Hopper
+            name = "Resource Hopper";
+            actions[0] = "Deposit";
+            actions[1] = "Note";
+            actions[2] = "Points";
+            break;
+
+         case 25834: // Overworld Herbs
+            name = "Overworld Herbs";
+            actions[0] = "Pick";
+            break;
+
+         case 11097: // Overworld Pickaxe Rock
+            actions[0] = "Take-pickaxe";
+            break;
+
+         case 628: // Overworld Thieving Stalls
+         case 633:
+         case 629:
+         case 631:
+         case 630:
+            actions[0] = "Steal-from";
+            break;
+
+         case 32657: // Task Notice Board
+            actions[0] = "Read";
+            actions[1] = "Check-task";
+            actions[2] = "Quick-task";
+            actions[3] = "Cancel-task";
+            break;
+
+         case 32658: // Tournament Config Board
+            actions[0] = "Read";
+            actions[1] = "Override";
+            break;
       }
    }
 

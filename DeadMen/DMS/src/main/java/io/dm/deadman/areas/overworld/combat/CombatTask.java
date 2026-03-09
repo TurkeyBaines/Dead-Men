@@ -5,6 +5,7 @@ import io.dm.cache.ItemDef;
 import io.dm.cache.NPCDef;
 import io.dm.cache.NpcID;
 import io.dm.deadman.areas.overworld.combat.tasks.ChickenTask;
+import io.dm.deadman.areas.overworld.combat.tasks.DragonTask;
 import io.dm.model.entity.npc.NPC;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.shared.listeners.DeathListener;
@@ -66,9 +67,6 @@ public abstract class CombatTask {
             n.spawnBounds = LOCATION();
             n.walkBounds = LOCATION();
             n.getDef().combatInfo.respawn_ticks = 5;
-            if (n.getCombat() == null) {
-                System.out.println("NULL COMBAT: " + n.getId());
-            }
             n.spawn(LOCATION().randomPosition());
 
             n.deathEndListener = (DeathListener.SimpleKiller) killer -> {
@@ -93,6 +91,7 @@ public abstract class CombatTask {
 
         tasks = new ArrayList<>();
         tasks.add(new ChickenTask());
+        tasks.add(new DragonTask());
 
         for (CombatTask ct : tasks)
             ct.spawn();
@@ -134,6 +133,7 @@ public abstract class CombatTask {
     static CombatTask getClassForTask(TASK_MONSTER tm) {
         switch (tm) {
             case CHICKEN: return tasks.get(ChickenTask.ID);
+            case DRAGON: return tasks.get(DragonTask.ID);
 
             default: return null;
         }
@@ -141,7 +141,8 @@ public abstract class CombatTask {
 
     public enum TASK_MONSTER {
         NONE("None", -1),
-        CHICKEN("Chickens", 3);
+        CHICKEN("Chickens", 3),
+        DRAGON("Dragon", 100);
 
         String name;
         int cbUnlock;
@@ -153,6 +154,7 @@ public abstract class CombatTask {
         public void assign(Player p, int diff) {
             switch (this) {
                 case CHICKEN -> new ChickenTask(p, diff);
+                case DRAGON -> new DragonTask(p, diff);
             }
 
             p.dialogue(

@@ -15,8 +15,7 @@ public class TaskBoard {
 
         //taskboard = Tile.getObject(32655, 2612, 3858, 0);
 
-        //ObjectAction.register(taskboard, "Read", (p, o) -> displayBoard(p));
-
+        //ObjectAction.register(taskboard, "Read", (p, o) -> displayBoard(p));Not
     }
 
     private static void displayBoard(Player p) {
