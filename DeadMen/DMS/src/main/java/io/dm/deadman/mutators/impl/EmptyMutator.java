@@ -9,6 +9,11 @@ public class EmptyMutator extends Mutator {
     }
 
     @Override
+    public String description() {
+        return "None";
+    }
+
+    @Override
     public boolean hasAction() {
         return false;
     }

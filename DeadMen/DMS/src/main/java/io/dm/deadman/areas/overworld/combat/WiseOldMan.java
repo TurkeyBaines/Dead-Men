@@ -48,9 +48,18 @@ public class WiseOldMan {
         p.dialogue(
                 new OptionsDialogue(
                         "You're task is to kill " + p.overworldTaskMonster.name + ". Select a difficulty",
-                        new Option("Easy", () -> p.overworldTaskMonster.assign(p, 0)),
-                        new Option("Medium", () -> p.overworldTaskMonster.assign(p, 1)),
-                        new Option("Hard", () -> p.overworldTaskMonster.assign(p, 2))
+                        new Option("Easy", () -> {
+                            p.overworldTaskMonster.assign(p, 0);
+                            p.overworldTaskDifficulty = 0;
+                        }),
+                        new Option("Medium", () -> {
+                            p.overworldTaskMonster.assign(p, 1);
+                            p.overworldTaskDifficulty = 1;
+                        }),
+                        new Option("Hard", () -> {
+                            p.overworldTaskMonster.assign(p, 2);
+                            p.overworldTaskDifficulty = 2;
+                        })
                 )
         );
     }
@@ -74,6 +83,7 @@ public class WiseOldMan {
                     p.overworldTaskMonster = CombatTask.TASK_MONSTER.NONE;
                     p.overworldTaskRemaining = -1;
                     p.overworldTaskTotal = -1;
+                    p.overworldTaskDifficulty = -1;
                 }),
                 new Option("No")
         ));

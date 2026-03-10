@@ -1288,6 +1288,8 @@ public class Player extends PlayerAttributes {
             overworldTaskMonster = CombatTask.TASK_MONSTER.NONE;
             overworldTaskTotal = -1;
             overworldTaskRemaining = -1;
+            overworldTaskDifficulty = -1;
+            overworldPointsVault = -1;
         }
 
     }

@@ -67,7 +67,9 @@ public abstract class PlayerAttributes extends Entity {
 
     @Expose @Getter public CombatTask.TASK_MONSTER overworldTaskMonster;
     @Expose @Getter public int overworldTaskTotal;
+    @Expose @Getter public int overworldTaskDifficulty;
     @Expose @Getter public int overworldTaskRemaining;
+    @Expose @Getter public int overworldPointsVault;
 
     @Expose @Getter public boolean[] unlockedSigils;
     @Expose @Getter public int[] activeSigils;

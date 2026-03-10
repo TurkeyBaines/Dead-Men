@@ -246,56 +246,6 @@ public class Resources {
         resources.put(ItemID.RUNE_PLATESKIRT,       4439);
         resources.put(ItemID.RUNE_PLATEBODY,        7334);
 
-
-// --- FOOD & SUSTENANCE ---
-        resources.put(ItemID.ONION, 15);
-        resources.put(ItemID.CABBAGE, 15);
-        resources.put(ItemID.POTATO, 15);
-        resources.put(ItemID.TOMATO, 15);
-        resources.put(ItemID.GARLIC, 15);
-        resources.put(ItemID.BREAD, 30);
-        resources.put(ItemID.CAKE, 45);
-        resources.put(ItemID.CHOCOLATE_SLICE, 50);
-
-        resources.put(ItemID.RAW_SHRIMPS, 11);
-        resources.put(ItemID.SHRIMPS, 13);
-        resources.put(ItemID.RAW_SARDINE, 22);
-        resources.put(ItemID.SARDINE, 26);
-        resources.put(ItemID.RAW_HERRING, 22);
-        resources.put(ItemID.HERRING, 26);
-        resources.put(ItemID.RAW_ANCHOVIES, 35);
-        resources.put(ItemID.ANCHOVIES, 42);
-        resources.put(ItemID.RAW_TROUT, 75);
-        resources.put(ItemID.TROUT, 90);
-        resources.put(ItemID.RAW_SALMON, 110);
-        resources.put(ItemID.SALMON, 132);
-        resources.put(ItemID.RAW_TUNA, 150);
-        resources.put(ItemID.TUNA, 180);
-        resources.put(ItemID.RAW_LOBSTER, 225);
-        resources.put(ItemID.LOBSTER, 270);
-        resources.put(ItemID.RAW_SWORDFISH, 375);
-        resources.put(ItemID.SWORDFISH, 450);
-        resources.put(ItemID.RAW_MONKFISH, 600);
-        resources.put(ItemID.MONKFISH, 720);
-        resources.put(ItemID.RAW_SHARK, 1200);
-        resources.put(ItemID.SHARK, 1440);
-
-// --- GEMS & SPECIALS ---
-        resources.put(ItemID.UNCUT_SAPPHIRE, 75);
-        resources.put(ItemID.SAPPHIRE, 90);
-        resources.put(ItemID.UNCUT_EMERALD, 150);
-        resources.put(ItemID.EMERALD, 180);
-        resources.put(ItemID.UNCUT_RUBY, 300);
-        resources.put(ItemID.RUBY, 360);
-        resources.put(ItemID.UNCUT_DIAMOND, 600);
-        resources.put(ItemID.DIAMOND, 720);
-        resources.put(ItemID.UNCUT_DRAGONSTONE, 1500);
-        resources.put(ItemID.DRAGONSTONE, 1800);
-
-// Equipment (Special cases from list)
-        resources.put(14753, 120);
-        resources.put(20402, 500);
-        resources.put(ItemID.DRAGON_SCIMITAR, 1000);
     }
 
     public static int get(int ID) {

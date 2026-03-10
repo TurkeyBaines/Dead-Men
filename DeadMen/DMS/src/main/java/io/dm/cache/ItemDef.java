@@ -273,6 +273,7 @@ public class ItemDef {
      * Decoding
      */
 
+    /* SEARCH: ITEM DEF SERVER */
     private void decode(InBuffer buffer) {
         for(;;) {
             int opcode = buffer.readUnsignedByte();
@@ -365,6 +366,10 @@ public class ItemDef {
             inventoryOptions[0] = "Peek";
             inventoryOptions[3] = null;
             inventoryOptions[4] = "Destroy";
+        }
+
+        if (id == 11844) {
+            name = "Unix's Ring";
         }
 
 //        if(id == 8946) {

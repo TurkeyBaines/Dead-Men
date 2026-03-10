@@ -19,13 +19,12 @@ public abstract class TournamentConfig {
     public TeamSize TEAM_SIZE_MAX = TeamSize.SOLO;
 
     public enum TeamSize {
-        SOLO(1),
-        DUO(2),
-        TRIO(3);
+        SOLO("Solo", 1),
+        DUO("Duos", 2),
+        TRIO("Trios", 3);
+        public String name;
         public int asInt;
-        TeamSize(int asInt) {
-            this.asInt = asInt;
-        }
+        TeamSize(String name, int asInt) { this.name = name; this.asInt = asInt; }
     }
 
     public enum Timespan {

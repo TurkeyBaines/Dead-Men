@@ -17,6 +17,11 @@ public class StaticGasMutator extends Mutator {
     }
 
     @Override
+    public String description() {
+        return "A random region of of the map will be subject to gas, entry will result in a quick death!";
+    }
+
+    @Override
     public boolean hasAction() {
         return true;
     }

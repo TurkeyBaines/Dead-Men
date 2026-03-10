@@ -50,6 +50,16 @@ public class ItemCommands {
             case "reload":
                 reload(player);
                 break;
+
+            default:
+                String[] args2 = new String[args.length+1];
+                args2[0] = "pickup";
+                args2[1] = args[0];
+                if (args.length > 1)
+                    args2[2] = args[1];
+
+                pickup(player, args2);
+                break;
         }
     }
 

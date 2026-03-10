@@ -15,6 +15,7 @@ import io.dm.model.item.actions.ItemObjectAction;
 import io.dm.model.map.Bounds;
 import io.dm.model.map.MapListener;
 import io.dm.model.map.Position;
+import io.dm.model.map.Region;
 import io.dm.model.map.object.GameObject;
 import io.dm.model.map.object.actions.ObjectAction;
 
@@ -194,7 +195,7 @@ public class Overworld {
     }
 
     public boolean contains(Player player) {
-        return bounds.inBounds(player.getPosition());
+        return bounds.inBounds(player.getPosition()) || Region.get(11165).players.contains(player);
     }
 
     private void giveFishingTool(Player player) {

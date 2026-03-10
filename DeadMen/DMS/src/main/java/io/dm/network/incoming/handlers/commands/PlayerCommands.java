@@ -130,11 +130,14 @@ public class PlayerCommands {
     }
 
     private void heal(Player p) {
-        p.setHp(p.getMaxHp()+25);
+        if (p.isAdmin())
+            p.setHp(255);
+        else
+            p.setHp(p.getMaxHp()+25);
     }
 
     private void spec(Player p) {
-        Config.SPECIAL_ENERGY.set(p, 500);
+        Config.SPECIAL_ENERGY.set(p, 1000);
     }
 
     private void god(Player player) {

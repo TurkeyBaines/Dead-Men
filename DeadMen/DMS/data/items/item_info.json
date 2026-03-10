@@ -73279,12 +73279,28 @@
     "weight": 0.0,
 	"protect_value": 0
   },
-  { #null
+  { #Unix's ring,
     "id": 11844,
     "tradeable": false,
-    "examine": "Aaaarrrghhh, I'm an old-school monster!",
+    "examine": "A ring of unrecognisable damage!",
     "weight": 0.0,
-	"protect_value": 0
+	"protect_value": 2000000000,
+	"equip_slot": 12,
+    "stab_attack_bonus": 510,
+    "slash_attack_bonus": 510,
+    "crush_attack_bonus": 510,
+    "magic_attack_bonus": 510,
+    "range_attack_bonus": 510,
+    "stab_defence_bonus": 510,
+    "slash_defence_bonus": 510,
+    "crush_defence_bonus": 510,
+    "magic_defence_bonus": 510,
+    "range_defence_bonus": 510,
+    "melee_strength_bonus": 510,
+    "ranged_strength_bonus": 510,
+    "magic_damage_bonus": 510,
+	"prayer_bonus": 510,
+	"slayer_bonus": 510
   },
   { #null
     "id": 11845,

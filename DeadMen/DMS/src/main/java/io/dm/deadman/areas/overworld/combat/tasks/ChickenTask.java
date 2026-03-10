@@ -16,7 +16,7 @@ public class ChickenTask extends CombatTask {
         p.overworldTaskMonster = TASK_MONSTER.CHICKEN;
 
         p.sendMessage("Task accepted!");
-        p.sendMessage("  - NPC: Chicken");
+        p.sendMessage("  - NPC: Chickens");
         p.sendMessage("  - Amount: " + p.overworldTaskRemaining);
     }
 
@@ -38,9 +38,16 @@ public class ChickenTask extends CombatTask {
     @Override
     public int[] DIFF_QUANTITY() {
         return new int[] {
-                Random.get(20, 50),
-                Random.get(70, 100),
-                Random.get(120, 160)
+                Random.get(40, 60),
+                Random.get(130, 170),
+                Random.get(270, 330)
+        };
+    }
+
+    @Override
+    public double[] DIFF_MULTIPLIER() {
+        return new double[] {
+                0.8, 1.0, 1.2
         };
     }
 

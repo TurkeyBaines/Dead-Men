@@ -1,7 +1,10 @@
 package io.dm.deadman.areas;
 
 import io.dm.cache.Color;
+import io.dm.cache.ItemID;
+import io.dm.deadman.Deadman;
 import io.dm.deadman.guard.DMMGuard;
+import io.dm.deadman.items.TournamentTicket;
 import io.dm.model.World;
 import io.dm.model.entity.npc.NPC;
 import io.dm.model.entity.npc.NPCAction;
@@ -197,6 +200,7 @@ public class Citadel {
         registerAltars();
         registerDeath();
         registerPortals();
+        registerTournamentBoard();
     }
 
     private void registerAltars() {
@@ -245,5 +249,48 @@ public class Citadel {
         }));
 
         ObjectAction.register(33181, "Enter", (p, o) -> sendTeleportMenu(p, 0));
+    }
+
+    private void registerTournamentBoard() {
+        ObjectAction.register(32658, "Read", (p, o) -> {
+            int interId = 116;
+            int offx = Deadman.canOverrideConfig() ? 0 : 1;
+            p.openInterface(InterfaceType.MAIN, interId);
+            p.getPacketSender().sendString(interId, 4, "Tournament Configuration Board");
+            p.getPacketSender().sendString(interId, 6, Color.DARK_RED.wrap("------ Current Tournament ------"));
+            if (offx == 1)
+                p.getPacketSender().sendString(interId, 7, Color.ORANGE.wrap("Tournament Setup by: " + Deadman.getNext_Config_Name()));
+            p.getPacketSender().sendString(interId, 9 + offx, Color.ORANGE.wrap("Runtime: ") + Color.BLUE.wrap(Deadman.getConfig().GAME_LENGTH.text));
+            p.getPacketSender().sendString(interId, 10 + offx, Color.ORANGE.wrap("Team Size: ") + Color.BLUE.wrap(Deadman.getConfig().TEAM_SIZE_MAX.name));
+            p.getPacketSender().sendString(interId, 11 + offx, Color.ORANGE.wrap("XP Rate: ") + Color.BLUE.wrap(Deadman.getConfig().XP_RATE + "x"));
+            p.getPacketSender().sendString(interId, 12 + offx, Color.ORANGE.wrap("Drop Rate: ") + Color.BLUE.wrap(Deadman.getConfig().DROP_RATE + "x"));
+            p.getPacketSender().sendString(interId, 13 + offx, Color.ORANGE.wrap("Pet Rate: ") + Color.BLUE.wrap(Deadman.getConfig().PET_RATE + "x"));
+            p.getPacketSender().sendString(interId, 15 + offx, Color.ORANGE.wrap("Mutator: ") + Color.BLUE.wrap(Deadman.getConfig().MUTATOR.name()));
+            p.getPacketSender().sendString(interId, 16 + offx, Color.ORANGE.wrap("Mutator Desc: ") + Color.BLUE.wrap(Deadman.getConfig().MUTATOR.description()));
+
+            if (Deadman.canOverrideConfig()) {
+                p.getPacketSender().sendString(interId, 18 + offx, Color.DARK_RED.wrap("------ Next Tournament ------"));
+                p.getPacketSender().sendString(interId, 19 + offx, Color.ORANGE.wrap("Nobody has Overridden the next"));
+                p.getPacketSender().sendString(interId, 20 + offx, Color.ORANGE.wrap("Tournament Config yet"));
+                p.getPacketSender().sendString(interId, 22 + offx, Color.BLUE.wrap("Purchase a Tournament Token, and setup"));
+                p.getPacketSender().sendString(interId, 23 + offx, Color.BLUE.wrap("the next game, the way you want to play it!"));
+            } else {
+                p.getPacketSender().sendString(interId, 18 + offx, Color.DARK_RED.wrap("------ Next Tournament ------"));
+                p.getPacketSender().sendString(interId, 19 + offx, Color.ORANGE.wrap("Tournament Setup by: " + Deadman.getNext_Config_Name()));
+                p.getPacketSender().sendString(interId, 21 + offx, Color.ORANGE.wrap("Runtime: ") + Color.BLUE.wrap(Deadman.getConfig().GAME_LENGTH.text));
+                p.getPacketSender().sendString(interId, 22 + offx, Color.ORANGE.wrap("Team Size: ") + Color.BLUE.wrap(Deadman.getConfig().TEAM_SIZE_MAX.name));
+                p.getPacketSender().sendString(interId, 24 + offx, Color.ORANGE.wrap("XP Rate: ") + Color.BLUE.wrap(Deadman.getConfig().XP_RATE + "x"));
+                p.getPacketSender().sendString(interId, 25 + offx, Color.ORANGE.wrap("Drop Rate: ") + Color.BLUE.wrap(Deadman.getConfig().DROP_RATE + "x"));
+                p.getPacketSender().sendString(interId, 26 + offx, Color.ORANGE.wrap("Pet Rate: ") + Color.BLUE.wrap(Deadman.getConfig().PET_RATE + "x"));
+                p.getPacketSender().sendString(interId, 28 + offx, Color.ORANGE.wrap("Mutator: ") + Color.BLUE.wrap(Deadman.getConfig().MUTATOR.name()));
+                p.getPacketSender().sendString(interId, 29 + offx, Color.ORANGE.wrap("Mutator Desc: ") + Color.BLUE.wrap(Deadman.getConfig().MUTATOR.description()));
+            }
+        });
+
+        ObjectAction.register(32658, "Override", (p, o) -> {
+            if (!p.getInventory().hasItem(ItemID.TOURNAMENT_TICKET, 1)) {
+                TournamentTicket.process(p);
+            }
+        });
     }
 }

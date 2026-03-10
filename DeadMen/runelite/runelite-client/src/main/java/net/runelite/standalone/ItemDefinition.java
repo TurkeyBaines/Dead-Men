@@ -974,6 +974,8 @@ public class ItemDefinition extends DualNode implements RSItemDefinition {
       return var1;
    }
 
+
+   /* SEARCH: ITEM DEF CLIENT */
    public void postDecode() {
 
       switch (id) {
@@ -1038,6 +1040,10 @@ public class ItemDefinition extends DualNode implements RSItemDefinition {
             inventoryActions[3] = null;
             inventoryActions[4] = "Drop";
             setTradeable(true);
+
+         case 11844:
+            name = "Unix's Ring";
+            break;
       }
 
    }

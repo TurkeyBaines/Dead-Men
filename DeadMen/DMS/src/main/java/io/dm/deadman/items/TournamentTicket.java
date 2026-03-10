@@ -169,4 +169,7 @@ public class TournamentTicket {
         Deadman.getNext_config().printConfig();
     }
 
+    public static void process(Player p) {
+        showDialogue(p, 0);
+    }
 }
