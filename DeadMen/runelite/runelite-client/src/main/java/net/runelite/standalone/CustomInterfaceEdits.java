@@ -6,6 +6,8 @@ public class CustomInterfaceEdits {
         int parentId = inter.id >> 16;
         int childId = inter.id & 0xffff;
         inter.text = inter.text.replace("RuneScape", CustomMain.worldType.getName()).replace("Dead Men", CustomMain.worldType.getName());
+        inter.text = inter.text.replace("Kronos", CustomMain.worldType.getName()).replace("Dead Men", CustomMain.worldType.getName());
+
 
         if(parentId == 24) { //barrows overlay
             if(childId == 9 || childId == 10) {
@@ -39,12 +41,88 @@ public class CustomInterfaceEdits {
                 unlock(inter.id, -1, -1, 0, 1, 1);
             }
         }
+
+        /*
+        *
+        * Interface IDs: [720/8]
+            Text: [component: 8]
+            Button Text: [Ok]
+            Data Text: []
+            Spell Text: []
+            Text2: []
+            Button Type: [0]
+            Click Mask: [0]
+            Has Listener: [true]
+	*
+        Interface IDs: [720/9]
+            Text: [component: 9]
+            Action(0): [<col=ff981f>View</col>]
+            Button Text: [Ok]
+            Data Text: [Online staff]
+            Spell Text: []
+            Text2: []
+            Button Type: [0]
+            Click Mask: [2]
+            Has Listener: [true]
+
+         */
+
+        if (parentId == 720) {
+            switch (childId) {
+                case 8:
+                    inter.actions = new String[] {
+                            "<col=ff981f>View</col>"
+                    };
+                    inter.buttonText = "Ok";
+                    inter.dataText = "Online players";
+                    inter.clickMask = 2;
+                    break;
+
+                case 9:
+                    inter.buttonText = "Ok";
+                    inter.dataText = "Online staff";
+                    inter.clickMask = 2;
+                    break;
+
+                case 10:
+                    inter.actions = new String[]{ "View" };
+                    inter.buttonText = "Staff Online";
+                    unlock(701, 10, 10);
+                    break;
+
+
+                case 11:
+                case 12:
+                case 14:
+                case 15:
+                case 16:
+                case 17:
+                case 18:
+                case 43:
+                case 44:
+                case 45:
+                case 46:
+                case 47:
+                case 49:
+
+                    if (inter.getActions() == null) {
+                        System.out.println("FUCK OFF NEW!");
+                        inter.actions = new String[] { "Fuck off new" };
+                    } else {
+                        optionSet(inter, 0, "Fuck off old");
+                    }
+                    System.out.println("We changed the default Actions for [" + parentId + "/" + childId + "]");
+            }
+
+        }
     }
 
 
     public static void optionSet(Widget inter, int index, String option) {
         int parentId = inter.id >> 16;
         int childId = inter.id & 0xffff;
+
+
 
 /*        if(parentId == 320) {
             if(childId >= 1 && childId <= 23) {

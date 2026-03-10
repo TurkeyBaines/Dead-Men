@@ -35,34 +35,34 @@ public class TabQuest {
     @Getter
     private enum NoticeboardComponent {
 
-//        COMPONENT_8(8, player -> "Players Online: " + Color.GREEN.wrap(String.valueOf(World.players.count()))),
-//        COMPONENT_9(9, player -> "View Tournament Info ", (SimpleAction) p -> sendTournamentInfo(p)),
-//        COMPONENT_10(10, player -> "Staff Online", (SimpleAction) TabQuest::sendTournamentInfo),
-//        COMPONENT_11(11, player -> "Players in Tournament: " + Color.GREEN.wrap(String.valueOf(PVPInstance.players.size()))),
-//        COMPONENT_12(12, player -> "Server Uptime: " + Color.GREEN.wrap(TimeUtils.fromMs(Server.currentTick() * Server.tickMs(), false))),
-//        COMPONENT_43(43, player -> "XP Bonus: " + Color.GREEN.wrap(String.valueOf(Deadman.getConfig().XP_RATE))),
-//        COMPONENT_44(44, player -> "Double Drops: " + Color.GREEN.wrap(getDoubleDrops())),
-//        COMPONENT_45(45, player -> "Double PK Points: " + Color.GREEN.wrap(getDoublePkp())),
-//        COMPONENT_46(46, player -> "Double Slayer Points: " + Color.GREEN.wrap(getDoubleSlayerPoints())),
-//        COMPONENT_47(47, player -> "Double Pest Control: " + Color.GREEN.wrap(getDoublePcPoints())),
-//        COMPONENT_14(14, player -> {
-//            boolean hasTwoFactor = player.tfa;
-//            String text = "Two-factor authentication";
-//            return hasTwoFactor ? Color.GREEN.wrap(text) : Color.RED.wrap(text);
-//        }, (SimpleAction) player -> player.openUrl("https://community.kronos.rip/index.php?account/security")), //need to hookup tfa to the website somehow
-//        COMPONENT_15(15, player -> "Time Played: " + Color.GREEN.wrap(TimeUtils.fromMs(player.playTime * Server.tickMs(), false))),
-//        COMPONENT_16(16, player -> "Total Spent: " + Color.GREEN.wrap( "$" + player.storeAmountSpent)),
-//        COMPONENT_17(17, player -> "Base XP: "),
-//        COMPONENT_18(18, player -> "Double Drop Chance: " + Color.GREEN.wrap(DoubleDrops.getChance(player) + "%")),
-//        COMPONENT_49(49, player -> "PVM Points: " + Color.GREEN.wrap(Integer.toString(player.PvmPoints))),
-//
-//        COMPONENT_50(50, player -> "Achievements", (SimpleAction) player -> send(player)),
-//        COMPONENT_51(51, player -> "Drop Tables", (SimpleAction) player -> send(player)),
-//        COMPONENT_52(52, player -> "Settings", (SimpleAction) player -> send(player)),
-//
-//        COMPONENT_19(19, player -> "Website", (SimpleAction) player -> player.openUrl("http://kronos.rip/")),
-//        COMPONENT_20(20, player -> "Community", (SimpleAction) player -> player.openUrl("https://community.kronos.rip/index.php")),
-//        COMPONENT_21(21, player -> "Discord", (SimpleAction) player -> player.openUrl("https://discord.com/invite/ZyWAmpS")),
+        COMPONENT_8(8, player -> "Players Online: " + Color.GREEN.wrap(String.valueOf(World.players.count()))),
+        COMPONENT_10(9, player -> "Staff Online: " + getStaffOnlineCount(), (SimpleAction) p -> send(p)),
+        COMPONENT_9(10, player -> "View Tournament Info ", (SimpleAction) p -> sendTournamentInfo(p)),
+        COMPONENT_11(11, player -> "Players in Tournament: " + Color.GREEN.wrap(String.valueOf(PVPInstance.players.size()))),
+        COMPONENT_12(12, player -> "Server Uptime: " + Color.GREEN.wrap(TimeUtils.fromMs(Server.currentTick() * Server.tickMs(), false))),
+        COMPONENT_43(43, player -> "XP Bonus: " + Color.GREEN.wrap(String.valueOf(Deadman.getConfig().XP_RATE))),
+        COMPONENT_44(44, player -> "Double Drops: " + Color.GREEN.wrap(getDoubleDrops())),
+        COMPONENT_45(45, player -> "Double PK Points: " + Color.GREEN.wrap(getDoublePkp())),
+        COMPONENT_46(46, player -> "Double Slayer Points: " + Color.GREEN.wrap(getDoubleSlayerPoints())),
+        COMPONENT_47(47, player -> "Double Pest Control: " + Color.GREEN.wrap(getDoublePcPoints())),
+        COMPONENT_14(14, player -> {
+            boolean hasTwoFactor = player.tfa;
+            String text = "Two-factor authentication";
+            return hasTwoFactor ? Color.GREEN.wrap(text) : Color.RED.wrap(text);
+        }, (SimpleAction) player -> player.openUrl("https://community.kronos.rip/index.php?account/security")), //need to hookup tfa to the website somehow
+        COMPONENT_15(15, player -> "Time Played: " + Color.GREEN.wrap(TimeUtils.fromMs(player.playTime * Server.tickMs(), false))),
+        COMPONENT_16(16, player -> "Total Spent: " + Color.GREEN.wrap( "$" + player.storeAmountSpent)),
+        COMPONENT_17(17, player -> "Base XP: "),
+        COMPONENT_18(18, player -> "Double Drop Chance: " + Color.GREEN.wrap(DoubleDrops.getChance(player) + "%")),
+        COMPONENT_49(49, player -> "PVM Points: " + Color.GREEN.wrap(Integer.toString(player.PvmPoints))),
+
+        COMPONENT_50(50, player -> "Achievements", (SimpleAction) player -> send(player)),
+        COMPONENT_51(51, player -> "Drop Tables", (SimpleAction) player -> send(player)),
+        COMPONENT_52(52, player -> "Settings", (SimpleAction) player -> send(player)),
+
+        COMPONENT_19(19, player -> "Website", (SimpleAction) player -> player.openUrl("http://kronos.rip/")),
+        COMPONENT_20(20, player -> "Community", (SimpleAction) player -> player.openUrl("https://community.kronos.rip/index.php")),
+        COMPONENT_21(21, player -> "Discord", (SimpleAction) player -> player.openUrl("https://discord.com/invite/ZyWAmpS")),
         COMPONENT_22(22, player -> "Store", (SimpleAction) player -> player.openUrl("http://kronos.rip/store"));
 
         private int componentId;
@@ -92,9 +92,9 @@ public class TabQuest {
      * @param p - The player.
      */
     public static void send(Player p) {
-//        for (NoticeboardComponent component : NoticeboardComponent.values()) {
-//            p.getPacketSender().sendString(Interface.NOTICEBOARD, component.getComponentId(), component.getText().send(p));
-//        }
+        for (NoticeboardComponent component : NoticeboardComponent.values()) {
+            p.getPacketSender().sendString(Interface.NOTICEBOARD, component.getComponentId(), component.getText().send(p));
+        }
         p.getPacketSender().sendString(116, 7, Color.ORANGE.wrap("\t Current Tournament Stage: ") + Color.BLUE.wrap(Deadman.getStage().stageName().name()));
         p.getPacketSender().sendString(116, 8, Color.ORANGE.wrap("\t Time Until Next Stage: ") + Color.BLUE.wrap(Deadman.timeUntilChange()));
         if (Deadman.getStage().stageName() == Tournament.StageName.MAIN)
@@ -223,11 +223,11 @@ public class TabQuest {
     }
 
     static {
-//        InterfaceHandler.register(Interface.QUEST, (h) -> {
-//            for (NoticeboardComponent component : NoticeboardComponent.values()) {
-//                h.actions[component.getComponentId()] = component.getAction();
-//            }
-//        });
+        InterfaceHandler.register(Interface.NOTICEBOARD, (h) -> {
+            for (NoticeboardComponent component : NoticeboardComponent.values()) {
+                h.actions[component.getComponentId()] = component.getAction();
+            }
+        });
         LoginListener.register(player -> {
             send(player);
             player.addEvent(event -> {

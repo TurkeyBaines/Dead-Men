@@ -58,7 +58,7 @@ public abstract class TournamentConfig {
 
     public void printConfig() {
         StringBuilder msg1 = new StringBuilder();
-        msg1.append(Color.RAID_PURPLE.wrap("[Tournament] "));
+        msg1.append(Color.GOLD.wrap("[Tournament] "));
         if (!Deadman.canOverrideConfig())
             msg1.append(Color.DARK_RED.wrap("The next Tournament Configuration has been overridden by " + Deadman.getNext_Config_Name() + "!"));
         else if (Deadman.getStage().stageName() == Tournament.StageName.MAIN)
@@ -69,17 +69,17 @@ public abstract class TournamentConfig {
             msg1.append(Color.DARK_RED.wrap("The current Tournament is just ending... the last Configuration was:"));
 
         StringBuilder msg2 = new StringBuilder();
-        msg2.append(Color.RAID_PURPLE.wrap("[Tournament]"));
+        msg2.append(Color.GOLD.wrap("[Tournament]"));
         msg2.append(Color.BLUE.wrap("[Config] "));
         msg2.append("Runtime: " + Color.DARK_RED.wrap(GAME_LENGTH.text) + ", Team Size: " + Color.DARK_RED.wrap("" + TEAM_SIZE_MAX) + ", XP Rate: " + Color.DARK_RED.wrap(XP_RATE + "x"));
 
         StringBuilder msg3 = new StringBuilder();
-        msg3.append(Color.RAID_PURPLE.wrap("[Tournament]"));
+        msg3.append(Color.GOLD.wrap("[Tournament]"));
         msg3.append(Color.BLUE.wrap("[Config] "));
         msg3.append("drop Rate: " + Color.DARK_RED.wrap(DROP_RATE + "x") + ", Pet Drop Rate: " + Color.DARK_RED.wrap(PET_RATE + "x") + ", Mutator: " + Color.DARK_RED.wrap(MUTATOR.name()));
 
         StringBuilder msg4 = new StringBuilder();
-        msg4.append(Color.RAID_PURPLE.wrap("[Tournament]"));
+        msg4.append(Color.GOLD.wrap("[Tournament]"));
         msg4.append(Color.BLUE.wrap("[Next Config] "));
         if (!Deadman.canOverrideConfig())
             msg4.append(Color.DARK_RED.wrap("The next Config has been pre-selected by " + Deadman.getNext_Config_Name()));
