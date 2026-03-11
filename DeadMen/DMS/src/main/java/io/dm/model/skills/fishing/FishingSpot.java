@@ -2,6 +2,8 @@ package io.dm.model.skills.fishing;
 
 import io.dm.api.utils.Random;
 import io.dm.cache.ItemDef;
+import io.dm.deadman.Deadman;
+import io.dm.deadman.areas.overworld.OverworldTools;
 import io.dm.model.World;
 import io.dm.model.entity.npc.NPC;
 import io.dm.model.entity.npc.NPCAction;
@@ -17,11 +19,15 @@ import io.dm.model.stat.StatType;
 public class FishingSpot {
 
     private FishingTool tool;
+    private FishingTool[] tools;
 
     private FishingCatch[] regularCatches, barehandCatches;
 
     private FishingSpot(FishingTool tool) {
         this.tool = tool;
+    }
+    private FishingSpot(FishingTool... tool) {
+        this.tools = tool;
     }
 
     private FishingSpot regularCatches(FishingCatch... regularCatches) {
@@ -73,7 +79,10 @@ public class FishingSpot {
             tool = FishingTool.DRAGON_HARPOON;
         }
 
-        if(player.getInventory().contains(new Item(tool.id)) || (tool == FishingTool.HARPOON && hasDragonHarpoon(player))) {
+        if(player.getInventory().contains(new Item(tool.id)) ||
+                (Deadman.getOverworld().contains(player) && OverworldTools.hasTool(player, OverworldTools.Tool.FISHING) && OverworldTools.Tier.hasFishingTier(player, OverworldTools.Tool.FISHING, npc)) ||
+                (tool == FishingTool.HARPOON && hasDragonHarpoon(player))) {
+
             FishingCatch lowestCatch = regularCatches[0];
 
             if(fishing.currentLevel < lowestCatch.levelReq) {
@@ -112,7 +121,7 @@ public class FishingSpot {
         }
 
         Item secondary;
-        if(barehand || tool.secondaryId == -1) {
+        if(barehand || tool.secondaryId == -1 || OverworldTools.hasTool(player, OverworldTools.Tool.FISHING) && OverworldTools.Tier.hasFishingTier(player, OverworldTools.Tool.FISHING, npc)) {
             secondary = null;
         } else if((secondary = player.getInventory().findItem(tool.secondaryId)) == null) {
             player.sendMessage("You need at least one " + tool.secondaryName + " to fish at this spot.");
@@ -267,7 +276,7 @@ public class FishingSpot {
 
     public static final int BAIT = 6825;                //angler
 
-    private static final int MINNOWS = 7731;            //minnows
+    public static final int MINNOWS = 7731;            //minnows
 
     public static final int INFERNO_EEL = 7676;        //infernal eel
 

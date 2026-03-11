@@ -2,6 +2,7 @@ package io.dm.model.skills.mining;
 
 import io.dm.api.utils.Random;
 import io.dm.cache.ItemDef;
+import io.dm.deadman.areas.overworld.OverworldTools;
 import io.dm.model.World;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerCounter;
@@ -78,7 +79,7 @@ public class Mining {
                     player.sendFilteredMessage("You swing your pick at the rock.");
                     player.animate(rockData == Rock.AMETHYST ? pickaxe.crystalAnimationID : pickaxe.regularAnimationID);
                     attempts++;
-                } else if (attempts % 2 == 0 && Random.get(100) <= chance(getEffectiveLevel(player), rockData, pickaxe)) {
+                } else if (attempts % 2 == 0 && Random.get(100) <= chance(player, getEffectiveLevel(player), rockData, pickaxe)) {
                     if (pickaxe == Pickaxe.INFERNAL && (player.infernalPickaxeSpecial > 0 || Random.rollDie(3, 1))) {//TODO: change back to bar smelting when charge consuming is added
                         player.graphics(580, 155, 0);
                         addBar(player, rockData.ore);
@@ -271,9 +272,29 @@ public class Mining {
         }
     }
 
-    public static double chance(int level, Rock type, Pickaxe pickaxe) {
-        double points = ((level - type.levelReq) + 1 + (double) pickaxe.points);
-        double denominator = (double) type.difficulty;
+    public static double chance(Player p, int level, Rock type, Pickaxe pickaxe) {
+        double pickaxePoints = pickaxe.points;
+        if (pickaxe == Pickaxe.OVERWORLD) {
+            if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Infernal)
+                pickaxePoints = 48;
+            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Dragon)
+                pickaxePoints = 42;
+            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Rune)
+                pickaxePoints = 36;
+            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Adamant)
+                pickaxePoints = 30;
+            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Mithril)
+                pickaxePoints = 26;
+            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Steel)
+                pickaxePoints = 14;
+            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Iron)
+                pickaxePoints = 9;
+            else
+                pickaxePoints = 5;
+        }
+
+        double points = ((level - type.levelReq) + 1 + pickaxePoints);
+        double denominator = type.difficulty;
         return (Math.min(0.95, points / denominator) * 100);
     }
 

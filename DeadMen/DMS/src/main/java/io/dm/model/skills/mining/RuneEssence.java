@@ -122,6 +122,7 @@ public class RuneEssence {
 
     static {
         ObjectAction.register(34773, "mine", (p, obj) -> mine(p, false));
+        ObjectAction.register(11442, "mine", (p, obj) -> mine(p, false));
         ObjectAction.register(34825, "use", (p, obj) -> exitPortal(p));
         ObjectAction.register(8981, 1, (p, obj) -> mine(p, true));
         ObjectAction.register(10796, 1, (p, obj) -> mine(p, true));

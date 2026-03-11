@@ -16,7 +16,8 @@ public enum Hatchet {
     ADAMANT(31, 869, 3286, 26),
     RUNE(41, 867, 3285, 31),
     DRAGON(61, 2846, 3292, 42),
-    INFERNAL(61, 2117, 3292, 45);
+    INFERNAL(61, 2117, 3292, 45),
+    OVERWORLD(1, 871, 3287, 9);
 
     public final int levelReq, animationId, canoeAnimationId, points;
 

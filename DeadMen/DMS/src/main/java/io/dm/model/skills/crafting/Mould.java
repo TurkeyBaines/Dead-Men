@@ -1,5 +1,6 @@
 package io.dm.model.skills.crafting;
 
+import io.dm.cache.ItemID;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.Interface;
 import io.dm.model.inter.InterfaceHandler;
@@ -150,7 +151,7 @@ public enum Mould {
                 if (player.discardBuckets)
                     bucketOfSand.setId(MOLTEN_GLASS);
                 else {
-                    bucketOfSand.setId(EMPTY_BUCKET);
+                    bucketOfSand.setId(ItemID.BUCKET);
                     player.getInventory().add(MOLTEN_GLASS, 1);
                 }
                 player.getStats().addXp(StatType.Crafting, 10, true);

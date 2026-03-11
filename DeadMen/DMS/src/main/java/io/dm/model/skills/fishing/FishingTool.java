@@ -1,6 +1,7 @@
 package io.dm.model.skills.fishing;
 
 import io.dm.cache.ItemDef;
+import io.dm.cache.ItemID;
 
 public enum FishingTool {
 
@@ -15,7 +16,8 @@ public enum FishingTool {
     DARK_CRAB_POT(301, 11940, 619),
     ANGLER_ROD(307, 13431, 622, 623),
     DRAGON_HARPOON(21028, 7401),
-    KARAMBWAN_VESSEL(3157, 3150, 1193, 1193);
+    KARAMBWAN_VESSEL(3157, 3150, 1193, 1193),
+    OVERWORLD_TOOL(ItemID.OVERWORLD_FISHING_TOOLS, 619);
 
     public final int id;
 

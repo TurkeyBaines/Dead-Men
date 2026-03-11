@@ -32,7 +32,7 @@ public class Shop {
 
     }
 
-    @Builder
+     @Builder
     private Shop(String identifier, String title, Currency currency, CurrencyHandler currencyHandler, boolean generalStore, boolean canSellToStore, RestockRules restockRules, List<ShopItem> defaultStock, boolean accessibleByIronMan, boolean generatedByBuilder, Consumer<Shop> onTick) {
         this.identifier = identifier;
         this.title = title;

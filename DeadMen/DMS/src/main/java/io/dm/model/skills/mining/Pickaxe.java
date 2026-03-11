@@ -2,6 +2,8 @@ package io.dm.model.skills.mining;
 
 import io.dm.cache.Color;
 import io.dm.cache.ItemDef;
+import io.dm.cache.ItemID;
+import io.dm.deadman.Deadman;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.dialogue.YesNoDialogue;
 import io.dm.model.item.Item;
@@ -21,7 +23,8 @@ public enum Pickaxe {
     DRAGON(61, 11920, 42, 7139, 6758),
     THIRD_AGE(61, 20014, 42, 7283, 7282),
     DRAGON_OR(61, 12797, 42, 642, 335),
-    INFERNAL(61, 13243, 42, 4482, 4481);
+    INFERNAL(61, 13243, 42, 4482, 4481),
+    OVERWORLD(1, ItemID.OVERWORLD_AXE, 5, 629, 6757);
 
     public final int levelReq, id, points, regularAnimationID, crystalAnimationID;
 
@@ -49,6 +52,9 @@ public enum Pickaxe {
     }
 
     public static Pickaxe find(Player player) {
+        if (Deadman.getOverworld().contains(player))
+            return Pickaxe.OVERWORLD;
+
         Pickaxe bestPickaxe = null;
         for(Item item : player.getInventory().getItems())
             bestPickaxe = compare(player, item, bestPickaxe);

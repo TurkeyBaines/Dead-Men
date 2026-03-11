@@ -2,6 +2,7 @@ package io.dm.network.incoming.handlers.commands;
 
 import io.dm.cache.ItemID;
 import io.dm.model.World;
+import io.dm.model.combat.Hit;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.utils.Config;
 
@@ -89,10 +90,18 @@ public class PlayerCommands {
                     case "unlock":
                         lock(p2, true);
                         break;
+
+                    case "kill":
+                        kill(p2);
+                        break;
                 }
                 break;
 
         }
+    }
+
+    private void kill(Player p) {
+        p.hit(new Hit().fixedDamage(255));
     }
 
     private void maxset(Player p) {

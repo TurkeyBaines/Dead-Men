@@ -11,6 +11,11 @@ public class Inventory extends ItemContainer {
 
     public double weight;
 
+    public void replace(Item item1, Item item2) {
+        get(item1.getSlot(), item1.getId()).remove();
+        add(item2);
+    }
+
     public void addOrDrop(Item item) {
         addOrDrop(item.getId(), item.getAmount(), item.copyOfAttributes());
     }

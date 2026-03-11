@@ -2423,7 +2423,7 @@ public final class ItemID
 	public static final int EXPLOSIVE_POTION = 4045;
 	public static final int CLIMBING_ROPE = 4047;
 	public static final int BANDAGES = 4049;
-	public static final int TOOLKIT_4051 = 4051;
+	public static final int OVERWORLD_FISHING_TOOLS = 4051;
 	public static final int BARRICADE = 4053;
 	public static final int CASTLEWARS_MANUAL = 4055;
 	public static final int CASTLE_WARS_TICKET = 4067;

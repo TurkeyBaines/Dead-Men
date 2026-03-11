@@ -153,12 +153,6 @@ public enum FishingArea {
             new Position(3185, 3926, 0),
             new Position(3187, 3927, 0)
     ),
-    PVP_WORLD_37S(
-            new Position(3347, 3814, 0),
-            new Position(3350, 3817, 0),
-            new Position(3360, 3802, 0),
-            new Position(3359, 3802, 0)
-    ),
     ZEAH_ANGLER(
             new Position(1836, 3771, 0),
             new Position(1833, 3769, 0),
@@ -195,20 +189,6 @@ public enum FishingArea {
             new Position(2926, 3180, 0),
             new Position(2925, 3181, 0)
     ),
-    DONATOR_ZONE(
-            new Position(3828, 2869, 0),
-            new Position(3830, 2869, 0),
-            new Position(3832, 2869, 0),
-            new Position(3833, 2869, 0),
-            new Position(3835, 2869, 0),
-            new Position(3836, 2870, 0),
-            new Position(3835, 2872, 0),
-            new Position(3833, 2872, 0),
-            new Position(3831, 2872, 0),
-            new Position(3829, 2872, 0),
-            new Position(3828, 2872, 0),
-            new Position(3826, 2872, 0)
-    ),
     LAVA_MAZE(
             new Position(3070, 3877, 0),
             new Position(3071, 3877, 0),
@@ -219,25 +199,19 @@ public enum FishingArea {
             new Position(3076, 3877, 0),
             new Position(3077, 3877, 0)
     ),
-    HOME(
-            new Position(2039, 3607, 0),
-            new Position(2039, 3606, 0),
-            new Position(2039, 3605, 0),
-            new Position(2039, 3604, 0),
-            new Position(2039, 3603, 0),
-            new Position(2039, 3602, 0),
-            new Position(2044, 3597, 0),
-            new Position(2044, 3596, 0),
-            new Position(2044, 3595, 0),
-            new Position(2044, 3594, 0),
-            new Position(2044, 3593, 0),
-            new Position(2044, 3592, 0),
-            new Position(2044, 3591, 0),
-            new Position(2044, 3590, 0),
-            new Position(2044, 3589, 0),
-            new Position(2044, 3588, 0)
-    )
-    ;
+    OVERWORLD(
+            new Position(2576, 3854,0),
+            new Position(2577, 3854,0),
+            new Position(2577, 3851,0),
+            new Position(2580, 3854,0),
+            new Position(2581, 3854,0),
+            new Position(2582, 3854,0),
+            new Position(2583, 3853,0),
+            new Position(2583, 3852,0),
+            new Position(2582, 3851,0),
+            new Position(2581, 3851,0),
+            new Position(2580, 3851,0)
+    );
 
     private ArrayDeque<Position> freePositions;
 
@@ -280,17 +254,13 @@ public enum FishingArea {
         PISCATORIS.add(FishingSpot.SMALL_NET_HARPOON, 5);
         KARAMJA.add(FishingSpot.CAGE_HARPOON, 3);
         KARAMJA.add(FishingSpot.NET_BAIT, 3);
-        DONATOR_ZONE.add(FishingSpot.NET_BAIT, 1);
-        DONATOR_ZONE.add(FishingSpot.LURE_BAIT, 1);
-        DONATOR_ZONE.add(FishingSpot.CAGE_HARPOON, 2);
-        DONATOR_ZONE.add(FishingSpot.BIG_NET_HARPOON, 2);
-        PVP_WORLD_37S.add(FishingSpot.CAGE, 3);
-        HOME.add(FishingSpot.BIG_NET_HARPOON, 2);
-        HOME.add(FishingSpot.KARAMBWAN_SPOT, 1);
-        HOME.add(FishingSpot.CAGE_HARPOON, 1);
-        HOME.add(FishingSpot.SMALL_NET_HARPOON, 2);
-        HOME.add(FishingSpot.LURE_BAIT, 1);
-        HOME.add(FishingSpot.NET_BAIT, 1);
+
+        OVERWORLD.add(FishingSpot.NET_BAIT, 2);
+        OVERWORLD.add(FishingSpot.LURE_BAIT, 1);
+        OVERWORLD.add(FishingSpot.CAGE_HARPOON, 1);
+        OVERWORLD.add(FishingSpot.BIG_NET_HARPOON, 1);
+        OVERWORLD.add(FishingSpot.SMALL_NET_HARPOON, 1);
+        OVERWORLD.add(FishingSpot.MINNOWS, 1);
     }
 
 }

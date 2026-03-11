@@ -169,7 +169,25 @@ public class Woodcutting {
     }
 
     private static double chance(int level, Tree type, Hatchet hatchet) {
-        double points = ((level - type.levelReq) + 1 + (double) hatchet.points);
+        double hatchetPoints = hatchet.points;
+        if (hatchet == Hatchet.OVERWORLD) {
+            if (level > 60)
+                hatchetPoints = 42;
+            else if (level > 40)
+                hatchetPoints = 31;
+            else if (level > 30)
+                hatchetPoints = 26;
+            else if (level > 20)
+                hatchetPoints = 22;
+            else if (level > 10)
+                hatchetPoints = 18;
+            else if (level > 4)
+                hatchetPoints = 14;
+            else
+                hatchetPoints = 11;
+        }
+
+        double points = ((level - type.levelReq) + 1 + hatchetPoints);
         double denominator = type.difficulty;
         return (Math.min(0.95, points / denominator) * 100);
     }

@@ -1251,11 +1251,13 @@ public class Player extends PlayerAttributes {
 
         if (inventoryHolder == null) {
             inventoryHolder = new ItemContainer();
-            inventoryHolder.init(4, false);
-            inventoryHolder.add(IRON_AXE, 1);
-            inventoryHolder.add(IRON_PICKAXE, 1);
-            inventoryHolder.add(KNIFE, 1);
+            inventoryHolder.init(6, false);
+            inventoryHolder.add(OVERWORLD_AXE, 1);
+            inventoryHolder.add(OVERWORLD_PICKAXE, 1);
+            inventoryHolder.add(OVERWORLD_FISHING_TOOLS, 1);
             inventoryHolder.add(HAMMER, 1);
+            inventoryHolder.add(KNIFE, 1);
+            inventoryHolder.add(TINDERBOX, 1);
         }
 
         if (unlockedSigils == null) {
@@ -1289,7 +1291,7 @@ public class Player extends PlayerAttributes {
             overworldTaskTotal = -1;
             overworldTaskRemaining = -1;
             overworldTaskDifficulty = -1;
-            overworldPointsVault = -1;
+            overworldPointsVault = 0;
         }
 
     }

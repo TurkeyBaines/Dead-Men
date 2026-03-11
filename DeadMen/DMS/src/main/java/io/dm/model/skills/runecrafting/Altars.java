@@ -161,14 +161,14 @@ public enum Altars {
         });
     }
 
-    protected static int essenceFromPouches(Player player) {
+    public static int essenceFromPouches(Player player) {
         return player.runeEssencePouches.entrySet().stream()
                 .filter(e -> player.getInventory().contains(e.getKey().getItemId(), 1))
                 .mapToInt(Map.Entry::getValue)
                 .sum();
     }
 
-    protected static void clearPouches(Player player) {
+    public static void clearPouches(Player player) {
         player.runeEssencePouches.entrySet().stream()
                 .filter(e -> player.getInventory().contains(e.getKey().getItemId(), 1))
                 .forEach(e -> e.setValue(0));
