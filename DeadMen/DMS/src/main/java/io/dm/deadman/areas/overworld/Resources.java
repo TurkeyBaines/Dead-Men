@@ -246,6 +246,64 @@ public class Resources {
         resources.put(ItemID.RUNE_PLATESKIRT,       4439);
         resources.put(ItemID.RUNE_PLATEBODY,        7334);
 
+// --- RUNECRAFTING ---
+// Essence
+        resources.put(ItemID.RUNE_ESSENCE,          4);
+        resources.put(ItemID.PURE_ESSENCE,          12);
+
+// Elementals (Below Pure Essence)
+        resources.put(ItemID.AIR_RUNE,              6);
+        resources.put(ItemID.MIND_RUNE,             7);
+        resources.put(ItemID.WATER_RUNE,            8);
+        resources.put(ItemID.EARTH_RUNE,            9);
+        resources.put(ItemID.FIRE_RUNE,             10);
+
+// Specialized & High Level (Above Pure Essence)
+        resources.put(ItemID.BODY_RUNE,             15);
+        resources.put(ItemID.COSMIC_RUNE,           35);
+        resources.put(ItemID.CHAOS_RUNE,            55);
+        resources.put(ItemID.ASTRAL_RUNE,           75);
+        resources.put(ItemID.NATURE_RUNE,           110);
+        resources.put(ItemID.LAW_RUNE,              150);
+        resources.put(ItemID.DEATH_RUNE,            220);
+        resources.put(ItemID.BLOOD_RUNE,            450);
+        resources.put(ItemID.SOUL_RUNE,             750);
+        resources.put(ItemID.WRATH_RUNE,            1200);
+
+// --- FISHING & COOKING ---
+// Small Net & Bait (Shrimp, Anchovies, Sardine, Herring)
+        resources.put(ItemID.RAW_SHRIMPS,            10);
+        resources.put(ItemID.SHRIMPS,                15);
+        resources.put(ItemID.RAW_ANCHOVIES,          15);
+        resources.put(ItemID.ANCHOVIES,              22);
+        resources.put(ItemID.RAW_SARDINE,            18);
+        resources.put(ItemID.SARDINE,                25);
+        resources.put(ItemID.RAW_HERRING,            22);
+        resources.put(ItemID.HERRING,                32);
+
+// Fly Fishing & Bait (Trout, Salmon, Pike)
+        resources.put(ItemID.RAW_TROUT,              45);
+        resources.put(ItemID.TROUT,                  65);
+        resources.put(ItemID.RAW_PIKE,               55);
+        resources.put(ItemID.PIKE,                   80);
+        resources.put(ItemID.RAW_SALMON,             75);
+        resources.put(ItemID.SALMON,                 110);
+
+// Cage & Harpoon (Tuna, Lobster, Swordfish)
+        resources.put(ItemID.RAW_TUNA,               120);
+        resources.put(ItemID.TUNA,                   170);
+        resources.put(ItemID.RAW_LOBSTER,            280);
+        resources.put(ItemID.LOBSTER,                380);
+        resources.put(ItemID.RAW_SWORDFISH,          350);
+        resources.put(ItemID.SWORDFISH,              490);
+
+// Specialized (Monkfish, Shark, Minnows)
+        resources.put(ItemID.RAW_MONKFISH,           520);
+        resources.put(ItemID.MONKFISH,               710);
+        resources.put(ItemID.RAW_SHARK,              850);
+        resources.put(ItemID.SHARK,                  1150);
+        resources.put(ItemID.MINNOW,                 5); // Stackable/High Volume
+
     }
 
     public static int get(int ID) {
