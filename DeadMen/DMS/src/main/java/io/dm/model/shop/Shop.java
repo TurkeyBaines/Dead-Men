@@ -84,8 +84,10 @@ public class Shop {
     public void populate(){
         shopItems.clear();
         //System.out.println("<SHOP ID>: " + identifier);
-        defaultStock.forEach(shopItem -> shopItems.add(shopItem));
-        shopItems.forEach(shopItem -> shopItem.defaultStockItem = true);
+        if (defaultStock != null && !defaultStock.isEmpty()) {
+            defaultStock.forEach(shopItem -> shopItems.add(shopItem));
+            shopItems.forEach(shopItem -> shopItem.defaultStockItem = true);
+        }
     }
 
     public Shop replace(Shop shop){

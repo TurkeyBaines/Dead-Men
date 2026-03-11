@@ -659,19 +659,31 @@ public class NPCDefinition extends DualNode implements RSNPCDefinition {
          class298.method5476(var14, var15, var13, true);
       }
    }
-   /*SEARCH: NPCDEF CLIENT*/
+   /*SEARCH: NPC DEF CLIENT*/
    void postDecode() {
-      if (id == 2713) {
-         name = "Wise Old Task Man";
-         actions[0] = "Talk-to";
-         actions[1] = "Check-task";
-         actions[2] = "Quick-task";
-         actions[3] = "Cancel-task";
-      } else if (id == 1798 || id == 8149 || id == 1799 || id == 1800 || id == 1829) { // White Knights > Citadel Guards
-         name = "Citadel Guard";
-         combatLevel = 700;
-         actions[0] = "Talk-to";
-         actions[1] = "Attack";
+      switch (id) {
+         case 2713:
+            name = "Wise Old Task Man";
+            actions[0] = "Talk-to";
+            actions[1] = "Check-task";
+            actions[2] = "Quick-task";
+            actions[3] = "Cancel-task";
+            break;
+
+         case 2798:
+         case 8149:
+         case 1799:
+         case 1800:
+         case 1829:
+            name = "Citadel Guard";
+            combatLevel = 700;
+            actions[0] = "Talk-to";
+            actions[1] = "Attack";
+            break;
+
+         case 15101:
+            name = "Sir Sell A Bit";
+            break;
       }
    }
 

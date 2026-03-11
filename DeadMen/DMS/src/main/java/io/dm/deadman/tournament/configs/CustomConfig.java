@@ -1,6 +1,6 @@
 package io.dm.deadman.tournament.configs;
 
-import io.dm.deadman.mutators.Mutator;
+import io.dm.deadman.tournament.mutators.Mutator;
 import io.dm.deadman.tournament.TournamentConfig;
 
 public class CustomConfig extends TournamentConfig {

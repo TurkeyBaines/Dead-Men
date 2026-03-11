@@ -2,7 +2,7 @@ package io.dm.deadman.tournament;
 
 import io.dm.cache.Color;
 import io.dm.deadman.Deadman;
-import io.dm.deadman.mutators.Mutator;
+import io.dm.deadman.tournament.mutators.Mutator;
 import io.dm.deadman.tournament.configs.QuickSolo;
 import io.dm.model.World;
 

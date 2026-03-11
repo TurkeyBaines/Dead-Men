@@ -4,7 +4,7 @@ public class Tournament {
 
     public enum StageName {
         LOBBY("Lobby"),
-        MAIN("Running"),
+        MAIN("Tournament"),
         FINAL("Final");
 
         public final String text;

@@ -1,15 +1,9 @@
 package io.dm.deadman.tournament.stages;
 
 import io.dm.deadman.Deadman;
-import io.dm.deadman.events.DMMEvent;
 import io.dm.deadman.tournament.FinalEvent;
 import io.dm.deadman.tournament.Stage;
 import io.dm.deadman.tournament.Tournament;
-import io.dm.deadman.tournament.TournamentConfig;
-import io.dm.model.entity.player.Player;
-import lombok.Setter;
-
-import java.util.ArrayList;
 
 public class Final extends Stage {
 

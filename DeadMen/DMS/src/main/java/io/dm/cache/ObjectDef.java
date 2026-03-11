@@ -228,8 +228,13 @@ public class ObjectDef {
                 options[0] = "Fill";
                 break;
 
-            case 51002:
-                options[0] = "Pick";
+            case 33181:
+                name = "Teleporter";
+                options[0] = "Menu";
+                break;
+
+            case 10251:
+                name = "Overworld teleporter";
                 break;
         }
     }

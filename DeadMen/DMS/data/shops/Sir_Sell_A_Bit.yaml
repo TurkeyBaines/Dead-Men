@@ -1,0 +1,11 @@
+---
+identifier: "472x281s-3k8d-10z8-99m2-206d6942cff8"
+title: "Sir Sell A Bit's Emporium"
+currency: "COINS"
+accessibleByIronMan: true
+canSellToStore: true
+generalStore: true
+restockRules:
+  restockTicks: 100
+  restockPerTick: 1
+defaultStock:

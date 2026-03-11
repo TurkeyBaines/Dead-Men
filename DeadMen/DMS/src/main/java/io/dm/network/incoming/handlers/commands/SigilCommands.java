@@ -1,7 +1,7 @@
 package io.dm.network.incoming.handlers.commands;
 
-import io.dm.deadman.sigils.Sigil;
-import io.dm.deadman.sigils.Sigils;
+import io.dm.deadman.content.sigils.Sigil;
+import io.dm.deadman.content.sigils.Sigils;
 import io.dm.model.entity.Entity;
 import io.dm.model.entity.player.Player;
 

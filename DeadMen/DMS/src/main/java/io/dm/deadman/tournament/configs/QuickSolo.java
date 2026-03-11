@@ -1,8 +1,6 @@
 package io.dm.deadman.tournament.configs;
 
-import io.dm.deadman.mutators.impl.EmptyMutator;
-import io.dm.deadman.mutators.impl.StaticGasMutator;
-import io.dm.deadman.mutators.impl.VampiricRitesMutator;
+import io.dm.deadman.tournament.mutators.impl.VampiricRitesMutator;
 import io.dm.deadman.tournament.TournamentConfig;
 
 public class QuickSolo extends TournamentConfig {

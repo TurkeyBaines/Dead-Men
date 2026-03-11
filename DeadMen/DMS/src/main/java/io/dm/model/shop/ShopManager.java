@@ -1,6 +1,7 @@
 package io.dm.model.shop;
 
 import com.google.common.collect.Maps;
+import io.dm.model.World;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.InterfaceHandler;
 import io.dm.model.inter.actions.DefaultAction;
@@ -13,6 +14,7 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 public class ShopManager {
@@ -35,7 +37,7 @@ public class ShopManager {
         shop.populate();
 
         EventConsumer eventConsumer = event -> shopTick(event, shop);
-        Event event = EventWorker.startEvent(eventConsumer);
+        Event event = World.startEvent(eventConsumer);
         event.eventType = EventType.PERSISTENT;
     }
 
@@ -120,6 +122,11 @@ public class ShopManager {
                     return;
                 }
 
+                if (shop.identifier.equalsIgnoreCase("472x281s-3k8d-10z8-99m2-206d6942cff8")) {
+                    player.sendMessage("You are not able to buy items from this shop!");
+                    return;
+                }
+
                 int buyAmt = 0;
                 ShopItem itemForSlot = shop.shopItems.getSafe(slot);
                 //log.debug("itemforslot {}", itemForSlot);
@@ -172,10 +179,16 @@ public class ShopManager {
 
     public static void shopTick(Event event, Shop shop) {
         while(true) {
+            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Started shopTick()");
             RestockRules restockRules = shop.restockRules;
+            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Started Restock Wait");
             event.delay(restockRules.restockTicks);
+            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Started Restock Tick");
             shop.shopItems.forEach(shopItem -> {
-                ShopItem original = shopItem.getSlot() >= shop.defaultStock.size() ? null : shop.defaultStock.get(shopItem.getSlot());
+                ShopItem original = null;
+                if (shop.defaultStock != null)
+                    original = shopItem.getSlot() >= shop.defaultStock.size() ? null : shop.defaultStock.get(shopItem.getSlot());
+
                 if (original != null) {
                     int difference = Integer.compare(shopItem.getAmount(), original.getAmount());
                     if (difference != 0) {
@@ -190,12 +203,15 @@ public class ShopManager {
                     }
                 }
             });
+            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Amended Store Stock");
 
             shop.sendUpdates();
+            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Sent Restock Tick");
 
             if (shop.onTick != null) {
                 shop.onTick.accept(shop);
             }
+            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Finished shopTick()");
 
         }
     }

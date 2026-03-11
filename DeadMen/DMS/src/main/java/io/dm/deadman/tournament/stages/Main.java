@@ -1,12 +1,11 @@
 package io.dm.deadman.tournament.stages;
 
 import io.dm.deadman.Deadman;
-import io.dm.deadman.events.DMMEvent;
-import io.dm.deadman.sigils.Sigil;
-import io.dm.deadman.sigils.Sigils;
+import io.dm.deadman.tournament.events.DMMEvent;
+import io.dm.deadman.content.sigils.Sigil;
+import io.dm.deadman.content.sigils.Sigils;
 import io.dm.deadman.tournament.Stage;
 import io.dm.deadman.tournament.Tournament;
-import io.dm.deadman.tournament.TournamentConfig;
 import io.dm.model.inter.dialogue.OptionsDialogue;
 import io.dm.model.inter.utils.Option;
 
@@ -46,9 +45,26 @@ public class Main extends Stage {
         }
 
         if (System.currentTimeMillis() >= (startTime + duration)) {
-            if (currentEvent != null) currentEvent.despawn();
-
             progress(Tournament.StageName.FINAL);
+            return;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        long nextTime = startTime + duration;
+        int seconds = (int) (nextTime - currentTime) / 1000;
+
+        switch (seconds) {
+            case 60:
+            case 30:
+            case 10:
+            case 5:
+            case 4:
+            case 3:
+            case 2:
+                players().forEach(p -> p.sendMessage("The Finals will begin in " + seconds + " seconds."));
+                break;
+            case 1:
+                players().forEach(p -> p.sendMessage("The Finals will begin in 1 second."));
         }
     }
 

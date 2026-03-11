@@ -3,7 +3,7 @@ package io.dm.model.skills.fishing;
 import io.dm.api.utils.Random;
 import io.dm.cache.ItemDef;
 import io.dm.deadman.Deadman;
-import io.dm.deadman.areas.overworld.OverworldTools;
+import io.dm.deadman.content.areas.overworld.OverworldTools;
 import io.dm.model.World;
 import io.dm.model.entity.npc.NPC;
 import io.dm.model.entity.npc.NPCAction;

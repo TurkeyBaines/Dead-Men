@@ -1,8 +1,8 @@
 package io.dm.model.entity.player;
 
 import com.google.gson.annotations.Expose;
-import io.dm.deadman.areas.overworld.OverworldTools;
-import io.dm.deadman.areas.overworld.combat.CombatTask;
+import io.dm.deadman.content.areas.overworld.OverworldTools;
+import io.dm.deadman.content.areas.overworld.combat.CombatTask;
 import io.netty.channel.Channel;
 import io.dm.Server;
 import io.dm.api.protocol.login.LoginInfo;

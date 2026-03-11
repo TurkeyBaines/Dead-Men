@@ -131,7 +131,7 @@ public class NPCDef {
     public HashMap<Object, Object> attributes;
 
 
-    /*SEARCH: NPCDEF SERVER*/
+    /*SEARCH: NPC DEF SERVER*/
     void decode(InBuffer buffer) {
         for(;;) {
             int opcode = buffer.readUnsignedByte();
@@ -139,75 +139,29 @@ public class NPCDef {
                 break;
             decode(buffer, opcode);
         }
-        /**
-         * Keep updated with client lol
-         */
-        if(id == 5442) {
-            name = "Security Advisor";
-            options[2] = "Check Pin Settings";
-            options[3] = "Check 2FA Settings";
-        } else if(id == 2882) {
-            /* Horvik */
-            options[0] = "Repair-items";
-        } else if(id == 3894) {
-            /* Sigmund the Merchant */
-            options[0] = "Buy-items";
-            options[2] = "Sell-items";
-            options[3] = "Sets";
-            options[4] = null;
-        } else if(id == 3278) {
-            name = "Construction Worker";
-        } else if(id == 2668) {
-            name = "Max hit dummy";
-            options[2] = options[3] = options[4] = null;
-        } else if (id == 6118) {
-            name = "Elvarg";
-            combatLevel = 280;
-        } else if (id == 3358) {
-            name = "Ket'ian";
-            combatLevel = 420;
-            resizeX *= 2;
-            resizeY *= 2;
-            size = 2;
-        } else if(id == 5906) {
-            options[2] = null;
-        } else if("Pick-up".equals(options[0]) && "Talk-to".equals(options[2]) && "Chase".equals(options[3]) && "Interact".equals(options[4])) {
-            options[3] = "Age";
-            options[4] = null;
-        } else if(id == 7759) {
-            options[0] = options[2] = null;
-        } else if(id == 7941) {
-            options[2] = options[3] = options[4] = null;
-        } else if(id == 8009) {
-            options[3] = "Metamorphosis";
-        } else if(id == 8507) {
-            options[0] = "Trade";
-        } else if(id == 7297) { // Skotizo (For eco world)
-            // Replaces Mistag
-            copy(7286);
-        } else if(id == 6002) {
-            name = "Caretaker";
-            options[0] = "Trade";
-        } else if(id == 119) {
-            name = "Doomsayer";
-        } else if(id == 8500) {
-            name = "Old man";
-            options[1] = "Trade";
-        }
-        /* START OF DM CUSTOM NPC DEFS */
-        else if (id == 5567) { // Death
-            options[1] = "Escape";
-        } else if (id == 1798 || id == 8149 || id == 1799 || id == 1800 || id == 1829) { // White Knights > Citadel Guards
-            name = "Citadel Guard";
-            combatLevel = 700;
-            options[1] = "Talk-to";
-            options[2] = "Attack";
-        } else if (id == 2713) {
-            name = "Wise Old Task Man";
-            options[0] = "Talk-to";
-            options[1] = "Check-task";
-            options[2] = "Quick-task";
-            options[3] = "Cancel-task";
+        switch (id) {
+            case 2713:
+                name = "Wise Old Task Man";
+                options[0] = "Talk-to";
+                options[1] = "Check-task";
+                options[2] = "Quick-task";
+                options[3] = "Cancel-task";
+                break;
+
+            case 2798:
+            case 8149:
+            case 1799:
+            case 1800:
+            case 1829:
+                name = "Citadel Guard";
+                combatLevel = 700;
+                options[0] = "Talk-to";
+                options[1] = "Attack";
+                break;
+
+            case 15101:
+                name = "Sir Sell A Bit";
+                break;
         }
 
         if(name != null) {

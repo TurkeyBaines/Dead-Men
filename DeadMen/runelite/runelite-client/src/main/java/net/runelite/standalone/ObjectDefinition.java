@@ -949,8 +949,13 @@ public class ObjectDefinition extends DualNode implements RSObjectDefinition {
             actions[0] = "Fill";
             break;
 
-         case 51002:
-            //actions[0] = "Pick";
+         case 33181:
+            name = "Teleporter";
+            actions[0] = "Menu";
+            break;
+
+         case 10251:
+            name = "Overworld teleporter";
             break;
       }
    }

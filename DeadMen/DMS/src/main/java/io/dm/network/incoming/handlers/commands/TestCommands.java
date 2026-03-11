@@ -2,15 +2,12 @@ package io.dm.network.incoming.handlers.commands;
 
 import io.dm.Server;
 import io.dm.cache.NPCDef;
-import io.dm.deadman.Deadman;
-import io.dm.deadman.areas.SafeZone;
-import io.dm.deadman.areas.overworld.combat.CombatTask;
-import io.dm.deadman.areas.overworld.combat.tasks.ChickenTask;
-import io.dm.deadman.gas.GasArea;
-import io.dm.deadman.mutators.impl.StaticGasMutator;
+import io.dm.deadman.content.areas.overworld.combat.CombatTask;
+import io.dm.deadman.content.areas.overworld.combat.tasks.ChickenTask;
+import io.dm.deadman.tournament.gas.GasArea;
+import io.dm.deadman.tournament.mutators.impl.StaticGasMutator;
 import io.dm.model.entity.player.Player;
 import io.dm.model.map.Bounds;
-import io.dm.model.map.Position;
 
 public class TestCommands {
 

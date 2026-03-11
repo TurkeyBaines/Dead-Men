@@ -235,7 +235,7 @@ public class LootTable {
 
         public double totalWeight;
 
-        public ItemsTable(String name, int weight, LootItem[] items) {
+        public ItemsTable(String name, int weight, LootItem... items) {
             this.name = name;
             this.weight = weight;
             this.items = items;

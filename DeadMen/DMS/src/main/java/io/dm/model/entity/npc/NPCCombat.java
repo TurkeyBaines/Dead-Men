@@ -6,6 +6,7 @@ import io.dm.api.utils.Random;
 import io.dm.cache.Color;
 import io.dm.cache.NPCDef;
 import io.dm.data.impl.npcs.npc_combat;
+import io.dm.deadman.content.loot.GlobalDropManager;
 import io.dm.model.World;
 import io.dm.model.achievements.listeners.experienced.DemonSlayer;
 import io.dm.model.activities.wilderness.Wilderness;
@@ -347,6 +348,13 @@ public abstract class NPCCombat extends Combat {
             }
         }
 
+        Item i = GlobalDropManager.getDrop(npc.getDef().combatLevel);
+        if (i != null) {
+            handleDrop(killer, dropPosition, pKiller, i);
+
+            pKiller.sendMessage("You receive a " + i.getDef().name + " from the Global Loot Table!");
+        }
+
         /*
          * Handle giving player vorkaths head after 50 kills.
          */
@@ -402,84 +410,89 @@ public abstract class NPCCombat extends Combat {
         }
     }
 
-    private void handleDrop(Killer killer, Position dropPosition, Player pKiller, List<Item> items) {
-        for(Item item : items) {
-            if (item.getId() == 21820) {
-                if (BraceletOfEthereum.handleEthereumDrop(pKiller, item)) {
-                    continue;
-                }
+    private void handleDrop(Killer killer, Position dropPosition, Player pKiller, Item item) {
+        if (item.getId() == 21820) {
+            if (BraceletOfEthereum.handleEthereumDrop(pKiller, item)) {
+                return;
             }
-            if (item.getId() == COINS_995) {
-                if (RingOfWealth.check(pKiller, item)) {
-                    pKiller.getInventory().addOrDrop(item);
-                    continue;
-                }
+        }
+        if (item.getId() == COINS_995) {
+            if (RingOfWealth.check(pKiller, item)) {
+                pKiller.getInventory().addOrDrop(item);
+                return;
             }
-            boolean dropItem = true;
-            for(Item equipment : pKiller.getEquipment().getItems()) {
-                if(equipment != null && equipment.getDef() != null) {
-                    List<String> upgrades = AttributeExtensions.getEffectUpgrades(equipment);
-                    boolean hasEffect = upgrades != null;
-                    if (hasEffect) {
-                        for (String s : upgrades) {
-                            try {
-                                if (s.equalsIgnoreCase("empty"))
-                                    continue;
-                                ItemEffect effect = ItemEffect.valueOf(s);
-                                dropItem = effect.getUpgrade().modifyDroppedItem(pKiller, item);
-                            } catch (Exception ex) {
-                                System.err.println("Unknown upgrade { " + s + " } found!");
-                                ex.printStackTrace();
-                            }
+        }
+        boolean dropItem = true;
+        for(Item equipment : pKiller.getEquipment().getItems()) {
+            if(equipment != null && equipment.getDef() != null) {
+                List<String> upgrades = AttributeExtensions.getEffectUpgrades(equipment);
+                boolean hasEffect = upgrades != null;
+                if (hasEffect) {
+                    for (String s : upgrades) {
+                        try {
+                            if (s.equalsIgnoreCase("empty"))
+                                continue;
+                            ItemEffect effect = ItemEffect.valueOf(s);
+                            dropItem = effect.getUpgrade().modifyDroppedItem(pKiller, item);
+                        } catch (Exception ex) {
+                            System.err.println("Unknown upgrade { " + s + " } found!");
+                            ex.printStackTrace();
                         }
                     }
                 }
             }
-            /*
-             * Donator Benefit: [Noted dragon bones in wilderness]
-             */
-            if (item.getId() == 534 || item.getId() == 536 || item.getId() == 6812 || item.getId() == 11943 || item.getId() == 22124) {
-                if (pKiller.isSapphire() && pKiller.wildernessLevel > 0) {
+        }
+        /*
+         * Donator Benefit: [Noted dragon bones in wilderness]
+         */
+        if (item.getId() == 534 || item.getId() == 536 || item.getId() == 6812 || item.getId() == 11943 || item.getId() == 22124) {
+            if (pKiller.isSapphire() && pKiller.wildernessLevel > 0) {
+                item.setId(item.getDef().notedId);
+            }
+        }
+
+        /*
+         * Donator Benefit: [Noted herbs in wilderness]
+         */
+        if (item.getDef().name.toLowerCase().contains("grimy")) {
+            if (pKiller.isDiamond() && pKiller.wildernessLevel > 0) {
+                if (item.getDef().notedId > -1)
                     item.setId(item.getDef().notedId);
-                }
             }
+        }
 
-            /*
-             * Donator Benefit: [Noted herbs in wilderness]
-             */
-            if (item.getDef().name.toLowerCase().contains("grimy")) {
-                if (pKiller.isDiamond() && pKiller.wildernessLevel > 0) {
-                    if (item.getDef().notedId > -1)
-                        item.setId(item.getDef().notedId);
-                }
-            }
+        if (item.getDef().name.toLowerCase().contains("statius") ||
+                item.getDef().name.toLowerCase().contains("vesta") ||
+                item.getDef().name.toLowerCase().contains("zuriel")) {
+            pKiller.sendMessage("You have been red skulled and tele-blocked because of your loot!");
+            pKiller.getCombat().skullHighRisk();
+            pKiller.getCombat().teleblock();
+        }
 
-            if (item.getDef().name.toLowerCase().contains("statius") ||
-                    item.getDef().name.toLowerCase().contains("vesta") ||
-                    item.getDef().name.toLowerCase().contains("zuriel")) {
-                pKiller.sendMessage("You have been red skulled and tele-blocked because of your loot!");
-                pKiller.getCombat().skullHighRisk();
-                pKiller.getCombat().teleblock();
-            }
+        /*
+         * Modify drop for specific npc
+         */
+        if(npc.dropListener != null)
+            npc.dropListener.dropping(killer, item);
 
-            /*
-             * Modify drop for specific npc
-             */
-            if(npc.dropListener != null)
-                npc.dropListener.dropping(killer, item);
+        /*
+         * Local Broadcast!
+         */
+        if (info.local_loot) {
+            getLocalAnnounce(pKiller, item);
+        }
 
-            /*
-             * Local Broadcast!
-             */
-            if (info.local_loot) {
-                getLocalAnnounce(pKiller, item);
-            }
-
-            /*
-             * Spawn the item on the ground.
-             */
-            if (dropItem)
+        /*
+         * Spawn the item on the ground.
+         */
+        if (dropItem)
             new GroundItem(item).position(dropPosition).owner(pKiller).spawn();
+
+    }
+
+    private void handleDrop(Killer killer, Position dropPosition, Player pKiller, List<Item> items) {
+        for(Item item : items) {
+            handleDrop(killer, dropPosition, pKiller, item);
         }
     }
 

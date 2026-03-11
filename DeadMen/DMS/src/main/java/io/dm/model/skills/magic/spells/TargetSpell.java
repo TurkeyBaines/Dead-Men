@@ -1,8 +1,8 @@
 package io.dm.model.skills.magic.spells;
 
-import io.dm.deadman.sigils.Sigil;
-import io.dm.deadman.sigils.Sigils;
-import io.dm.deadman.sigils.combat.MenacingMage;
+import io.dm.deadman.content.sigils.Sigil;
+import io.dm.deadman.content.sigils.Sigils;
+import io.dm.deadman.content.sigils.combat.MenacingMage;
 import io.dm.model.combat.AttackStyle;
 import io.dm.model.combat.AttackType;
 import io.dm.model.combat.CombatUtils;

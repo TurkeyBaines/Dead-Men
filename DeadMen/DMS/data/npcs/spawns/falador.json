@@ -363,13 +363,13 @@
     "walkRange": 5
   },
   {
-    "name": "Squire",
-    "id": 4737,
-    "x": 2976,
-    "y": 3342,
+    "name": "Banker",
+    "id": 1027,
+    "x": 3010,
+    "y": 3353,
     "z": 0,
     "direction": "S",
-    "walkRange": 3
+    "walkRange": 0
   },
   {
     "name": "Banker",
@@ -519,7 +519,7 @@
     "name": "White Knight",
     "id": 1798,
     "x": 2982,
-    "y": 3331,
+    "y": 3335,
     "z": 0,
     "direction": "S",
     "walkRange": 4
@@ -824,10 +824,10 @@
   {
     "name": "Banker",
     "id": 1028,
-    "x": 2946,
-    "y": 3366,
+    "x": 2981,
+    "y": 3333,
     "z": 0,
-    "direction": "S",
+    "direction": "N",
     "walkRange": 0
   },
   {

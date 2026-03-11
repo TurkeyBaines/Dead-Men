@@ -1,8 +1,8 @@
 package io.dm.model.entity.player;
 
 import com.google.gson.annotations.Expose;
-import io.dm.deadman.areas.overworld.OverworldTools;
-import io.dm.deadman.areas.overworld.combat.CombatTask;
+import io.dm.deadman.content.areas.overworld.OverworldTools;
+import io.dm.deadman.content.areas.overworld.combat.CombatTask;
 import io.dm.model.achievements.Achievement;
 import io.dm.model.achievements.AchievementStage;
 import io.dm.model.activities.ActivityTimer;

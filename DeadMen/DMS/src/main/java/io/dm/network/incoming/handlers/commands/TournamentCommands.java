@@ -1,10 +1,10 @@
 package io.dm.network.incoming.handlers.commands;
 
 import io.dm.deadman.Deadman;
-import io.dm.deadman.events.DMMEvent;
-import io.dm.deadman.events.breach.Breach;
-import io.dm.deadman.events.chest.StaticChest;
-import io.dm.deadman.events.gold_cart.GoldCart;
+import io.dm.deadman.tournament.events.DMMEvent;
+import io.dm.deadman.tournament.events.breach.Breach;
+import io.dm.deadman.tournament.events.chest.StaticChest;
+import io.dm.deadman.tournament.events.gold_cart.GoldCart;
 import io.dm.deadman.tournament.Tournament;
 import io.dm.deadman.tournament.stages.Final;
 import io.dm.deadman.tournament.stages.Lobby;

@@ -1,7 +1,7 @@
 package io.dm.deadman.tournament.stages;
 
 import io.dm.deadman.Deadman;
-import io.dm.deadman.sigils.Sigil;
+import io.dm.deadman.content.sigils.Sigil;
 import io.dm.deadman.tournament.Stage;
 import io.dm.deadman.tournament.Tournament;
 import io.dm.model.entity.player.Player;

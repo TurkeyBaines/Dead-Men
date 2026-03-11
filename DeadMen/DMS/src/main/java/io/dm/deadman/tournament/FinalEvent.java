@@ -2,8 +2,7 @@ package io.dm.deadman.tournament;
 
 import io.dm.cache.Color;
 import io.dm.deadman.Deadman;
-import io.dm.deadman.tournament.finals.FFA;
-import io.dm.deadman.tournament.finals.Versus;
+import io.dm.deadman.tournament.stages.finals.FFA;
 import io.dm.model.World;
 import io.dm.model.combat.Hit;
 import io.dm.model.combat.HitType;

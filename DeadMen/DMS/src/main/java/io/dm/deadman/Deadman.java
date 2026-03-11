@@ -1,12 +1,12 @@
 package io.dm.deadman;
 
 import io.dm.cache.Color;
-import io.dm.deadman.areas.Citadel;
-import io.dm.deadman.areas.overworld.Overworld;
-import io.dm.deadman.areas.MultiZone;
-import io.dm.deadman.areas.SafeZone;
-import io.dm.deadman.sigils.Sigil;
-import io.dm.deadman.sigils.Sigils;
+import io.dm.deadman.content.areas.Citadel;
+import io.dm.deadman.content.areas.overworld.Overworld;
+import io.dm.deadman.content.areas.MultiZone;
+import io.dm.deadman.content.areas.SafeZone;
+import io.dm.deadman.content.sigils.Sigil;
+import io.dm.deadman.content.sigils.Sigils;
 import io.dm.deadman.tournament.Stage;
 import io.dm.deadman.tournament.Tournament;
 import io.dm.deadman.tournament.TournamentConfig;

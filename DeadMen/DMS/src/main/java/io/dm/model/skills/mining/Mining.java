@@ -2,7 +2,7 @@ package io.dm.model.skills.mining;
 
 import io.dm.api.utils.Random;
 import io.dm.cache.ItemDef;
-import io.dm.deadman.areas.overworld.OverworldTools;
+import io.dm.deadman.content.areas.overworld.OverworldTools;
 import io.dm.model.World;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerCounter;
