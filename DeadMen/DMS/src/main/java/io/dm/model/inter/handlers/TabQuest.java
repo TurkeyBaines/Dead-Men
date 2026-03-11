@@ -4,12 +4,11 @@ import io.dm.Server;
 import io.dm.api.utils.TimeUtils;
 import io.dm.cache.Color;
 import io.dm.deadman.Deadman;
+import io.dm.deadman.areas.overworld.OverworldTools;
+import io.dm.deadman.areas.overworld.combat.CombatTask;
+import io.dm.deadman.sigils.Sigils;
 import io.dm.deadman.tournament.Tournament;
-import io.dm.deadman.tournament.stages.Main;
 import io.dm.model.World;
-import io.dm.model.activities.pvp.PVPInstance;
-import io.dm.model.activities.wilderness.Wilderness;
-import io.dm.model.entity.player.DoubleDrops;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.shared.listeners.LoginListener;
 import io.dm.model.inter.Interface;
@@ -22,6 +21,8 @@ import lombok.Getter;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.dm.cache.Color.*;
+
 /**
  *
  * Handles the notification board in the quest tab.
@@ -33,57 +34,59 @@ import java.util.stream.Collectors;
 public class TabQuest {
 
     @Getter
-    private enum NoticeboardComponent {
+    private enum Entries {
 
-        COMPONENT_8(8, player -> "Players Online: " + Color.GREEN.wrap(String.valueOf(World.players.count()))),
-        COMPONENT_10(9, player -> "Staff Online: " + getStaffOnlineCount(), (SimpleAction) p -> send(p)),
-        COMPONENT_9(10, player -> "View Tournament Info ", (SimpleAction) p -> sendTournamentInfo(p)),
-        COMPONENT_11(11, player -> "Players in Tournament: " + Color.GREEN.wrap(String.valueOf(PVPInstance.players.size()))),
-        COMPONENT_12(12, player -> "Server Uptime: " + Color.GREEN.wrap(TimeUtils.fromMs(Server.currentTick() * Server.tickMs(), false))),
-        COMPONENT_43(43, player -> "XP Bonus: " + Color.GREEN.wrap(String.valueOf(Deadman.getConfig().XP_RATE))),
-        COMPONENT_44(44, player -> "Double Drops: " + Color.GREEN.wrap(getDoubleDrops())),
-        COMPONENT_45(45, player -> "Double PK Points: " + Color.GREEN.wrap(getDoublePkp())),
-        COMPONENT_46(46, player -> "Double Slayer Points: " + Color.GREEN.wrap(getDoubleSlayerPoints())),
-        COMPONENT_47(47, player -> "Double Pest Control: " + Color.GREEN.wrap(getDoublePcPoints())),
-        COMPONENT_14(14, player -> {
-            boolean hasTwoFactor = player.tfa;
-            String text = "Two-factor authentication";
-            return hasTwoFactor ? Color.GREEN.wrap(text) : Color.RED.wrap(text);
-        }, (SimpleAction) player -> player.openUrl("https://community.kronos.rip/index.php?account/security")), //need to hookup tfa to the website somehow
-        COMPONENT_15(15, player -> "Time Played: " + Color.GREEN.wrap(TimeUtils.fromMs(player.playTime * Server.tickMs(), false))),
-        COMPONENT_16(16, player -> "Total Spent: " + Color.GREEN.wrap( "$" + player.storeAmountSpent)),
-        COMPONENT_17(17, player -> "Base XP: "),
-        COMPONENT_18(18, player -> "Double Drop Chance: " + Color.GREEN.wrap(DoubleDrops.getChance(player) + "%")),
-        COMPONENT_49(49, player -> "PVM Points: " + Color.GREEN.wrap(Integer.toString(player.PvmPoints))),
+        SERVER_UPTIME(8, player -> "Server Uptime: " + GREEN.wrap(TimeUtils.fromMs(Server.currentTick() * Server.tickMs(), false))),
+        PLAYERS_ONLINE(9, player -> "- Players Online: " + GREEN.wrap(String.valueOf(World.players.count())), (SimpleAction) TabQuest::sendPlayerList),
+        STAFF_ONLINE(10, player -> "- Staff Online: " + GREEN.wrap(String.valueOf(getStaffOnlineCount())), (SimpleAction) TabQuest::sendStaffList),
+        TOURNAMENT_INFO(11, player -> RED.wrap("----  View Tournament Info  ----"), (SimpleAction) p -> sendTournamentInfo(p)),
+        OVERWORLD_POINTS(12, player -> "Overworld Points: " + GREEN.wrap(String.valueOf(player.getOverworldPoints()))),
+        GAP_(43, player -> ""), // <-- Leave a gap?
+        TOURNAMENT_STATE(43, player -> "Stage: " + GREEN.wrap(Deadman.getStage().stageName().text)), // <-- Leave a gap?
+        TOURNAMENT_COUNTDOWN(44, player -> "Next Stage: " + GREEN.wrap(Deadman.timeUntilChange())),
+        TOURNAMENT_EVENT_COUNTDOWN(45, player -> "Next Event: " + GREEN.wrap(Deadman.getStage().stageName() != Tournament.StageName.MAIN ? "None" : Deadman.timeUntilEvent())),
+        TOURNAMENT_MUTATOR(46, player -> "Mutator: " + GREEN.wrap(Deadman.getConfig().MUTATOR.name())),
 
-        COMPONENT_50(50, player -> "Achievements", (SimpleAction) player -> send(player)),
-        COMPONENT_51(51, player -> "Drop Tables", (SimpleAction) player -> send(player)),
-        COMPONENT_52(52, player -> "Settings", (SimpleAction) player -> send(player)),
+        HEADER_OVERWORLD(13, player -> "Overworld Player Info"),
+        HEADER_TOURNAMENT(13, player -> "Tournament Player Info"),
 
-        COMPONENT_19(19, player -> "Website", (SimpleAction) player -> player.openUrl("http://kronos.rip/")),
-        COMPONENT_20(20, player -> "Community", (SimpleAction) player -> player.openUrl("https://community.kronos.rip/index.php")),
-        COMPONENT_21(21, player -> "Discord", (SimpleAction) player -> player.openUrl("https://discord.com/invite/ZyWAmpS")),
-        COMPONENT_22(22, player -> "Store", (SimpleAction) player -> player.openUrl("http://kronos.rip/store"));
+        OVERWORLD_AXE_RANK(14, player -> BRONZE.wrap("Axe Grade: ") + GREEN.wrap(player.overworldToolTier[OverworldTools.Tool.AXE.id].name())),
+        OVERWORLD_PICKAXE_RANK(15, player -> BRONZE.wrap("Pickaxe Grade: ") + GREEN.wrap(player.overworldToolTier[OverworldTools.Tool.PICKAXE.id].name())),
+        OVERWORLD_FISH_TOOL_RANK(16, player -> BRONZE.wrap("Fishing Tool Grade: ") + GREEN.wrap(player.overworldToolTier[OverworldTools.Tool.FISHING.id].name())),
+        OVERWORLD_TASK(17, player -> BRONZE.wrap("Combat Task: ") + (player.overworldTaskMonster == CombatTask.TASK_MONSTER.NONE ? RED.wrap("None") : GREEN.wrap(player.overworldTaskRemaining + "x" + player.overworldTaskMonster.name))),
+        OVERWORLD_TASK_DIFF(18, player -> BRONZE.wrap("Difficulty: ") + (player.overworldTaskMonster == CombatTask.TASK_MONSTER.NONE ? RED.wrap("None") : GREEN.wrap(player.str_overworldTaskDifficulty))),
+        OVERWORLD_TASK_VAULT(49, player -> BRONZE.wrap("Vault Points: ") + (player.overworldPointsVault == 0 ? RED.wrap(String.valueOf(player.overworldPointsVault)) : GREEN.wrap(String.valueOf(player.overworldPointsVault)))),
+
+        TOURNAMENT_KILLS(14, player -> BRONZE.wrap("Kills: ") + GREEN.wrap("0")),
+        TOURNAMENT_DEATHS(15, player -> BRONZE.wrap("Deaths: ") + GREEN.wrap("0")),
+        TOURNAMENT_POINTS(16, player -> ""),
+        GAP__(17, player -> ""),
+        GAP___(18, player -> ""),
+        GAP____(49, player -> ""),
+
+        SIGIL_HEADER(48, player -> "Sigils"),
+        SIGIL_1_HOLDER(50, player -> CYAN.wrap(player.activeSigils[0] == -1 ? "-- Empty Slot" : "" + Sigils.values()[0].name().replace("_", " "))),
+        SIGIL_2_HOLDER(51, player -> CYAN.wrap(player.activeSigils[1] == -1 ? "-- Empty Slot" : "" + player.activeSigils[1])),
+        SIGIL_3_HOLDER(52, player -> CYAN.wrap(player.activeSigils[2] == -1 ? "-- Empty Slot" : "" + player.activeSigils[2]));
 
         private int componentId;
         private TextField text;
         private InterfaceAction action;
 
-        //use for blank components
-        NoticeboardComponent(int componentId) {
-            this(componentId, player -> "", null);
-        }
-
         //use for components without a click option
-        NoticeboardComponent(int componentId, TextField text) {
+        Entries(int componentId, TextField text) {
             this(componentId, text, null);
         }
 
         //use for components with a click option
-        NoticeboardComponent(int componentId, TextField text, InterfaceAction action) {
+        Entries(int componentId, TextField text, InterfaceAction action) {
             this.componentId = componentId;
             this.text = text;
             this.action = action;
+        }
+
+        public void send(Player p) {
+            p.getPacketSender().sendString(Interface.NOTICEBOARD, getComponentId(), getText().send(p));
         }
     }
 
@@ -92,84 +95,147 @@ public class TabQuest {
      * @param p - The player.
      */
     public static void send(Player p) {
-        for (NoticeboardComponent component : NoticeboardComponent.values()) {
+        for (Entries component : Entries.values()) {
             p.getPacketSender().sendString(Interface.NOTICEBOARD, component.getComponentId(), component.getText().send(p));
         }
-        p.getPacketSender().sendString(116, 7, Color.ORANGE.wrap("\t Current Tournament Stage: ") + Color.BLUE.wrap(Deadman.getStage().stageName().name()));
-        p.getPacketSender().sendString(116, 8, Color.ORANGE.wrap("\t Time Until Next Stage: ") + Color.BLUE.wrap(Deadman.timeUntilChange()));
-        if (Deadman.getStage().stageName() == Tournament.StageName.MAIN)
-            p.getPacketSender().sendString(116, 20, Color.ORANGE.wrap("\t # Time Until Next Event: ") + Color.BLUE.wrap(Deadman.timeUntilEvent()));
+
+        Entries.SERVER_UPTIME.send(p);
+        Entries.PLAYERS_ONLINE.send(p);
+        Entries.STAFF_ONLINE.send(p);
+        Entries.TOURNAMENT_INFO.send(p);
+        Entries.OVERWORLD_POINTS.send(p);
+        Entries.GAP_.send(p);
+        Entries.TOURNAMENT_STATE.send(p);
+        Entries.TOURNAMENT_COUNTDOWN.send(p);
+        Entries.TOURNAMENT_EVENT_COUNTDOWN.send(p);
+
+        if (Deadman.getOverworld().contains(p)) {
+            Entries.HEADER_OVERWORLD.send(p);
+            Entries.OVERWORLD_AXE_RANK.send(p);
+            Entries.OVERWORLD_PICKAXE_RANK.send(p);
+            Entries.OVERWORLD_FISH_TOOL_RANK.send(p);
+            Entries.OVERWORLD_TASK.send(p);
+            Entries.OVERWORLD_TASK_DIFF.send(p);
+            Entries.OVERWORLD_TASK_VAULT.send(p);
+        } else {
+            Entries.HEADER_TOURNAMENT.send(p);
+            Entries.TOURNAMENT_KILLS.send(p);
+            Entries.TOURNAMENT_DEATHS.send(p);
+            Entries.GAP__.send(p);
+            Entries.GAP___.send(p);
+            Entries.GAP____.send(p);
+        }
+
+        Entries.SIGIL_HEADER.send(p);
+        Entries.SIGIL_1_HOLDER.send(p);
+        Entries.SIGIL_2_HOLDER.send(p);
+        Entries.SIGIL_3_HOLDER.send(p);
+
+
+
+    }
+
+    private static void sendPlayerList(Player p) {
+        List<Player> playerList = World.getPlayerStream().toList();
+        int interId = 116;
+        p.openInterface(InterfaceType.MAIN, interId);
+        p.getPacketSender().sendString(interId, 4, "Player List");
+        for (int line = 0; line < World.players.count(); line++) {
+            p.getPacketSender().sendString(interId, line+6, playerList.get(line).getName());
+            line++;
+        }
+    }
+
+    private static void sendStaffList(Player p) {
+        List<Player> staffList = World.getPlayerStream().filter(Player::isStaff).toList();
+        int interId = 116;
+        p.openInterface(InterfaceType.MAIN, interId);
+        p.getPacketSender().sendString(interId, 4, "Staff List");
+        for (int line = 0; line < staffList.size(); line++) {
+            p.getPacketSender().sendString(interId, line+6, staffList.get(line).getName());
+            line++;
+        }
+    }
+
+    private static int getStaffOnlineCount() {
+        List<Player> staffList = World.getPlayerStream().filter(Player::isStaff).collect(Collectors.toList());
+        return staffList.size();
     }
 
     private static void sendTournamentInfo(Player p) {
         int interId = 116;
         p.openInterface(InterfaceType.MAIN, interId);
         p.getPacketSender().sendString(interId, 4, "Tournament Information Board");
-        p.getPacketSender().sendString(interId, 6, Color.DARK_RED.wrap("-- Server Info --"));
-        p.getPacketSender().sendString(interId, 7, Color.ORANGE.wrap("\t Current Tournament Stage: ") + Color.BLUE.wrap(Deadman.getStage().stageName().name()));
-        p.getPacketSender().sendString(interId, 8, Color.ORANGE.wrap("\t Time Until Next Stage: ") + Color.BLUE.wrap(Deadman.timeUntilChange()));
+        p.getPacketSender().sendString(interId, 6, DARK_RED.wrap("-- Server Info --"));
+        p.getPacketSender().sendString(interId, 7, ORANGE.wrap("\t Current Tournament Stage: ") + BLUE.wrap(Deadman.getStage().stageName().name()));
+        p.getPacketSender().sendString(interId, 8, ORANGE.wrap("\t Time Until Next Stage: ") + BLUE.wrap(Deadman.timeUntilChange()));
 
+        int xOffset = 0;
         switch (Deadman.getStage().stageName()) {
             case LOBBY:
-                p.getPacketSender().sendString(interId, 10, Color.DARK_RED.wrap("--- Lobby Info ---"));
-                p.getPacketSender().sendString(interId, 11, Color.DARK_RED.wrap("- Next Tournament -"));
-                p.getPacketSender().sendString(interId, 12, Color.ORANGE.wrap("\t # Length: ") + Color.BLUE.wrap(Deadman.getConfig().GAME_LENGTH.text));
-                p.getPacketSender().sendString(interId, 13, Color.ORANGE.wrap("\t # XP Rate: ") + Color.BLUE.wrap("" + Deadman.getConfig().XP_RATE));
-                p.getPacketSender().sendString(interId, 14, Color.ORANGE.wrap("\t # Drop Rate: ") + Color.BLUE.wrap("" + Deadman.getConfig().DROP_RATE));
-                p.getPacketSender().sendString(interId, 15, Color.ORANGE.wrap("\t # Pet Rate: ") + Color.BLUE.wrap("" + Deadman.getConfig().PET_RATE));
-                p.getPacketSender().sendString(interId, 16, Color.ORANGE.wrap("\t # Team Size: ") + Color.BLUE.wrap("" + Deadman.getConfig().TEAM_SIZE_MAX.asInt));
+                xOffset = 0;
+                p.getPacketSender().sendString(interId, 10, DARK_RED.wrap("--- Lobby Info ---"));
+                p.getPacketSender().sendString(interId, 11, DARK_RED.wrap("- Next Tournament -"));
+                p.getPacketSender().sendString(interId, 12, ORANGE.wrap("\t # Length: ") + BLUE.wrap(Deadman.getConfig().GAME_LENGTH.text));
+                p.getPacketSender().sendString(interId, 13, ORANGE.wrap("\t # XP Rate: ") + BLUE.wrap("" + Deadman.getConfig().XP_RATE));
+                p.getPacketSender().sendString(interId, 14, ORANGE.wrap("\t # Drop Rate: ") + BLUE.wrap("" + Deadman.getConfig().DROP_RATE));
+                p.getPacketSender().sendString(interId, 15, ORANGE.wrap("\t # Pet Rate: ") + BLUE.wrap("" + Deadman.getConfig().PET_RATE));
+                p.getPacketSender().sendString(interId, 16, ORANGE.wrap("\t # Team Size: ") + BLUE.wrap("" + Deadman.getConfig().TEAM_SIZE_MAX.asInt));
 
 
 
-                p.getPacketSender().sendString(interId, 18,     Color.DARK_RED.wrap("- Mutator Info -"));
-                p.getPacketSender().sendString(interId, 19, Color.DARK_GREEN.wrap(  "----------------------------------------------"));
-                p.getPacketSender().sendString(interId, 20, getCenteredMenuString("Vampiric Rites", Color.DARK_RED));
-                p.getPacketSender().sendString(interId, 21, getCenteredMenuString("No natural HP regen, heal by", Color.ORANGE));
-                p.getPacketSender().sendString(interId, 22, getCenteredMenuString("dealing damage or with food.", Color.ORANGE));
-                p.getPacketSender().sendString(interId, 23, Color.DARK_GREEN.wrap(  "----------------------------------------------"));
-                p.getPacketSender().sendString(interId, 24, Color.DARK_GREEN.wrap(  "----------------------------------------------"));
-                p.getPacketSender().sendString(interId, 25, getCenteredMenuString("Static Gas", Color.DARK_RED));
-                p.getPacketSender().sendString(interId, 26, getCenteredMenuString("Gas will prevent access to", Color.ORANGE));
-                p.getPacketSender().sendString(interId, 27, getCenteredMenuString("areas of the game for the", Color.ORANGE));
-                p.getPacketSender().sendString(interId, 28, getCenteredMenuString("duration of the tournament", Color.ORANGE));
-                p.getPacketSender().sendString(interId, 29, Color.DARK_GREEN.wrap(  "----------------------------------------------"));
+                p.getPacketSender().sendString(interId, 18,     DARK_RED.wrap("- Mutator Info -"));
+                p.getPacketSender().sendString(interId, 19, DARK_GREEN.wrap(  "----------------------------------------------"));
+                p.getPacketSender().sendString(interId, 20, getCenteredMenuString(Deadman.getConfig().MUTATOR.name(), DARK_RED));
+                for (String s : Deadman.getConfig().MUTATOR.description()) {
+                    p.getPacketSender().sendString(interId, 21 + xOffset, getCenteredMenuString(s, ORANGE));
+                    xOffset++;
+                }
+                p.getPacketSender().sendString(interId, 21 + xOffset, DARK_GREEN.wrap(  "----------------------------------------------"));
 
-                p.getPacketSender().sendString(interId, 31, "Beginner Sigils are now available for purchase");
-                p.getPacketSender().sendString(interId, 32, "in the Citadel, and in the Overworld!");
+                p.getPacketSender().sendString(interId, 23 + xOffset, "Beginner Sigils are now available for purchase");
+                p.getPacketSender().sendString(interId, 24 + xOffset, "in the Citadel, and in the Overworld!");
                 break;
 
             case MAIN:
-                p.getPacketSender().sendString(interId, 10,     Color.DARK_RED.wrap("--- Tournament Info ---"));
-                p.getPacketSender().sendString(interId, 11,     Color.DARK_RED.wrap("- Current Tournament -"));
-                p.getPacketSender().sendString(interId, 12, Color.ORANGE.wrap("\t # Length: ") + Color.BLUE.wrap(Deadman.getConfig().GAME_LENGTH.text));
-                p.getPacketSender().sendString(interId, 13, Color.ORANGE.wrap("\t # XP Rate: ") + Color.BLUE.wrap("" + Deadman.getConfig().XP_RATE));
-                p.getPacketSender().sendString(interId, 14, Color.ORANGE.wrap("\t # Drop Rate: ") + Color.BLUE.wrap("" + Deadman.getConfig().DROP_RATE));
-                p.getPacketSender().sendString(interId, 15, Color.ORANGE.wrap("\t # Pet Rate: ") + Color.BLUE.wrap("" + Deadman.getConfig().PET_RATE));
-                p.getPacketSender().sendString(interId, 16, Color.ORANGE.wrap("\t # Team Size: ") + Color.BLUE.wrap("" + Deadman.getConfig().TEAM_SIZE_MAX.asInt));
+                xOffset = 0;
+                p.getPacketSender().sendString(interId, 10,     DARK_RED.wrap("--- Tournament Info ---"));
+                p.getPacketSender().sendString(interId, 11,     DARK_RED.wrap("- Current Tournament -"));
+                p.getPacketSender().sendString(interId, 12, ORANGE.wrap("\t # Length: ") + BLUE.wrap(Deadman.getConfig().GAME_LENGTH.text));
+                p.getPacketSender().sendString(interId, 13, ORANGE.wrap("\t # XP Rate: ") + BLUE.wrap("" + Deadman.getConfig().XP_RATE));
+                p.getPacketSender().sendString(interId, 14, ORANGE.wrap("\t # Drop Rate: ") + BLUE.wrap("" + Deadman.getConfig().DROP_RATE));
+                p.getPacketSender().sendString(interId, 15, ORANGE.wrap("\t # Pet Rate: ") + BLUE.wrap("" + Deadman.getConfig().PET_RATE));
+                p.getPacketSender().sendString(interId, 16, ORANGE.wrap("\t # Team Size: ") + BLUE.wrap("" + Deadman.getConfig().TEAM_SIZE_MAX.asInt));
 
-                p.getPacketSender().sendString(interId, 18,     Color.DARK_RED.wrap("- Event Info -"));
-                p.getPacketSender().sendString(interId, 19, Color.ORANGE.wrap("\t # Last Event Type: ") + Color.BLUE.wrap("/TODO"));
-                p.getPacketSender().sendString(interId, 20, Color.ORANGE.wrap("\t # Time Until Next Event: ") + Color.BLUE.wrap(Deadman.timeUntilEvent()));
-                p.getPacketSender().sendString(interId, 21, Color.ORANGE.wrap("\t # Next Event Tier: ") + Color.BLUE.wrap("/TODO"));
+                p.getPacketSender().sendString(interId, 18,     DARK_RED.wrap("- Event Info -"));
+                p.getPacketSender().sendString(interId, 19, ORANGE.wrap("\t # Last Event Type: ") + BLUE.wrap("/TODO"));
+                p.getPacketSender().sendString(interId, 20, ORANGE.wrap("\t # Time Until Next Event: ") + BLUE.wrap(Deadman.timeUntilEvent()));
+                p.getPacketSender().sendString(interId, 21, ORANGE.wrap("\t # Next Event Tier: ") + BLUE.wrap("/TODO"));
 
-                p.getPacketSender().sendString(interId, 23,     Color.DARK_RED.wrap("- Mutator Info -"));
-                p.getPacketSender().sendString(interId, 24, Color.DARK_GREEN.wrap(  "----------------------------------------------"));
-                p.getPacketSender().sendString(interId, 25, getCenteredMenuString("Vampiric Rites", Color.DARK_RED));
-                p.getPacketSender().sendString(interId, 26, getCenteredMenuString("No natural HP regen, heal by", Color.ORANGE));
-                p.getPacketSender().sendString(interId, 27, getCenteredMenuString("dealing damage or with food.", Color.ORANGE));
-                p.getPacketSender().sendString(interId, 28, Color.DARK_GREEN.wrap(  "----------------------------------------------"));
-                p.getPacketSender().sendString(interId, 29, Color.DARK_GREEN.wrap(  "----------------------------------------------"));
-                p.getPacketSender().sendString(interId, 30, getCenteredMenuString("Static Gas", Color.DARK_RED));
-                p.getPacketSender().sendString(interId, 31, getCenteredMenuString("Gas will prevent access to", Color.ORANGE));
-                p.getPacketSender().sendString(interId, 32, getCenteredMenuString("areas of the game for the", Color.ORANGE));
-                p.getPacketSender().sendString(interId, 33, getCenteredMenuString("duration of the tournament", Color.ORANGE));
-                p.getPacketSender().sendString(interId, 34, Color.DARK_GREEN.wrap(  "----------------------------------------------"));
+                p.getPacketSender().sendString(interId, 23,     DARK_RED.wrap("- Mutator Info -"));
+                p.getPacketSender().sendString(interId, 24, DARK_GREEN.wrap(  "----------------------------------------------"));
+                p.getPacketSender().sendString(interId, 25, getCenteredMenuString(Deadman.getConfig().MUTATOR.name(), DARK_RED));
+                for (String s : Deadman.getConfig().MUTATOR.description()) {
+                    p.getPacketSender().sendString(interId, 26+xOffset, getCenteredMenuString(s, ORANGE));
+                    xOffset++;
+                }
+                p.getPacketSender().sendString(interId, 28+xOffset, DARK_GREEN.wrap(  "----------------------------------------------"));
 
                 break;
 
             case FINAL:
                 break;
         }
+
+        p.startEvent(e -> {
+            while(true) {
+                p.getPacketSender().sendString(116, 7, ORANGE.wrap("\t Current Tournament Stage: ") + BLUE.wrap(Deadman.getStage().stageName().name()));
+                p.getPacketSender().sendString(116, 8, ORANGE.wrap("\t Time Until Next Stage: ") + BLUE.wrap(Deadman.timeUntilChange()));
+                if (Deadman.getStage().stageName() == Tournament.StageName.MAIN)
+                    p.getPacketSender().sendString(116, 20, ORANGE.wrap("\t # Time Until Next Event: ") + BLUE.wrap(Deadman.timeUntilEvent()));
+                e.delay(1);
+            }
+        });
     }
 
     public static String getCenteredMenuString(String text, Color middleColour) {
@@ -183,48 +249,43 @@ public class TabQuest {
         String leftSpaces = " ".repeat(leftPadding);
         String rightSpaces = " ".repeat(rightPadding);
 
-        return Color.DARK_GREEN.wrap("|" + leftSpaces) +
+        return DARK_GREEN.wrap("|" + leftSpaces) +
                 middleColour.wrap(text) +
-                Color.DARK_GREEN.wrap(rightSpaces + "|");
+                DARK_GREEN.wrap(rightSpaces + "|");
     }
-
     private static String getDoubleDrops() {
         if (World.doubleDrops) {
-            return Color.GREEN.wrap("Enabled!");
+            return GREEN.wrap("Enabled!");
         } else {
-            return Color.RED.wrap("Disabled");
+            return RED.wrap("Disabled");
         }
     }
     private static String getDoublePkp() {
         if (World.doublePkp) {
-            return Color.GREEN.wrap("Enabled!");
+            return GREEN.wrap("Enabled!");
         } else {
-            return Color.RED.wrap("Disabled");
+            return RED.wrap("Disabled");
         }
     }
     private static String getDoubleSlayerPoints() {
         if (World.doubleSlayer) {
-            return Color.GREEN.wrap("Enabled!");
+            return GREEN.wrap("Enabled!");
         } else {
-            return Color.RED.wrap("Disabled");
-        }
-    }
-    private static String getDoublePcPoints() {
-        if (World.doublePest) {
-            return Color.GREEN.wrap("Enabled!");
-        } else {
-            return Color.RED.wrap("Disabled");
+            return RED.wrap("Disabled");
         }
     }
 
-    private static int getStaffOnlineCount() {
-        List<Player> staffList = World.getPlayerStream().filter(Player::isStaff).collect(Collectors.toList());
-        return staffList.size();
+    private static String getDoublePcPoints() {
+        if (World.doublePest) {
+            return GREEN.wrap("Enabled!");
+        } else {
+            return RED.wrap("Disabled");
+        }
     }
 
     static {
         InterfaceHandler.register(Interface.NOTICEBOARD, (h) -> {
-            for (NoticeboardComponent component : NoticeboardComponent.values()) {
+            for (Entries component : Entries.values()) {
                 h.actions[component.getComponentId()] = component.getAction();
             }
         });
@@ -233,7 +294,7 @@ public class TabQuest {
             player.addEvent(event -> {
                 while(true) {
                     send(player);
-                    event.delay(2);
+                    event.delay(1);
                 }
             });
         });
