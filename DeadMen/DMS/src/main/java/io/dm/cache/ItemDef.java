@@ -282,116 +282,86 @@ public class ItemDef {
             decode(buffer, opcode);
         }
 
-        if(id == 2742) {
-            name = "Coin Casket (small)";
-            inventoryOptions[1] = null;
+        switch (id) {
+            // Coin Caskets
+            case 2742:
+                name = "Coin Casket (small)";
+                inventoryOptions[1] = null;
+                break;
+            case 2744:
+                name = "Coin Casket (medium)";
+                inventoryOptions[1] = null;
+                break;
+            case 2746:
+                name = "Coin Casket (large)";
+                inventoryOptions[1] = null;
+                break;
+            case 2748:
+                name = "Coin Casket (giant)";
+                inventoryOptions[1] = null;
+                break;
+
+            case 4067:
+                name = "Vote ticket";
+                break;
+
+            case 9477:
+                name = "Coinbox";
+                inventoryOptions[0] = "Open";
+                stackable = false;
+                tradeable = true;
+                break;
+
+            // Overgrown cats (Range 1567-1572)
+            case 1567: case 1568: case 1569:
+            case 1570: case 1571: case 1572:
+                name = "Overgrown cat";
+                break;
+
+            case 11169:
+                name = World.type.getWorldName() + " Herald";
+                inventoryOptions[0] = "View-updates";
+                inventoryOptions[1] = null;
+                inventoryOptions[4] = "Destroy";
+                break;
+
+            case 621:
+                name = "Tournament voucher";
+                inventoryOptions[0] = "Info";
+                inventoryOptions[1] = "Claim";
+                break;
+
+            case 13187:
+                name = "Starter Kit";
+                inventoryOptions[0] = "Take-All";
+                inventoryOptions[1] = "Peek";
+                inventoryOptions[4] = "Destroy";
+                tradeable = false;
+                break;
+
+            case 11844:
+                name = "Unix's Ring";
+                break;
+
+            case 10491:
+                name = "Overworld axe";
+                inventoryOptions[2] = "Upgrade";
+                inventoryOptions[4] = "Destroy";
+                break;
+
+            case 11719:
+                name = "Overworld pickaxe";
+                inventoryOptions[2] = "Upgrade";
+                inventoryOptions[4] = "Destroy";
+                break;
+
+            case 4051:
+                name = "Overworld fishing tools";
+                inventoryOptions[0] = "Info";
+                inventoryOptions[1] = "Upgrade";
+                inventoryOptions[4] = "Destroy";
+                break;
         }
-
-        if(id == 2744) {
-            name = "Coin Casket (medium)";
-            inventoryOptions[1] = null;
-        }
-
-        if(id == 2746) {
-            name = "Coin Casket (large)";
-            inventoryOptions[1] = null;
-        }
-
-        if(id == 2748) {
-            name = "Coin Casket (giant)";
-            inventoryOptions[1] = null;
-        }
-
-        if(id == 4067) {
-            name = "Vote ticket";
-        }
-
-        if (id == 9477) {
-            name = "Coinbox";
-            inventoryOptions[0] = "Open";
-            stackable = false;
-            tradeable = true;
-        }
-
-        if(id >= 1567 && id <= 1572)
-            name = "Overgrown cat";
-
-        if(id == 11169) {
-            name = World.type.getWorldName() + " Herald";
-            inventoryOptions[0] = "View-updates";
-            inventoryOptions[1] = null;
-            inventoryOptions[4] = "Destroy";
-        }
-
-        if(id == 12746 || (id >= 12748 && id <= 12756)) {
-            inventoryOptions[0] = "Info";
-            inventoryOptions[1] = "Redeem";
-        }
-
-        if(id == 621) {
-            name = "Tournament voucher";
-            inventoryOptions[0] = "Info";
-            inventoryOptions[1] = "Claim";
-        }
-
-        if(id == 13215) {
-            name = "Bloody Token";
-            stackable = true;
-        }
-
-        if (id == 13187) {
-            name = "Starter Kit";
-            inventoryOptions[0] = "Take-All";
-            inventoryOptions[1] = "Peek";
-            inventoryOptions[4] = "Destroy";
-            tradeable = false;
-        }
-
-        if(id == 8943) {
-            name = "Breach Event Key";
-            inventoryOptions[0] = "Peek";
-            inventoryOptions[3] = null;
-            inventoryOptions[4] = "Destroy";
-        }
-
-        if(id == 8944) {
-            name = "Chest Event Key";
-            inventoryOptions[0] = "Peek";
-            inventoryOptions[3] = null;
-            inventoryOptions[4] = "Destroy";
-        }
-
-        if(id == 8945) {
-            name = "Goblin Event Key";
-            inventoryOptions[0] = "Peek";
-            inventoryOptions[3] = null;
-            inventoryOptions[4] = "Destroy";
-        }
-
-        if (id == 11844) {
-            name = "Unix's Ring";
-        }
-
-//        if(id == 8946) {
-//            name = "Wilderness key (25M OSRS)";
-//            inventoryOptions[0] = "Information";
-//            inventoryOptions[3] = null;
-//            inventoryOptions[4] = "Destroy";
-//        }
-//
-//        if(id == 8947) {
-//            name = "Wilderness key (50M OSRS)";
-//            inventoryOptions[0] = "Information";
-//            inventoryOptions[3] = null;
-//            inventoryOptions[4] = "Destroy";
-//        }
-//
-//        if(id == 8948) {
-//            name = "Wilderness key (100M OSRS)";
-//            inventoryOptions[0] = "Information";
-//            inventoryOptions[3] = null;
-//            inventoryOptions[4] = "Destroy";
-//        }
     }
 
     private void decode(InBuffer buffer, int opcode) {

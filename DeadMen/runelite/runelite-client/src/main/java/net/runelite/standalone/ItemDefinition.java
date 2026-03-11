@@ -1029,20 +1029,27 @@ public class ItemDefinition extends DualNode implements RSItemDefinition {
             setTradeable(false);
             break;
 
-         case 8943:
-         case 8944:
-         case 8945:
-         case 8946:
-         case 8947:
-         case 8948:
-            name = "Event Reward Key";
-            inventoryActions[0] = "Peek";
-            inventoryActions[3] = null;
-            inventoryActions[4] = "Drop";
-            setTradeable(true);
-
          case 11844:
             name = "Unix's Ring";
+            break;
+
+         case 10491:
+            name = "Overworld axe";
+            inventoryActions[2] = "Upgrade";
+            inventoryActions[4] = "Destroy";
+            break;
+
+         case 11719:
+            name = "Overworld pickaxe";
+            inventoryActions[2] = "Upgrade";
+            inventoryActions[4] = "Destroy";
+            break;
+
+         case 4051:
+            name = "Overworld fishing tools";
+            inventoryActions[0] = "Info";
+            inventoryActions[1] = "Upgrade";
+            inventoryActions[4] = "Destroy";
             break;
       }
 

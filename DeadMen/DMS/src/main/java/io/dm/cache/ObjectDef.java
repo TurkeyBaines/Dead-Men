@@ -181,8 +181,8 @@ public class ObjectDef {
                 options[1] = "null";
                 break;
 
-            case 26675: // Overworld Hopper
-                name = "Resource Hopper";
+            case 51003: // Overworld Hopper
+                name = "Resource hopper";
                 options[0] = "Deposit";
                 options[1] = "Note";
                 options[2] = "Points";
@@ -193,7 +193,7 @@ public class ObjectDef {
                 options[0] = "Pick";
                 break;
 
-            case 11097: // Overworld Pickaxe Rock
+            case 15127: // Overworld Pickaxe Rock
                 options[0] = "Take-pickaxe";
                 break;
 
@@ -215,6 +215,21 @@ public class ObjectDef {
             case 32658: // Tournament Config Board
                 options[0] = "Read";
                 options[1] = "Override";
+                break;
+
+            case 33309:
+                name = "Pile of buckets";
+                options[0] = "Take-1";
+                options[1] = "Take-5";
+                options[2] = "Take-all";
+                break;
+
+            case 51001:
+                options[0] = "Fill";
+                break;
+
+            case 51002:
+                options[0] = "Pick";
                 break;
         }
     }

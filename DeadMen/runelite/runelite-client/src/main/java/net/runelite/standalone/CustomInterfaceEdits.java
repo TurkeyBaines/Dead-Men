@@ -67,9 +67,21 @@ public class CustomInterfaceEdits {
 
          */
 
+//        if (inter.dataText.toLowerCase().contains("resources") || inter.text.toLowerCase().contains("resources")) {
+//            System.out.println("Interface IDs: [" + parentId + "/" + childId + "]");
+//            System.out.println("\tText: [" + inter.text + "]");
+//            System.out.println("\tButton Text: [" + inter.buttonText + "]");
+//            System.out.println("\tData Text: [" + inter.dataText + "]");
+//            System.out.println("\tSpell Text: [" + inter.spellName + "]");
+//            System.out.println("\tText2: [" + inter.text2 + "]");
+//            System.out.println("\tButton Type: [" + inter.buttonType + "]");
+//            System.out.println("\tClick Mask: [" + inter.clickMask + "]");
+//            System.out.println("\tHas Listener: [" + inter.hasListener() + "]");
+//        }
+
         if (parentId == 720) {
             switch (childId) {
-                case 8:
+                case 9:
                     inter.actions = new String[] {
                             "<col=ff981f>View</col>"
                     };
@@ -78,40 +90,35 @@ public class CustomInterfaceEdits {
                     inter.clickMask = 2;
                     break;
 
-                case 9:
+                case 10:
+                    inter.actions = new String[] {
+                            "<col=ff981f>View</col>"
+                    };
                     inter.buttonText = "Ok";
                     inter.dataText = "Online staff";
                     inter.clickMask = 2;
                     break;
 
-                case 10:
-                    inter.actions = new String[]{ "View" };
-                    inter.buttonText = "Staff Online";
-                    unlock(701, 10, 10);
+                case 11:
+                    inter.actions = new String[] {
+                            "<col=ff981f>View</col>"
+                    };
+                    inter.buttonText = "Ok";
+                    inter.dataText = "Tournament Info";
+                    inter.clickMask = 2;
                     break;
 
+                case 50:
+                case 51:
+                case 52:
+                    inter.actions = new String[] {
+                            "<col=ff981f>Change</col>"
+                    };
+                    inter.buttonText = "Ok";
+                    inter.dataText = "Sigil";
+                    inter.clickMask = 2;
+                    break;
 
-                case 11:
-                case 12:
-                case 14:
-                case 15:
-                case 16:
-                case 17:
-                case 18:
-                case 43:
-                case 44:
-                case 45:
-                case 46:
-                case 47:
-                case 49:
-
-                    if (inter.getActions() == null) {
-                        System.out.println("FUCK OFF NEW!");
-                        inter.actions = new String[] { "Fuck off new" };
-                    } else {
-                        optionSet(inter, 0, "Fuck off old");
-                    }
-                    System.out.println("We changed the default Actions for [" + parentId + "/" + childId + "]");
             }
 
         }

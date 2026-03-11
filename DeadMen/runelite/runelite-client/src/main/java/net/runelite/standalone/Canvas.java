@@ -68,9 +68,6 @@ public final class Canvas extends java.awt.Canvas implements RSCanvas {
    public static Widget getWidget(int hash) {
       int parent = hash >> 16;
       int child = hash & 0xffff;
-      if (parent == 63 || child == 63) {
-         System.out.println("63 FOUND: [parent: " + parent + "][child: " + child + "]");
-      }
       if(UserComparator5.Widget_interfaceComponents[parent] == null || UserComparator5.Widget_interfaceComponents[parent][child] == null) {
          boolean var3 = WorldMapData_0.method171(parent);
          if(!var3) {

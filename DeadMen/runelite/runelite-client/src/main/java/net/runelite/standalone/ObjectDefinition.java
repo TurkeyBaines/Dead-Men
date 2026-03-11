@@ -902,8 +902,8 @@ public class ObjectDefinition extends DualNode implements RSObjectDefinition {
             actions[1] = "null";
             break;
 
-         case 26675: // Overworld Hopper
-            name = "Resource Hopper";
+         case 51003: // Overworld Hopper
+            name = "Resource hopper";
             actions[0] = "Deposit";
             actions[1] = "Note";
             actions[2] = "Points";
@@ -914,7 +914,7 @@ public class ObjectDefinition extends DualNode implements RSObjectDefinition {
             actions[0] = "Pick";
             break;
 
-         case 11097: // Overworld Pickaxe Rock
+         case 15127: // Overworld Pickaxe Rock
             actions[0] = "Take-pickaxe";
             break;
 
@@ -936,6 +936,21 @@ public class ObjectDefinition extends DualNode implements RSObjectDefinition {
          case 32658: // Tournament Config Board
             actions[0] = "Read";
             actions[1] = "Override";
+            break;
+
+         case 33309:
+            name = "Pile of buckets";
+            actions[0] = "Take-1";
+            actions[1] = "Take-5";
+            actions[2] = "Take-all";
+            break;
+
+         case 51001:
+            actions[0] = "Fill";
+            break;
+
+         case 51002:
+            //actions[0] = "Pick";
             break;
       }
    }
