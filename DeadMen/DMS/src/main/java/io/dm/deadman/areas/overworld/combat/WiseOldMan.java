@@ -51,14 +51,17 @@ public class WiseOldMan {
                         new Option("Easy", () -> {
                             p.overworldTaskMonster.assign(p, 0);
                             p.overworldTaskDifficulty = 0;
+                            p.str_overworldTaskDifficulty = "Easy";
                         }),
                         new Option("Medium", () -> {
                             p.overworldTaskMonster.assign(p, 1);
                             p.overworldTaskDifficulty = 1;
+                            p.str_overworldTaskDifficulty = "Medium";
                         }),
                         new Option("Hard", () -> {
                             p.overworldTaskMonster.assign(p, 2);
                             p.overworldTaskDifficulty = 2;
+                            p.str_overworldTaskDifficulty = "Hard";
                         })
                 )
         );

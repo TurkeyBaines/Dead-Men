@@ -4,7 +4,9 @@ import io.dm.cache.Color;
 import io.dm.cache.ItemID;
 import io.dm.deadman.Deadman;
 import io.dm.deadman.mutators.Mutator;
+import io.dm.deadman.mutators.impl.EmptyMutator;
 import io.dm.deadman.mutators.impl.StaticGasMutator;
+import io.dm.deadman.mutators.impl.VampiricRitesMutator;
 import io.dm.deadman.tournament.TournamentConfig;
 import io.dm.deadman.tournament.configs.CustomConfig;
 import io.dm.model.World;
@@ -138,8 +140,11 @@ public class TournamentTicket {
                 p.dialogue(new MessageDialogue("Finally, we need to set a Mutator. These will mix up the fun drastically!"),
                         new OptionsDialogue(
                                 "Which Mutator would you like to enable, hit Random for a surprise!",
-                                new Option("Static Gas Zone", () -> { mutator = new StaticGasMutator(); str_mutator = "Static Gas"; showDialogue(p, 7);})
-                        ));
+                                new Option("None", () -> { mutator = new EmptyMutator(); str_mutator = "None"; showDialogue(p, 7);}),
+                                new Option("Static Gas Zone", () -> { mutator = new StaticGasMutator(); str_mutator = "Static Gas"; showDialogue(p, 7);}),
+                                new Option("Vampiric Rites", () -> { mutator = new VampiricRitesMutator(); str_mutator = "Vampiric Rites"; showDialogue(p, 7);})
+                        )
+                );
                 break;
 
             case 7:

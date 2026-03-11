@@ -2,6 +2,7 @@ package io.dm.deadman.tournament.configs;
 
 import io.dm.deadman.mutators.impl.EmptyMutator;
 import io.dm.deadman.mutators.impl.StaticGasMutator;
+import io.dm.deadman.mutators.impl.VampiricRitesMutator;
 import io.dm.deadman.tournament.TournamentConfig;
 
 public class QuickSolo extends TournamentConfig {
@@ -11,6 +12,6 @@ public class QuickSolo extends TournamentConfig {
         PET_RATE = 5;
         GAME_LENGTH = Timespan.ONE_HOUR;
         TEAM_SIZE_MAX = TeamSize.SOLO;
-        MUTATOR = new EmptyMutator();
+        MUTATOR = new VampiricRitesMutator();
     }
 }

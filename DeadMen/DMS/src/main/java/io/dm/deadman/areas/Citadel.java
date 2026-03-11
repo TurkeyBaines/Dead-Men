@@ -266,7 +266,11 @@ public class Citadel {
             p.getPacketSender().sendString(interId, 12 + offx, Color.ORANGE.wrap("Drop Rate: ") + Color.BLUE.wrap(Deadman.getConfig().DROP_RATE + "x"));
             p.getPacketSender().sendString(interId, 13 + offx, Color.ORANGE.wrap("Pet Rate: ") + Color.BLUE.wrap(Deadman.getConfig().PET_RATE + "x"));
             p.getPacketSender().sendString(interId, 15 + offx, Color.ORANGE.wrap("Mutator: ") + Color.BLUE.wrap(Deadman.getConfig().MUTATOR.name()));
-            p.getPacketSender().sendString(interId, 16 + offx, Color.ORANGE.wrap("Mutator Desc: ") + Color.BLUE.wrap(Deadman.getConfig().MUTATOR.description()));
+            int mutatorOffset = Deadman.getConfig().MUTATOR.description().length;
+            for (int x = 0; x < mutatorOffset; x++) {
+                p.getPacketSender().sendString(interId, 16 + offx, Color.ORANGE.wrap("Mutator Desc: ") + Color.BLUE.wrap(Deadman.getConfig().MUTATOR.description()[x]));
+                offx++;
+            }
 
             if (Deadman.canOverrideConfig()) {
                 p.getPacketSender().sendString(interId, 18 + offx, Color.DARK_RED.wrap("------ Next Tournament ------"));
@@ -277,13 +281,17 @@ public class Citadel {
             } else {
                 p.getPacketSender().sendString(interId, 18 + offx, Color.DARK_RED.wrap("------ Next Tournament ------"));
                 p.getPacketSender().sendString(interId, 19 + offx, Color.ORANGE.wrap("Tournament Setup by: " + Deadman.getNext_Config_Name()));
-                p.getPacketSender().sendString(interId, 21 + offx, Color.ORANGE.wrap("Runtime: ") + Color.BLUE.wrap(Deadman.getConfig().GAME_LENGTH.text));
-                p.getPacketSender().sendString(interId, 22 + offx, Color.ORANGE.wrap("Team Size: ") + Color.BLUE.wrap(Deadman.getConfig().TEAM_SIZE_MAX.name));
-                p.getPacketSender().sendString(interId, 24 + offx, Color.ORANGE.wrap("XP Rate: ") + Color.BLUE.wrap(Deadman.getConfig().XP_RATE + "x"));
-                p.getPacketSender().sendString(interId, 25 + offx, Color.ORANGE.wrap("Drop Rate: ") + Color.BLUE.wrap(Deadman.getConfig().DROP_RATE + "x"));
-                p.getPacketSender().sendString(interId, 26 + offx, Color.ORANGE.wrap("Pet Rate: ") + Color.BLUE.wrap(Deadman.getConfig().PET_RATE + "x"));
-                p.getPacketSender().sendString(interId, 28 + offx, Color.ORANGE.wrap("Mutator: ") + Color.BLUE.wrap(Deadman.getConfig().MUTATOR.name()));
-                p.getPacketSender().sendString(interId, 29 + offx, Color.ORANGE.wrap("Mutator Desc: ") + Color.BLUE.wrap(Deadman.getConfig().MUTATOR.description()));
+                p.getPacketSender().sendString(interId, 21 + offx, Color.ORANGE.wrap("Runtime: ") + Color.BLUE.wrap(Deadman.getNext_config().GAME_LENGTH.text));
+                p.getPacketSender().sendString(interId, 22 + offx, Color.ORANGE.wrap("Team Size: ") + Color.BLUE.wrap(Deadman.getNext_config().TEAM_SIZE_MAX.name));
+                p.getPacketSender().sendString(interId, 24 + offx, Color.ORANGE.wrap("XP Rate: ") + Color.BLUE.wrap(Deadman.getNext_config().XP_RATE + "x"));
+                p.getPacketSender().sendString(interId, 25 + offx, Color.ORANGE.wrap("Drop Rate: ") + Color.BLUE.wrap(Deadman.getNext_config().DROP_RATE + "x"));
+                p.getPacketSender().sendString(interId, 26 + offx, Color.ORANGE.wrap("Pet Rate: ") + Color.BLUE.wrap(Deadman.getNext_config().PET_RATE + "x"));
+                p.getPacketSender().sendString(interId, 28 + offx, Color.ORANGE.wrap("Mutator: ") + Color.BLUE.wrap(Deadman.getNext_config().MUTATOR.name()));
+                mutatorOffset = Deadman.getNext_config().MUTATOR.description().length;
+                for (int x = 0; x < mutatorOffset; x++) {
+                    p.getPacketSender().sendString(interId, 29 + offx, Color.ORANGE.wrap("Mutator Desc: ") + Color.BLUE.wrap(Deadman.getNext_config().MUTATOR.description()[x]));
+                    offx++;
+                }
             }
         });
 

@@ -2,6 +2,7 @@ package io.dm.deadman.tournament;
 
 import io.dm.cache.Color;
 import io.dm.deadman.Deadman;
+import io.dm.deadman.tournament.finals.FFA;
 import io.dm.deadman.tournament.finals.Versus;
 import io.dm.model.World;
 import io.dm.model.combat.Hit;
@@ -39,6 +40,7 @@ public abstract class FinalEvent {
                         leaderboard[0] = entity;
                     if (players.size() == 2)
                         leaderboard[1] = entity;
+                    System.out.println("You finished in " + players.size() + " place!");
                     players.remove(entity);
                 };
             } else {
@@ -50,6 +52,8 @@ public abstract class FinalEvent {
     }
 
     public void end() {
+        System.out.println("Called END!");
+
         Player winner = players.get(0);
         NPC reaper = new NPC(5567);
 
@@ -99,6 +103,6 @@ public abstract class FinalEvent {
     public abstract void update();
 
     public static FinalEvent getRandom() {
-        return new Versus();
+        return new FFA();
     }
 }

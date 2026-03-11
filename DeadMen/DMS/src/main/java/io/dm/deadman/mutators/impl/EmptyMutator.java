@@ -9,8 +9,8 @@ public class EmptyMutator extends Mutator {
     }
 
     @Override
-    public String description() {
-        return "None";
+    public String[] description() {
+        return new String[]{"None"};
     }
 
     @Override

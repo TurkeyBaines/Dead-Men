@@ -12,6 +12,7 @@ import io.dm.deadman.tournament.Tournament;
 import io.dm.deadman.tournament.TournamentConfig;
 import io.dm.deadman.tournament.stages.Lobby;
 import io.dm.deadman.tournament.stages.Main;
+import io.dm.model.World;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.shared.listeners.LoginListener;
 import io.dm.model.inter.dialogue.OptionsDialogue;
@@ -25,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 
 public class Deadman {
 
-    private long currentTime;
 
     @Getter private static Citadel citadel;
     @Getter private static MultiZone multiZone;
@@ -37,24 +37,32 @@ public class Deadman {
     @Getter @Setter private static TournamentConfig next_config;
     @Getter @Setter private static String next_Config_Name;
 
-
-    public void update() {
-        currentTime = System.currentTimeMillis();
-
-        stage.onUpdate();
-    }
-
-    public Deadman() {
-        currentTime = System.currentTimeMillis();
+    static {
+        stage = new Lobby();
+        stage.onLoad();
+        config = TournamentConfig.getRandom();
 
         citadel = new Citadel();
         multiZone = new MultiZone();
         safeZone = new SafeZone();
         overworld = new Overworld();
 
-        config = TournamentConfig.getRandom();
-        stage = new Lobby();
-        stage.onLoad();
+        World.startEvent(e -> {
+            while (true) {
+                update();
+                e.delay(3);
+            }
+
+        });
+    }
+
+    private static void update() {
+        stage.onUpdate();
+    }
+
+    public Deadman() {
+
+
 
         LoginListener.register(player -> {
             if (stage.stageName() == Tournament.StageName.LOBBY) {

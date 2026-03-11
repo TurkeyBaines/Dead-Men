@@ -88,6 +88,7 @@ public abstract class CombatTask {
         p.overworldTaskTotal = -1;
         p.overworldTaskRemaining = -1;
         p.overworldTaskDifficulty = -1;
+        p.str_overworldTaskDifficulty = "None";
     }
 
     public void spawn() {
@@ -197,8 +198,8 @@ public abstract class CombatTask {
         ABYSSAL_DEMON("Abyssal Demons", 85),
         MINI_CERB("Mini Cerberus", 91);
 
-        String name;
-        int slayUnlock;
+        public final String name;
+        final int slayUnlock;
         TASK_MONSTER(String Name, int SlayerLevelUnlock) {
             this.name = Name;
             this.slayUnlock = SlayerLevelUnlock;

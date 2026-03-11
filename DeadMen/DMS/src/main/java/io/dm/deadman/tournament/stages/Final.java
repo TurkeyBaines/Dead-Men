@@ -21,6 +21,7 @@ public class Final extends Stage {
     }
     @Override
     public void onLoad() {
+        System.out.println("onLoad FINAL Running!");
         startTime = System.currentTimeMillis();
         duration = config.GAME_LENGTH.finals;
         players().forEach(p -> {
@@ -32,6 +33,7 @@ public class Final extends Stage {
 
     @Override
     public void onUpdate() {
+        System.out.println("onUpdate FINAL Running!");
         event.update();
 
         if (event.finalFinished) {
@@ -42,6 +44,7 @@ public class Final extends Stage {
 
     @Override
     public void onRemove() {
+        System.out.println("onRemove FINAL Running!");
         event = null;
     }
 
