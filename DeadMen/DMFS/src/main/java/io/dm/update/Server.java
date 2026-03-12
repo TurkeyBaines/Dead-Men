@@ -30,7 +30,7 @@ public class Server extends ServerWrapper {
                 throw e;
             }
             System.out.println("Initiating file store...");
-            fileStore = new FileStore(properties.getProperty("cache_path"));
+            fileStore = new FileStore(properties.getProperty("C/Users/Turk/Documents/GitHub/Dead-Men/DeadMen/Cache"));
 /*            FileWatcherService watcherService = new FileWatcherService(new File(properties.getProperty("cache_path")));
             watcherService.onFileModified(watchEvent -> {
                try {

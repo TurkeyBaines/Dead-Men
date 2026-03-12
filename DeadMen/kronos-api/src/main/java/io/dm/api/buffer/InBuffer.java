@@ -38,7 +38,14 @@ public class InBuffer {
     public byte readByte() {
         if(position >= payload.length)
             return 0;
-        return payload[position++];
+        position+=1;
+        if (payload.length == position) {
+            System.out.println("Reached end of file");
+            return payload[position-1];
+        }
+
+        System.out.println("[" + position + "]<" + payload[position] + ">");
+        return payload[position];
     }
 
     public byte readByteUnsafe() {

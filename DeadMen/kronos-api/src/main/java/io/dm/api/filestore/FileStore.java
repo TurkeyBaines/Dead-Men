@@ -13,9 +13,10 @@ public class FileStore {
     public final IndexFile[] files;
 
     public FileStore(String path) throws IOException {
+        System.out.println("PATH=" + path);
         path = FileUtils.get(path).getAbsolutePath() + File.separator;
-        RandomAccessFile mainDataFile = new RandomAccessFile(path + "main_file_cache.dat2", "rw");
-        RandomAccessFile mainDataFile255 = new RandomAccessFile(path + "main_file_cache.idx255", "rw");
+        RandomAccessFile mainDataFile = new RandomAccessFile(path + "main_file_cache.dat2", "r");
+        RandomAccessFile mainDataFile255 = new RandomAccessFile(path + "main_file_cache.idx255", "r");
 
         this.index255 = new IndexFile(255, mainDataFile, mainDataFile255, 500000);
         this.files = new IndexFile[index255.getArchivesCount()];
@@ -26,7 +27,7 @@ public class FileStore {
                 System.err.println("Failed to read archive data for index: " + index);
                 continue;
             }
-            RandomAccessFile indexDataFile = new RandomAccessFile(path + "main_file_cache.idx" + index, "rw");
+            RandomAccessFile indexDataFile = new RandomAccessFile(path + "main_file_cache.idx" + index, "r");
             IndexFile indexFile = new IndexFile(index, mainDataFile, indexDataFile, 1000000);
             indexFile.setReferenceTable(new ReferenceTable(archiveData));
             files[index] = indexFile;

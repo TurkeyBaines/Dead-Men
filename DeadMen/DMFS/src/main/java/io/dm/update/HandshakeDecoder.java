@@ -8,7 +8,7 @@ import io.dm.api.protocol.Response;
 
 public class HandshakeDecoder extends MessageDecoder<Channel> {
 
-    public static int REVISION = 184;
+    public static int REVISION = 226;
 
     public HandshakeDecoder() {
         super(null, false);
