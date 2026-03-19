@@ -5,7 +5,6 @@ import io.dm.model.inter.handlers.TabCombat;
 import io.dm.model.inter.utils.Config;
 import io.dm.model.map.Bounds;
 import io.dm.model.skills.magic.rune.Rune;
-import io.dm.model.skills.magic.spells.BountyTeleport;
 import io.dm.model.skills.magic.spells.HomeTeleport;
 import io.dm.model.skills.magic.spells.TodoSpell;
 import io.dm.model.skills.magic.spells.ancient.*;
@@ -81,7 +80,7 @@ public enum SpellBook {
             Teleother.FALADOR.toSpell(),
             new WaterSurge(),
             new Teleblock(),
-            new BountyTeleport(),
+            null,
             new JewelleryEnchant(JewelleryEnchant.EnchantLevel.SIX),
             Teleother.CAMELOT.toSpell(),
             new EarthSurge(),

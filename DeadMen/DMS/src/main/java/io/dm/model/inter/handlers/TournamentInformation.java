@@ -12,6 +12,9 @@ import static io.dm.cache.Color.BLUE;
 public class TournamentInformation {
 
     public static void send(Player p) {
+        if (Deadman.getConfig().TEAM_SIZE_MAX.asInt < 2)
+            return;
+
         int interId = 116;
         p.openInterface(InterfaceType.MAIN, interId);
         p.getPacketSender().sendString(interId, 4, "Tournament Information Board");

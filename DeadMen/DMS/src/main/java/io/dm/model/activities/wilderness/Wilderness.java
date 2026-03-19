@@ -52,7 +52,6 @@ public class Wilderness {
     private static boolean checkActive(Player player) {
         if(player.wildernessLevel == -1 || player.getMovement().hasMoved())
             player.wildernessLevel = getLevel(player.getPosition());
-        player.getBountyHunter().checkActive();
         return player.wildernessLevel > 0;
     }
 
@@ -78,10 +77,10 @@ public class Wilderness {
         } else {
             player.getPacketSender().sendVarp(20002, 0);
         }
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, true); //hide safe area sprite
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, false); //show wilderness level
-        Config.IN_PVP_AREA.set(player, 1);
-        player.setAction(1, PlayerAction.ATTACK);
+//        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, true); //hide safe area sprite
+//        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, false); //show wilderness level
+//        Config.IN_PVP_AREA.set(player, 1);
+//        player.setAction(1, PlayerAction.ATTACK);
         player.getEquipment().update(0); //force a slot update
         player.getEquipment().sendUpdates();
     }
@@ -104,7 +103,6 @@ public class Wilderness {
 
     private static void exited(Player player, boolean logout) {
         players.remove(player);
-        player.getBountyHunter().interfaceHidden = false;
         if(!logout) {
             player.attackPlayerListener = null;
             player.attackNpcListener = null;
@@ -115,8 +113,6 @@ public class Wilderness {
             player.getCombat().resetKillers(); //important
             //TODO: - clear hits???????????????
             Config.IN_PVP_AREA.set(player, 0);
-            if(player.getBountyHunter().returnTicks == 0)
-                player.closeInterface(InterfaceType.WILDERNESS_OVERLAY);
             player.setAction(1, null);
             player.getEquipment().update(0); //force a slot update
             player.getEquipment().sendUpdates();
@@ -142,15 +138,6 @@ public class Wilderness {
             if(message)
                 player.sendMessage("You can't attack yourself.");
             return false;
-        }
-
-        if(pTarget == player.getBountyHunter().target) {
-            if (Math.abs(player.getCombat().getLevel() - pTarget.getCombat().getLevel()) > 5) {
-                if (message)
-                    player.sendMessage("You must be within 5 combat levels of your target to attack them.");
-                return false;
-            }
-            return true;
         }
 
         int wildernessLevel = player.wildernessLevel;
@@ -413,7 +400,6 @@ public class Wilderness {
                 message += drop.getDef().name;
             Broadcast.WORLD.sendNews(player, message + " from " + npc.getDef().descriptiveName + "!");
             player.sendMessage("You have been red skulled and tele-blocked because of your loot!");
-            player.getCombat().skullHighRisk();
             player.getCombat().teleblock();
         }
     }

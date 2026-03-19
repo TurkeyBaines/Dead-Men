@@ -142,8 +142,6 @@ public class PVPInstance {
     }
 
     private static void entered(Player player) {
-        if(player.getBountyHunter().target != null)
-            player.getBountyHunter().skip(false);
         if(player.pvpInstancePosition == null)
             player.pvpInstancePosition = player.getPosition().copy();
         player.getPacketSender().sendVarp(20003, 1); //custom to set client to think pvp world

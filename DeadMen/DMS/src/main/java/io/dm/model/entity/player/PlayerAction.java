@@ -1,5 +1,6 @@
 package io.dm.model.entity.player;
 
+import io.dm.deadman.Deadman;
 import io.dm.model.activities.raids.xeric.party.RecruitingBoard;
 import io.dm.model.map.route.routes.TargetRoute;
 
@@ -29,7 +30,8 @@ public enum PlayerAction {
     INVITE("Invite", false, (p1, p2) -> {
         p1.face(p2);
         TargetRoute.set(p1, p2, () -> {
-            RecruitingBoard.invite(p1, p2);
+            //RecruitingBoard.invite(p1, p2);
+            Deadman.getGroups().Invite(p1, p2);
             p1.faceNone(true);
         });
     });

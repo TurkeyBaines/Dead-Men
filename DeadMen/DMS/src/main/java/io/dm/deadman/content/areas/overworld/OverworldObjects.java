@@ -54,6 +54,9 @@ public class OverworldObjects {
         ObjectAction.register(29320, 2542, 3885, 0, "Take-10-concoction", (p, o) -> {
             p.getInventory().add(ItemID.EMPTY_VIAL, 10);
         });
+        ObjectAction.register(30934, "Spin", (p, o) -> {
+
+        });
 
         /*
             Pickaxe Stuck In Rock

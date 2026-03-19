@@ -3,16 +3,23 @@ package io.dm.deadman.content.areas;
 import io.dm.cache.Color;
 import io.dm.cache.ItemID;
 import io.dm.cache.NpcID;
+import io.dm.deadman.Deadman;
 import io.dm.deadman.content.items.TournamentTicket;
 import io.dm.deadman.content.guard.DMMGuard;
+import io.dm.deadman.tournament.team.Group;
+import io.dm.deadman.tournament.team.Groups;
 import io.dm.model.World;
 import io.dm.model.entity.npc.NPC;
 import io.dm.model.entity.npc.NPCAction;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerAction;
 import io.dm.model.entity.shared.LockType;
+import io.dm.model.inter.Interface;
 import io.dm.model.inter.InterfaceType;
+import io.dm.model.inter.dialogue.MessageDialogue;
 import io.dm.model.inter.dialogue.OptionsDialogue;
+import io.dm.model.inter.dialogue.YesNoDialogue;
+import io.dm.model.inter.handlers.GroupOverlay;
 import io.dm.model.inter.handlers.TournamentInformation;
 import io.dm.model.inter.utils.Config;
 import io.dm.model.inter.utils.Option;
@@ -80,26 +87,26 @@ public class Citadel {
         players.add(player);
         player.attackPlayerListener = Citadel::allowAttack;
         player.attackNpcListener = Citadel::allowNPCAttack;
-        player.closeInterface(InterfaceType.WILDERNESS_OVERLAY);
+        player.openInterface(InterfaceType.WILDERNESS_OVERLAY, Interface.WILDERNESS_OVERLAY);
+        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, false); //hide safe area sprite
+        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, true); //show wilderness level
         Config.IN_PVP_AREA.set(player, 0);
-        player.setAction(1, null);
-
-//        if (player.getSkullTimer().skulled()) {
-//            NPC n = new DMMGuard();
-//            n.setCombat(new DMMGuardCombat());
-//            n.spawn(player.getPosition());
-//        }
+        player.setAction(1, PlayerAction.INVITE);
+        GroupOverlay.send(player);
     }
 
     private static void exited(Player player, boolean logout) {
         if (logout) return;
         players.remove(player);
         System.out.println("Player Exited!");
-        player.attackPlayerListener = Citadel::allowAttack;
-        player.attackNpcListener = Citadel :: allowNPCAttack;
-        player.closeInterface(InterfaceType.WILDERNESS_OVERLAY);
+        player.attackPlayerListener = null;
+        player.attackNpcListener = null;
+        player.openInterface(InterfaceType.WILDERNESS_OVERLAY, Interface.WILDERNESS_OVERLAY);
+        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, true); //hide safe area sprite
+        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, false); //show wilderness level
         Config.IN_PVP_AREA.set(player, 1);
         player.setAction(1, PlayerAction.ATTACK);
+        player.closeInterface(InterfaceType.PRIMARY_OVERLAY);
 
         if (guards.containsKey(player)) {
             guards.get(player).remove();
@@ -260,6 +267,69 @@ public class Citadel {
                 TournamentTicket.process(p);
             }
         });
+
+        ObjectAction.register(32658, "Group Settings", (p, o) -> {
+            if (p.groupID == null) {
+                p.dialogue(new OptionsDialogue(
+                        "Select an option",
+                        new Option("Start a Group", () -> { p.stringInput("Enter a name", (name) -> { Deadman.getGroups().newTeam(p, name); }); }),
+                        new Option("Join a Group", () -> { p.stringInput("Enter Group ID", (id) -> { Deadman.getGroups().Request(p, id); }); })
+                ));
+            } else if (!p.getGroup().isOwner(p)) {
+                p.dialogue(new OptionsDialogue(
+                        new Option("Leave Group", () -> p.dialogue(
+                                new YesNoDialogue("Leave Group", "Are you sure you want to leave?", null, () -> p.getGroup().leave(p))
+                        ))
+                ));
+            } else {
+                p.dialogue(new OptionsDialogue(
+                        "Select an option",
+                        new Option("View Group ID", () -> p.dialogue(new MessageDialogue("Group ID: " + Color.DARK_RED.wrap(p.groupID)))),
+                        new Option("Kick Members", this::showKickMenu),
+                        new Option("Leave Group", () -> p.dialogue(
+                                new YesNoDialogue("Leave Group", "Are you sure you want to leave?", null, () -> p.getGroup().leave(p))
+                        ))
+                ));
+            }
+        });
+    }
+
+    private void showKickMenu(Player p) {
+        if (p.getGroup().size() == 1)
+            p.dialogue(new MessageDialogue("You are the only person in your group"));
+        else if (p.getGroup().size() == 2)
+            p.dialogue(new OptionsDialogue(
+                    "Select a Member",
+                    new Option(p.getGroup().getMemberStrings().get(1).toString(), () -> {
+                        String name = p.getGroup().getMemberStrings().get(1).toString();
+                        Group group = p.getGroup();
+                        p.dialogue(
+                                new YesNoDialogue("Kick: " + name, "Are you sure you want to kick " + Color.GREEN.wrap(name) + "?", new Item(7668, 1), () -> { group.leave(group.getMembers().get(1)); }),
+                                new MessageDialogue("You have kicked " + Color.GREEN.wrap(name) + " from the group")
+                        );
+                    })
+                ));
+        else
+            p.dialogue(new OptionsDialogue(
+                    "Select a Member",
+                    new Option(p.getGroup().getMemberStrings().get(1).toString(), () -> {
+                        String name = p.getGroup().getMemberStrings().get(1).toString();
+                        Group group = p.getGroup();
+                        p.dialogue(
+                                new YesNoDialogue("Kick: " + name, "Are you sure you want to kick " + Color.GREEN.wrap(name) + "?", new Item(7668, 1), () -> { group.leave(group.getMembers().get(1)); }),
+                                new MessageDialogue("You have kicked " + Color.GREEN.wrap(name) + " from the group")
+
+                        );
+                    }),
+                    new Option(p.getGroup().getMemberStrings().get(2).toString(), () -> {
+                        String name = p.getGroup().getMemberStrings().get(2).toString();
+                        Group group = p.getGroup();
+                        p.dialogue(
+                                new YesNoDialogue("Kick: " + name, "Are you sure you want to kick " + Color.GREEN.wrap(name) + "?", new Item(7668, 1), () -> { group.leave(group.getMembers().get(2)); }),
+                                new MessageDialogue("You have kicked " + Color.GREEN.wrap(name) + " from the group")
+                        );
+                    })
+                ));
     }
 
     private void registerAnythingShop() {

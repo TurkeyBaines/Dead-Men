@@ -3,6 +3,7 @@ package io.dm.model.inter.handlers;
 import io.dm.api.utils.NumberUtils;
 import io.dm.cache.EnumMap;
 import io.dm.cache.ItemDef;
+import io.dm.deadman.content.guard.Skull;
 import io.dm.model.combat.Killer;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.Interface;
@@ -34,7 +35,7 @@ public class IKOD {
         player.getPacketSender().sendAccessMask(Interface.ITEMS_KEPT_ON_DEATH, 18, 0, 4, 2);
         player.getPacketSender().sendAccessMask(Interface.ITEMS_KEPT_ON_DEATH, 21, 0, 42, 2);
 
-        boolean skulled = player.getCombat().isSkulled();
+        boolean skulled = Skull.hasSkull(player);
         boolean ultimateIronMan = player.getGameMode().isUltimateIronman(); //todo
         int keepCount = getKeepCount(skulled, ultimateIronMan, player.getPrayer().isActive(Prayer.PROTECT_ITEM));
 
@@ -97,7 +98,7 @@ public class IKOD {
         Item currency = new Item(COINS_995, 0);
         ArrayList<Item> loseItems = new ArrayList<>(items.size());
         ArrayList<Item> keepItems = new ArrayList<>();
-        int keepCountRemaining = getKeepCount(player.getCombat().isSkulled(), false, player.getPrayer().isActive(Prayer.PROTECT_ITEM));
+        int keepCountRemaining = getKeepCount(Skull.hasSkull(player), false, player.getPrayer().isActive(Prayer.PROTECT_ITEM));
         for(Item item : items) {
             boolean lootingBag = isLootingBag(item);
             /* attempt to protect */
@@ -110,23 +111,13 @@ public class IKOD {
                     continue;
             }
 
-            //Auto keep god d'hides on death, when not in pvp
-            if (player.wildernessLevel < 1 && !player.pvpAttackZone && item.getDef().name.contains("d'hide") && (item.getDef().name.contains("Armadyl") ||
-                    item.getDef().name.contains("Ancient") ||
-                    item.getDef().name.contains("Bandos") ||
-                    item.getDef().name.contains("Saradomin") ||
-                    item.getDef().name.contains("Guthix") ||
-                    item.getDef().name.contains("Zamorak"))) {
-                keepItems.add(item);
-                continue;
-            }
-
             // Ferocious Gloves
             if (item.getId() == 22981) {
                 item.setId(22983);
                 loseItems.add(item);
                 continue;
             }
+
             /* rune pouch */
             if(item.getId() == 12791) {
                 for(Item rune : player.getRunePouch().getItems()) {
@@ -137,6 +128,7 @@ public class IKOD {
                 player.getRunePouch().clear();
                 continue;
             }
+
             if (player.wildernessLevel > 0 || player.pvpAttackZone) {
                 /* saradomin's blessed sword */
                 if (item.getId() == 12809) {

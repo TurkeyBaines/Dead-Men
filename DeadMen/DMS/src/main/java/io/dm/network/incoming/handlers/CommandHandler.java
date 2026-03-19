@@ -138,6 +138,14 @@ public class CommandHandler implements Incoming {
                 new GoToCommands().process(player, args);
                 return true;
 
+            case "interface": case "inter":
+                new InterfaceCommands().process(player, args);
+                return true;
+
+            case "group": case "gr":
+                new GroupCommands().process(player, args);
+                return true;
+
 
 
 
@@ -183,13 +191,6 @@ public class CommandHandler implements Incoming {
                 });
                 return true;
             }
-
-
-            case "testinter":
-                player.openInterface(InterfaceType.MAIN, 718);
-                player.getPacketSender().sendModel(718, 87, 38615);
-                player.getPacketSender().sendModelInformation(718, 87, 1000, 0, 0);
-                return true;
 
 
             case "itemdef": {
@@ -307,20 +308,6 @@ public class CommandHandler implements Incoming {
                 for(Player p : World.players)
                     PlayerFile.save(p, -1);
                 player.sendMessage("DONE!");
-                return true;
-            }
-
-            /**
-             * Interface commands
-             */
-            case "interface":
-            case "inter": {
-                int interfaceId = Integer.valueOf(args[0]);
-                InterfaceType type = InterfaceType.MAIN;
-                if(args.length == 2)
-                    type = InterfaceType.valueOf(args[1].toUpperCase());
-                player.temp.put("last_inter_cmd", interfaceId);
-                player.openInterface(type, interfaceId);
                 return true;
             }
 

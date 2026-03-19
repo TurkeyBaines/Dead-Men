@@ -124,6 +124,46 @@ public class CustomInterfaceEdits {
             }
 
         }
+
+        if (parentId == 116) {
+            switch (childId) {
+                case 10:
+                    inter.actions = new String[] {
+                            "<col=ff981f>Change</col>"
+                    };
+                    inter.buttonText = "Ok";
+                    inter.dataText = "Fuck";
+                    inter.clickMask = 2;
+                    break;
+            }
+        }
+
+        if (parentId == 256) {
+            switch (childId) {
+                case 8:
+                    inter.text = "Tournament Group";
+                    break;
+
+                case 9:
+                    inter.text = "No Team";
+                    break;
+
+                case 10:
+                case 11:
+                case 12:
+                case 13:
+                case 15:
+                case 16:
+                case 17:
+                case 18:
+                    inter.text = "";
+                    break;
+
+                case 14:
+                    inter.text = "Team:";
+                    break;
+            }
+        }
     }
 
 

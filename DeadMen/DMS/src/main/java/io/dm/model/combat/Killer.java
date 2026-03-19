@@ -41,15 +41,6 @@ public class Killer {
                 return;
         }
 
-
-        /*
-         * Chance to get Deadman key for deadman supply chest
-         */
-        if (Random.rollDie(30, 1)) {
-            player.getInventory().addOrDrop(2399, 1);
-            player.sendFilteredMessage("<col=6f0000>You gain a mysterious looking key.");
-        }
-
         /*
          * Increment killer kills & spree.
          */
@@ -60,12 +51,9 @@ public class Killer {
         if(killerSpree > 1) {
             player.sendMessage("You are currently on a killing spree of " + killerSpree + "!");
             if(killerSpree % 5 == 0 || killerSpree > 15) {
-                String spreeMessage = player.getName() + " is on a killing spree of " + killerSpree + ". Kill "
-                        + (player.getAppearance().isMale() ? "him" : "her") + " for a bounty reward of " + (BASE_BM_REWARD + bountyValue(killerSpree)) + " Blood money!";
+                String spreeMessage = player.getName() + " is on a killing spree of " + killerSpree + ".";
                 Broadcast.WORLD.sendPlain(KillingSpree.imgTag(killerSpree) + Color.DARK_GREEN.tag() + " " + spreeMessage);
             }
-            if(player.getCombat().isSkulled()) //Overheads start at sprees of 2, so this fits here.
-                player.getAppearance().setSkullIcon(KillingSpree.overheadId(player));
         }
         /*
          * Check for shutdown

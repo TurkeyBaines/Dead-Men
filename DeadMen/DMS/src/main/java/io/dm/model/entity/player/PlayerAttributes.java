@@ -79,6 +79,8 @@ public abstract class PlayerAttributes extends Entity {
     @Expose @Getter public long[] activeCooldowns;
     @Expose @Getter public long[] toggleCooldowns;
 
+    @Expose public String groupID = null;
+
     /**********************************************/
     /**********************************************/
     /************** DEADMAN VARS END **************/

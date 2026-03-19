@@ -4,6 +4,7 @@ import com.google.gson.annotations.Expose;
 import io.dm.Server;
 import io.dm.cache.AnimDef;
 import io.dm.cache.ObjectDef;
+import io.dm.deadman.content.guard.Skull;
 import io.dm.model.World;
 import io.dm.model.combat.Combat;
 import io.dm.model.combat.CombatUtils;
@@ -697,8 +698,21 @@ public abstract class Entity {
         }
         if(baseHit.attacker != null) {
             if(baseHit.attacker.player != null && baseHit.attackStyle != null) {
-                if(player != null) //important that this happens here for things that hit multiple targets
-                    baseHit.attacker.player.getCombat().skull(player);
+                if(player != null) { //important that this happens here for things that hit multiple targets
+                    if (Skull.hasSkull(baseHit.attacker.player)) {
+                        int atkcb = baseHit.attacker.player.getCombat().getLevel();
+                        int defcb = this.player.getCombat().getLevel();
+                        int duration = Skull.SHORT_SKULL;
+                        if (atkcb > defcb) {
+                            if ((atkcb - defcb) > 30) {
+                                duration = Skull.LONG_SKULL;
+                            } else if ((atkcb - defcb) > 15) {
+                                duration = Skull.MED_SKULL;
+                            }
+                        }
+                        Skull.skull(baseHit.attacker.player, duration);
+                    }
+                }
                 if(baseHit.attackSpell == null)
                     CombatUtils.addXp(baseHit.attacker.player, this, baseHit.attackStyle, baseHit.attackType, damage);
             }

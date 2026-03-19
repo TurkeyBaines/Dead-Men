@@ -95,10 +95,6 @@ public class TabStats {
             player.sendMessage("You can't set levels from here.");
             return;
         }
-        if(player.getBountyHunter().target != null) {
-            player.sendMessage("You can't set levels while you have a target.");
-            return;
-        }
         if(player.joinedTournament) {
             player.sendMessage("You can't set levels while inside a tournament.");
             return;

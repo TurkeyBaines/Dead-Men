@@ -5303,6 +5303,26 @@ public final class Client extends GameShell implements Usernamed {
 		class30.alignWidgetPosition(var1, var3, var4);
 	}
 
+	@Export("autosize_team_panel")
+	void autosize_team_panel(Widget panel) {
+		int visible = 0;
+		int totalHeight = 0;
+
+		for (int i = 9; i <= 13; i++) {
+			Widget child = panel.children[i];
+			if (child != null && child.isHidden == false) {
+				visible++;
+				totalHeight += child.height;
+			}
+		}
+
+		// Optional: spacing between rows
+		totalHeight += (visible - 1) * 2;
+
+		// Apply new height
+		panel.setSize(panel.getWidth(), totalHeight, 1, 1);
+	}
+
 	@ObfuscatedName("jt")
 	@ObfuscatedSignature(
 		signature = "(I)V",

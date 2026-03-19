@@ -936,6 +936,7 @@ public class ObjectDefinition extends DualNode implements RSObjectDefinition {
          case 32658: // Tournament Config Board
             actions[0] = "Read";
             actions[1] = "Override";
+            actions[2] = "Group Settings";
             break;
 
          case 33309:

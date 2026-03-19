@@ -215,6 +215,7 @@ public class ObjectDef {
             case 32658: // Tournament Config Board
                 options[0] = "Read";
                 options[1] = "Override";
+                options[2] = "Group Settings";
                 break;
 
             case 33309:

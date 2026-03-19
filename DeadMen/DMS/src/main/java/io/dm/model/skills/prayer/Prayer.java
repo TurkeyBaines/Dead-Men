@@ -56,13 +56,6 @@ public enum Prayer {
     PROTECT_ITEM(4112, 1982, p -> {
         p.level = 25;
         p.drain = 2;
-        p.activationCheck = player -> {
-            if(player.getCombat().highRiskSkull) {
-                player.sendMessage(Color.ORANGE_RED.wrap("Warning:") + " The Protect Item prayer is disabled when marked with a high-risk skull.");
-                return false;
-            }
-            return true;
-        };
     }),
     STEEL_SKIN(4113, 2687, p -> {
         p.level = 28;

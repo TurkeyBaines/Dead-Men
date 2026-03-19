@@ -1,8 +1,10 @@
 package io.dm.model.entity.player;
 
 import com.google.gson.annotations.Expose;
+import io.dm.deadman.Deadman;
 import io.dm.deadman.content.areas.overworld.OverworldTools;
 import io.dm.deadman.content.areas.overworld.combat.CombatTask;
+import io.dm.deadman.tournament.team.Group;
 import io.netty.channel.Channel;
 import io.dm.Server;
 import io.dm.api.protocol.login.LoginInfo;
@@ -13,7 +15,6 @@ import io.dm.cache.InterfaceDef;
 import io.dm.cache.Varp;
 import io.dm.event.GameEventProcessor;
 import io.dm.model.World;
-import io.dm.model.activities.wilderness.BountyHunter;
 import io.dm.model.content.upgrade.ItemEffect;
 import io.dm.model.entity.Entity;
 import io.dm.model.entity.npc.NPC;
@@ -934,16 +935,6 @@ public class Player extends PlayerAttributes {
         return combat;
     }
 
-    /**
-     * Bounty Hunter
-     */
-
-    @Expose private BountyHunter bountyHunter;
-
-    public BountyHunter getBountyHunter() {
-        return bountyHunter;
-    }
-
 
     /**
      * Hitpoints
@@ -1187,10 +1178,6 @@ public class Player extends PlayerAttributes {
             combat = new PlayerCombat();
         combat.init(this);
 
-        if(bountyHunter == null)
-            bountyHunter = new BountyHunter();
-        bountyHunter.init(this);
-
         checkMulti();
         Tile.occupy(this);
 
@@ -1419,7 +1406,6 @@ public class Player extends PlayerAttributes {
         Hunter.collapseAll(this);
         resetActions(true, true, true);
         bankPin.loggedOut();
-        bountyHunter.loggedOut();
         if(logoutListener != null && logoutListener.logoutAction != null) {
             logoutListener.logoutAction.logout(this);
             logoutListener = null;
@@ -1784,5 +1770,14 @@ public class Player extends PlayerAttributes {
             System.out.println("Running onDialogueContinued runnable.");
         }
         onDialogueContinued = null;
+    }
+
+    public boolean hasGroup() {
+        return groupID != null;
+    }
+
+    public Group getGroup() {
+        if (!hasGroup()) return null;
+        return Deadman.getGroups().getGroup(this, groupID);
     }
 }

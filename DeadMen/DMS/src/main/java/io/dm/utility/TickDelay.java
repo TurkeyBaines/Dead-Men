@@ -14,12 +14,20 @@ public class TickDelay {
         end = newEnd;
     }
 
+    public void setEnd(int ticks) {
+        end = System.currentTimeMillis() + ((long)(0.6 * ticks));
+    }
+
     public void delay(int ticks) {
         end = Server.getEnd(ticks);
     }
 
     public void delaySeconds(int seconds) {
         delay(Server.toTicks(seconds));
+    }
+
+    public void addDelay(int ticks) {
+        end += (long) (0.6 * ticks);
     }
 
     public void addDelaySeconds(int seconds) {

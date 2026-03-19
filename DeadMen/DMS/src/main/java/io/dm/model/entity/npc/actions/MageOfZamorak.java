@@ -25,7 +25,6 @@ public class MageOfZamorak {
                     npc.graphics(343, 100, 1);
                     event.delay(2);
                     player.unlock();
-                    player.getCombat().skullNormal();
                     player.getPrayer().drain(1000); //1000 is just a safe "drain all"
                     Abyss.randomize(player);
                     IntoTheAbyss.entered(player);

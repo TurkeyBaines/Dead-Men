@@ -461,14 +461,6 @@ public abstract class NPCCombat extends Combat {
             }
         }
 
-        if (item.getDef().name.toLowerCase().contains("statius") ||
-                item.getDef().name.toLowerCase().contains("vesta") ||
-                item.getDef().name.toLowerCase().contains("zuriel")) {
-            pKiller.sendMessage("You have been red skulled and tele-blocked because of your loot!");
-            pKiller.getCombat().skullHighRisk();
-            pKiller.getCombat().teleblock();
-        }
-
         /*
          * Modify drop for specific npc
          */

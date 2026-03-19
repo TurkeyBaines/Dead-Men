@@ -19,32 +19,34 @@ public class KillingSpree {
 
     public static int overheadId(Player player) {
         int spree = player.currentKillSpree;
+        boolean highRiskSkull = true;
         if(spree >= 10)
-            return player.getCombat().highRiskSkull ? 23 : 18;
+            return highRiskSkull ? 23 : 18;
         if(spree >= 8)
-            return player.getCombat().highRiskSkull ? 22 : 17;
+            return highRiskSkull ? 22 : 17;
         if(spree >= 6)
-            return player.getCombat().highRiskSkull ? 21 : 16;
+            return highRiskSkull ? 21 : 16;
         if(spree >= 4)
-            return player.getCombat().highRiskSkull ? 20 : 15;
+            return highRiskSkull ? 20 : 15;
         if(spree >= 2)
-            return player.getCombat().highRiskSkull ? 19 : 14;
-        return player.getCombat().highRiskSkull ? 1 : 0;
+            return highRiskSkull ? 19 : 14;
+        return highRiskSkull ? 1 : 0;
     }
 
     public static int imgId(Player player) {
         int spree = player.currentKillSpree;
+        boolean highRiskSkull = true;
         if(spree >= 10)
-            return player.getCombat().highRiskSkull ? 107 : 98;
+            return highRiskSkull ? 107 : 98;
         if(spree >= 8)
-            return player.getCombat().highRiskSkull ? 106 : 97;
+            return highRiskSkull ? 106 : 97;
         if(spree >= 6)
-            return player.getCombat().highRiskSkull ? 105 : 96;
+            return highRiskSkull ? 105 : 96;
         if(spree >= 4)
-            return player.getCombat().highRiskSkull ? 104 : 95;
+            return highRiskSkull ? 104 : 95;
         if(spree >= 2)
-            return player.getCombat().highRiskSkull ? 103 : 94;
-        return player.getCombat().highRiskSkull ? 93 : 46;
+            return highRiskSkull ? 103 : 94;
+        return highRiskSkull ? 93 : 46;
     }
 
     public static String imgTag(int spree) {

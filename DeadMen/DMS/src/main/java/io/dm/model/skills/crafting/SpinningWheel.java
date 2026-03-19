@@ -72,7 +72,7 @@ public enum SpinningWheel {
                 new SkillItem(MAGIC_STRING.after).addAction((p, amount, event) -> spin(p, MAGIC_STRING, amount)));
     }
 
-    static final int[] SPINNING_WHEEL = {25824, 14889, 4309};
+    static final int[] SPINNING_WHEEL = {30934, 25824, 14889, 4309};
 
     static {
         for(int WHEEL : SPINNING_WHEEL) {

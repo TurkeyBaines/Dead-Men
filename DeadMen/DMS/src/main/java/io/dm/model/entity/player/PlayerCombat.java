@@ -5,6 +5,7 @@ import io.dm.Server;
 import io.dm.api.utils.Random;
 import io.dm.cache.Color;
 import io.dm.cache.ItemDef;
+import io.dm.deadman.content.guard.Skull;
 import io.dm.deadman.content.sigils.Sigil;
 import io.dm.deadman.content.sigils.Sigils;
 import io.dm.deadman.content.sigils.combat.FormidableFighter;
@@ -97,10 +98,10 @@ public class PlayerCombat extends Combat {
 
     public void start() { //different than init because player isn't online yet when init happens
         setLevel();
-        if(highRiskSkull)
-            player.getAppearance().setSkullIcon(KillingSpree.overheadId(player));
-        else if(skullDelay > 0)
-            player.getAppearance().setSkullIcon(KillingSpree.overheadId(player));
+        if(Skull.hasSkull(player))
+            player.getAppearance().setSkullIcon(0);
+        else
+            player.getAppearance().setSkullIcon(-1);
     }
 
     /**
@@ -131,7 +132,6 @@ public class PlayerCombat extends Combat {
 
     public void preAttack() {
         depleteTb();
-        depleteSkull();
         depleteCharge();
         checkLastTarget();
         checkGraniteMaul();
@@ -963,9 +963,7 @@ public class PlayerCombat extends Combat {
                 /**
                  * Rewards (Keep before items lost on death!)
                  */
-                boolean bhTarget = player.getBountyHunter().deathByTarget(pKiller);
                 if(pKiller != null) {
-                    killer.reward(player, bhTarget);
                     Config.PVP_DEATHS.increment(player, 1);
                     player.currentKillSpree = 0;
                 }
@@ -1020,9 +1018,10 @@ public class PlayerCombat extends Combat {
 
                 player.getMovement().teleport(2973, 3338, 1);
             }
-            resetSkull();
-            resetSkullers();
             restore();
+            if (Skull.hasSkull(player)) {
+                Skull.onDeath(player);
+            }
             event.delay(1);
             setTruelyDead(false);
             setDead(false);
@@ -1305,64 +1304,6 @@ public class PlayerCombat extends Combat {
      */
 
 
-
-    /**
-     * Skulling
-     */
-
-    private HashSet<Integer> skullers;
-
-    @Expose public int skullDelay;
-
-    @Expose public boolean highRiskSkull;
-
-    public void skull(Player pTarget) {
-        if(player.wildernessLevel == 0 && !player.pvpAttackZone)
-            return;
-        if(skullers != null && skullers.contains(pTarget.getUserId()) && pTarget.getCombat().isSkulled())
-            return;
-        if(pTarget.getCombat().skullers == null)
-            pTarget.getCombat().skullers = new HashSet<>(5);
-        pTarget.getCombat().skullers.add(player.getUserId());
-        if(!highRiskSkull)
-            skullNormal();
-    }
-
-    public void skullNormal() {
-        skullDelay = 1000;
-        highRiskSkull = false;
-        player.getAppearance().setSkullIcon(KillingSpree.overheadId(player));
-    }
-
-    public void skullHighRisk() {
-        skullDelay = 0;
-        highRiskSkull = true;
-        player.getAppearance().setSkullIcon(KillingSpree.overheadId(player));
-        if(player.getPrayer().isActive(Prayer.PROTECT_ITEM))
-            player.getPrayer().deactivate(Prayer.PROTECT_ITEM);
-        player.sendMessage(Color.ORANGE_RED.wrap("Warning:") + " The Protect Item prayer is disabled when marked with a high-risk skull.");
-    }
-
-    private void depleteSkull() {
-        if(!highRiskSkull && skullDelay > 0 && --skullDelay == 0)
-            player.getAppearance().setSkullIcon(-1);
-    }
-
-    private void resetSkullers() {
-        if(skullers != null)
-            skullers.clear();
-    }
-
-    public void resetSkull() {
-        skullDelay = 0;
-        highRiskSkull = false;
-        if(player.getAppearance().getSkullIcon() != -1)
-            player.getAppearance().setSkullIcon(-1);
-    }
-
-    public boolean isSkulled() {
-        return highRiskSkull || skullDelay > 0;
-    }
 
     /**
      * Teleblock

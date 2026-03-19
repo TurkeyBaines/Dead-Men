@@ -12,6 +12,8 @@ import io.dm.deadman.tournament.Tournament;
 import io.dm.deadman.tournament.TournamentConfig;
 import io.dm.deadman.tournament.stages.Lobby;
 import io.dm.deadman.tournament.stages.Main;
+import io.dm.deadman.tournament.team.Group;
+import io.dm.deadman.tournament.team.Groups;
 import io.dm.model.World;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.shared.listeners.LoginListener;
@@ -37,6 +39,8 @@ public class Deadman {
     @Getter @Setter private static TournamentConfig next_config;
     @Getter @Setter private static String next_Config_Name;
 
+    @Getter private static Groups groups;
+
     static {
         stage = new Lobby();
         stage.onLoad();
@@ -46,6 +50,8 @@ public class Deadman {
         multiZone = new MultiZone();
         safeZone = new SafeZone();
         overworld = new Overworld();
+
+        groups = new Groups();
 
         World.startEvent(e -> {
             while (true) {
@@ -61,8 +67,6 @@ public class Deadman {
     }
 
     public Deadman() {
-
-
 
         LoginListener.register(player -> {
             if (stage.stageName() == Tournament.StageName.LOBBY) {
@@ -192,6 +196,4 @@ public class Deadman {
     public static void overrideConfig(TournamentConfig config) {
         next_config = config;
     }
-
-
 }
