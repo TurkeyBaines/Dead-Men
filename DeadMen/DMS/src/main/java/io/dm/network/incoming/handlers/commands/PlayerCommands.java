@@ -1,15 +1,27 @@
 package io.dm.network.incoming.handlers.commands;
 
 import io.dm.cache.ItemID;
+import io.dm.cache.Varpbit;
 import io.dm.model.World;
 import io.dm.model.combat.Hit;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.utils.Config;
 
+import java.util.ArrayList;
+import java.util.Objects;
+
 public class PlayerCommands {
 
     public void process(Player player, String... args) {
-        switch (args[0]) {
+        switch (args[0].toLowerCase()) {
+
+            case "varp":
+                varp(player, args);
+                break;
+
+            case "cvarp":
+                cvarp(player, args);
+                break;
 
             case "maxset":
                 maxset(player);
@@ -60,6 +72,10 @@ public class PlayerCommands {
                 lock(player, true);
                 break;
 
+            case "script":
+                script(player, args);
+                break;
+
             default:
                 Player p2 = World.getPlayer(args[0].replace("_", " "));
                 if (p2 == null) {
@@ -93,6 +109,14 @@ public class PlayerCommands {
 
                     case "kill":
                         kill(p2);
+                        break;
+
+                    case "varp":
+                        varp(player, p2, args);
+                        break;
+
+                    case "cvarp":
+                        cvarp(player, args);
                         break;
                 }
                 break;
@@ -219,6 +243,89 @@ public class PlayerCommands {
             p.unlock();
         else
             p.lock();
+    }
+
+    private void varp(Player p, String... args) {
+        int id = Integer.parseInt(args[2]);
+        if (args[1].equalsIgnoreCase("get")) {
+            p.sendMessage("varp[" + id + "]: " + p.varps[id]);
+        } else if (args[1].equalsIgnoreCase("set")) {
+            int val = Integer.parseInt(args[3]);
+            p.varps[id] = val;
+            p.getPacketSender().sendVarp(id, val);
+        } else if (args[1].equalsIgnoreCase("def")) {
+            int varpbit = Integer.parseInt(args[2]);
+            Varpbit def = Varpbit.get(varpbit);
+            if (def != null) {
+                p.sendMessage("[Varpbit Def] varp="+ def.varpId +", start="+ def.leastSigBit +", end="+ def.mostSigBit +", maxValue="+ Math.pow(2, (def.mostSigBit - def.leastSigBit)));
+                p.sendMessage("[Varpbit Def] value=" + p.varps[def.varpId]);
+            } else {
+                p.sendMessage("No definition entry found for varpbit "+ varpbit +".");
+            }
+        }
+    }
+
+    private void cvarp(Player p, String... args) {
+        int id = Integer.parseInt(args[2]);
+        if (args[1].equalsIgnoreCase("set")) {
+            int val = Integer.parseInt(args[3]);
+            p.getPacketSender().sendVarp(id, val);
+        }
+    }
+
+    private void varp(Player p, Player p2, String... args) {
+        int id = Integer.parseInt(args[2]);
+        if (args[1].equalsIgnoreCase("get")) {
+            p.sendMessage(p2.getName() + " | varp[" + id + "]: " + p2.varps[id]);
+        } else if (args[1].equalsIgnoreCase("set")) {
+            int val = Integer.parseInt(args[3]);
+            p2.varps[id] = val;
+            p2.getPacketSender().sendVarp(id, val);
+        } else if (args[1].equalsIgnoreCase("def")) {
+            int varpbit = Integer.parseInt(args[2]);
+            Varpbit def = Varpbit.get(varpbit);
+            if (def != null) {
+                p.sendMessage("[Varpbit Def] varp="+ def.varpId +", start="+ def.leastSigBit +", end="+ def.mostSigBit +", maxValue="+ Math.pow(2, (def.mostSigBit - def.leastSigBit)));
+            } else {
+                p.sendMessage("No definition entry found for varpbit "+ varpbit +".");
+            }
+        }
+    }
+
+    private void script(Player p, String... args) {
+
+        ArrayList<Object> params = new ArrayList<>();
+        int id = Integer.parseInt(args[1]);
+        String type = "";
+        if (args.length > 2) {
+            type = args[2];
+        }
+        if (args.length > 3) {
+            for (int i = 3; i < args.length; i++) {
+                if (args[i].contains("int")) {
+                    params.add(Integer.parseInt(args[i].split("\\(")[1].replace(")", "")));
+                }
+                if (args[i].contains("str")) {
+                    params.add(args[i].split("\\(")[1].replace(")", ""));
+                }
+                if (args[i].contains("bool")) {
+                    params.add(Boolean.parseBoolean(args[i].split("\\(")[1].replace(")", "")));
+                }
+            }
+
+            String strParam = "";
+            for (Object o : params) {
+                strParam += "~" + o.toString() + " ";
+            }
+
+            p.sendMessage("running Client Script [" + id + " / " + type + "] " + strParam);
+
+            p.getPacketSender().sendClientScript(id, type, params.toArray());
+            return;
+        }
+
+        p.sendMessage("running Client Script [" + id + " / " + type + "]");
+        p.getPacketSender().sendClientScript(id, type);
     }
 
 }

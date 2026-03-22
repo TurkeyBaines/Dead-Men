@@ -125,6 +125,10 @@ public class Groups {
             p.sendMessage("The owner is offline!");
             return;
         }
+        if (p2.getCombat().getTarget() != null) {
+            p.sendMessage("The owner is in combat, please try again shortly!");
+            return;
+        }
         skip = false;
         approved = false;
 

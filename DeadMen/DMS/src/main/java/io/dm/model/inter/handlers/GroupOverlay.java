@@ -1,6 +1,7 @@
 package io.dm.model.inter.handlers;
 
 import io.dm.cache.Color;
+import io.dm.cache.Icon;
 import io.dm.deadman.Deadman;
 import io.dm.model.World;
 import io.dm.model.entity.player.Player;
@@ -30,6 +31,8 @@ public class GroupOverlay {
                         p.getPacketSender().sendString(interId, 16+i, "Player " + (i+1) + ":");
                         p.getPacketSender().sendString(interId, 11+i, Color.CYAN.wrap(name));
                     }
+
+                    p.getPacketSender().sendString(interId, 21, "<img=1>");
                 } else {
                     p.getPacketSender().sendString(interId, 9, "No Team");
                     for (int i = 0; i < Deadman.getConfig().TEAM_SIZE_MAX.asInt; i++) {

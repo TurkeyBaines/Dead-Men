@@ -87,10 +87,6 @@ public class Citadel {
         players.add(player);
         player.attackPlayerListener = Citadel::allowAttack;
         player.attackNpcListener = Citadel::allowNPCAttack;
-        player.openInterface(InterfaceType.WILDERNESS_OVERLAY, Interface.WILDERNESS_OVERLAY);
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, false); //hide safe area sprite
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, true); //show wilderness level
-        Config.IN_PVP_AREA.set(player, 0);
         player.setAction(1, PlayerAction.INVITE);
         GroupOverlay.send(player);
     }
@@ -101,10 +97,6 @@ public class Citadel {
         System.out.println("Player Exited!");
         player.attackPlayerListener = null;
         player.attackNpcListener = null;
-        player.openInterface(InterfaceType.WILDERNESS_OVERLAY, Interface.WILDERNESS_OVERLAY);
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, true); //hide safe area sprite
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, false); //show wilderness level
-        Config.IN_PVP_AREA.set(player, 1);
         player.setAction(1, PlayerAction.ATTACK);
         player.closeInterface(InterfaceType.PRIMARY_OVERLAY);
 
@@ -278,7 +270,7 @@ public class Citadel {
             } else if (!p.getGroup().isOwner(p)) {
                 p.dialogue(new OptionsDialogue(
                         new Option("Leave Group", () -> p.dialogue(
-                                new YesNoDialogue("Leave Group", "Are you sure you want to leave?", null, () -> p.getGroup().leave(p))
+                                new YesNoDialogue("Leave Group", "Are you sure you want to leave?", new Item(ItemID.GADDERHAMMER), () -> p.getGroup().leave(p))
                         ))
                 ));
             } else {
@@ -287,7 +279,7 @@ public class Citadel {
                         new Option("View Group ID", () -> p.dialogue(new MessageDialogue("Group ID: " + Color.DARK_RED.wrap(p.groupID)))),
                         new Option("Kick Members", this::showKickMenu),
                         new Option("Leave Group", () -> p.dialogue(
-                                new YesNoDialogue("Leave Group", "Are you sure you want to leave?", null, () -> p.getGroup().leave(p))
+                                new YesNoDialogue("Leave Group", "Are you sure you want to leave?", new Item(ItemID.GADDERHAMMER), () -> p.getGroup().leave(p))
                         ))
                 ));
             }

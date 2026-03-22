@@ -9,11 +9,24 @@ public class GoToCommands {
             case "overowrld": case "ow":
                 overworld(p, args);
                 break;
+
+            case "wilderness": case "wild":
+                wilderness(p, args);
+                break;
+
         }
     }
 
-    public void overworld(Player p, String... args) {
-        switch (args[1]) {
+    private void wilderness(Player p, String... args) {
+        switch (args[1].toLowerCase()) {
+            case "bears":
+                p.getMovement().teleport(3100, 3600);
+                break;
+        }
+    }
+
+    private void overworld(Player p, String... args) {
+        switch (args[1].toLowerCase()) {
             case "portal":
                 p.getMovement().teleport(2539, 3872);
                 p.sendMessage("You have moved to CITADEL > PORTAL");

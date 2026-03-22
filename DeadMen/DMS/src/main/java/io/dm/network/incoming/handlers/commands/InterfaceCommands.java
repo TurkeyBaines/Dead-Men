@@ -7,6 +7,7 @@ import io.dm.model.inter.InterfaceHandler;
 import io.dm.model.inter.InterfaceType;
 import io.dm.model.inter.Widget;
 import io.dm.model.inter.utils.Config;
+import io.dm.utility.CS2Script;
 
 public class InterfaceCommands {
 
@@ -32,7 +33,7 @@ public class InterfaceCommands {
 
     private void show(Player p, String... args) {
         if (args.length == 2)
-            p.openInterface(InterfaceType.MAIN, Integer.parseInt(args[1]));
+            p.openInterface(InterfaceType.WILDERNESS_OVERLAY, Integer.parseInt(args[1]));
         else if (args.length == 3)
             if (args[1].equalsIgnoreCase("cont"))
                 p.startEvent(e -> {
@@ -53,12 +54,8 @@ public class InterfaceCommands {
     }
 
     private void debug(Player p) {
-        p.getPacketSender().sendVarp(20003, 0); //custom to make sure client doesn't think pvp world
-        p.openInterface(InterfaceType.WILDERNESS_OVERLAY, Interface.WILDERNESS_OVERLAY);
-        p.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, false); //hide safe area sprite
-        p.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, true); //show wilderness level
-        p.getPacketSender().sendString(Interface.WILDERNESS_OVERLAY, 66, "HELLO");
-        Config.IN_PVP_AREA.set(p, 1);
+        p.openInterface(InterfaceType.WILDERNESS_OVERLAY, 90);
+        p.setVisibleInterface(90, 90, 63);
     }
 
     private void print(Player p, String... args) {

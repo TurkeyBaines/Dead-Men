@@ -388,17 +388,6 @@ public class CommandHandler implements Incoming {
                 return true;
             }
 
-            case "varbitdef": {
-                int varpbit = Integer.parseInt(args[0]);
-                Varpbit def = Varpbit.get(varpbit);
-                if (def != null) {
-                    player.sendMessage("[Varpbit Def] varp="+ def.varpId +", start="+ def.leastSigBit +", end="+ def.mostSigBit +", maxValue="+ Math.pow(2, (def.mostSigBit - def.leastSigBit)));
-                } else {
-                    player.sendMessage("No definition entry found for varpbit "+ varpbit +".");
-                }
-                return false;
-            }
-
             case "vbs":
             case "varpbits": {
                 int minId = Integer.valueOf(args[0]);

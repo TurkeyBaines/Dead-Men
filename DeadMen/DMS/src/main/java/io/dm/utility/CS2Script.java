@@ -28,6 +28,7 @@ public enum CS2Script {
     TOB_HUD_PORTAL(2307, "s"),
     //color transparency
     TOPLEVEL_MAINMODAL_OPEN(2524, "ii"),
+    WILDERNESS_LEVEL(388, "ii")
 
     ;
 

@@ -179,11 +179,8 @@ public class ShopManager {
 
     public static void shopTick(Event event, Shop shop) {
         while(true) {
-            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Started shopTick()");
             RestockRules restockRules = shop.restockRules;
-            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Started Restock Wait");
             event.delay(restockRules.restockTicks);
-            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Started Restock Tick");
             shop.shopItems.forEach(shopItem -> {
                 ShopItem original = null;
                 if (shop.defaultStock != null)
@@ -203,15 +200,12 @@ public class ShopManager {
                     }
                 }
             });
-            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Amended Store Stock");
 
             shop.sendUpdates();
-            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Sent Restock Tick");
 
             if (shop.onTick != null) {
                 shop.onTick.accept(shop);
             }
-            if (Objects.equals(shop.identifier, "472x281s-3k8d-10z8-99m2-206d6942cff8")) System.out.println("Finished shopTick()");
 
         }
     }

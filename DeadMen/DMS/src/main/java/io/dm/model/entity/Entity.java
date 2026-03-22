@@ -699,7 +699,7 @@ public abstract class Entity {
         if(baseHit.attacker != null) {
             if(baseHit.attacker.player != null && baseHit.attackStyle != null) {
                 if(player != null) { //important that this happens here for things that hit multiple targets
-                    if (Skull.hasSkull(baseHit.attacker.player)) {
+                    if (!Skull.hasSkull(player)) {
                         int atkcb = baseHit.attacker.player.getCombat().getLevel();
                         int defcb = this.player.getCombat().getLevel();
                         int duration = Skull.SHORT_SKULL;

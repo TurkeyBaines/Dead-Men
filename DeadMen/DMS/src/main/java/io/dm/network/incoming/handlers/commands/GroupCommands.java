@@ -8,39 +8,20 @@ public class GroupCommands {
 
     public void process(Player p, String... args) {
         switch (args[0]) {
-            case "create":
-                create(p);
-                break;
-
-            case "leave":
-                leaveTeam(p);
+            case "id":
+                id(p);
                 break;
         }
     }
 
-
-    private void create(Player p) {
-        p.stringInput("Enter a name", name -> {
-            if (name.length() > 10) {
-                p.dialogue(new MessageDialogue("Name must contain less than 10 characters."));
-                return;
-            }
-            Deadman.getGroups().newTeam(p, name);
-        });
-    }
-
-    private void leaveTeam(Player p) {
-        String id = p.groupID;
-        if (id == null) {
-            p.sendMessage("You're not in a team!");
+    private void id(Player p) {
+        if (p.groupID == null || Deadman.getGroups().getGroup(p.groupID) == null) {
+            p.sendMessage("Error finding group!");
             return;
         }
-        System.out.println("Command: Leave");
-        System.out.println("\t - ID: " + id);
 
-        if (!Deadman.getGroups().getGroup(p, id).leave(p)) {
-            p.sendMessage("We couldn't find you in the team!");
-        }
+        p.sendMessage("Your Group ID is: " + p.groupID);
     }
+
 
 }

@@ -22,11 +22,9 @@ public class Skull {
 
         World.startEvent(e -> {
             while (true) {
-                e.delay(1);
-                if (playerList.isEmpty())
-                    return;
-
-                tick();
+                e.delay(10);
+                if (!playerList.isEmpty())
+                    tick();
             }
         });
     }
@@ -34,7 +32,9 @@ public class Skull {
     public static void tick() {
 
         for (Record r : playerList.values()) {
+            System.out.println("[Skull] " + r.player.getName() + ": " + r.timer.remaining());
             if (r.complete()) {
+                System.out.println("[Skull] Removing " + r.player.getName());
                 remove.add(r.player);
                 r.player.getAppearance().setSkullIcon(-1);
             }
@@ -43,6 +43,7 @@ public class Skull {
         for (Player p : remove) {
             playerList.remove(p);
         }
+        remove.clear();
 
     }
 

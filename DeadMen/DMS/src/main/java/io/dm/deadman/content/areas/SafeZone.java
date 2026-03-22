@@ -363,10 +363,6 @@ public class SafeZone {
         players.add(player);
         player.attackPlayerListener = SafeZone::allowAttack;
         player.attackNpcListener = SafeZone::allowNPCAttack;
-        player.openInterface(InterfaceType.WILDERNESS_OVERLAY, Interface.WILDERNESS_OVERLAY);
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, false); //hide safe area sprite
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, true); //show wilderness level
-        Config.IN_PVP_AREA.set(player, 1);
         player.setAction(1, PlayerAction.ATTACK);
         player.getEquipment().update(0);
         player.getEquipment().sendUpdates();
@@ -384,10 +380,6 @@ public class SafeZone {
         players.remove(player);
         player.attackPlayerListener = SafeZone::allowAttack;
         player.attackNpcListener = SafeZone :: allowNPCAttack;
-        player.openInterface(InterfaceType.WILDERNESS_OVERLAY, Interface.WILDERNESS_OVERLAY);
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, true); //hide safe area sprite
-        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, false); //show wilderness level
-        Config.IN_PVP_AREA.set(player, 1);
         player.setAction(1, PlayerAction.ATTACK);
         player.getEquipment().update(0);
         player.getEquipment().sendUpdates();
