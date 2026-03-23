@@ -1,7 +1,7 @@
 package io.dm.deadman;
 
 import io.dm.cache.Color;
-import io.dm.deadman.content.areas.Citadel;
+import io.dm.deadman.content.areas.citadel.Citadel;
 import io.dm.deadman.content.areas.overworld.Overworld;
 import io.dm.deadman.content.areas.MultiZone;
 import io.dm.deadman.content.areas.SafeZone;
@@ -12,7 +12,6 @@ import io.dm.deadman.tournament.Tournament;
 import io.dm.deadman.tournament.TournamentConfig;
 import io.dm.deadman.tournament.stages.Lobby;
 import io.dm.deadman.tournament.stages.Main;
-import io.dm.deadman.tournament.team.Group;
 import io.dm.deadman.tournament.team.Groups;
 import io.dm.model.World;
 import io.dm.model.entity.player.Player;
@@ -92,7 +91,7 @@ public class Deadman {
                     player.dmmNeedsReset = true;
                 }
             } else if (stage.stageName() == Tournament.StageName.FINAL) {
-                player.sendMessage(Color.RED.wrap("A Tournament Finals is underway! You can spectate it using the orb, or visit the Overworld while you wait."));
+                player.sendMessage(Color.RED.wrap("The Tournament Finals are underway! You can spectate it using the orb, or visit the Overworld while you wait."));
                 teleToCitadel(player);
                 player.dmmNeedsReset = true;
             }

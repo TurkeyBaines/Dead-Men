@@ -80,4 +80,17 @@ public class Main extends Stage {
     public Tournament.StageName stageName() {
         return Tournament.StageName.MAIN;
     }
+
+
+    public int getRuntimePercentage() {
+        long totalDuration = config.GAME_LENGTH.runtime;
+        long elapsed = System.currentTimeMillis() - startTime;
+
+        // Ensure we don't exceed 100% or go below 0%
+        if (totalDuration <= 0) return 100;
+
+        int percentage = (int) ((elapsed * 100) / totalDuration);
+
+        return Math.min(100, Math.max(0, percentage));
+    }
 }
