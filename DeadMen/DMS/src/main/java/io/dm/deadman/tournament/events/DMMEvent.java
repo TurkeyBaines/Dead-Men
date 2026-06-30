@@ -23,6 +23,12 @@ public abstract class DMMEvent {
     }
 
     public static DMMEvent getRandom() {
-        return null; //TODO -- ADD NONE NULL!!!
+        // Weighted pick across the events that are actually wired up. Kept defensive:
+        // Main.onUpdate() immediately calls spawn() on whatever this returns, so it
+        // must never be null.
+        if (io.dm.api.utils.Random.get(100) < 55) {
+            return new io.dm.deadman.tournament.events.koth.KingOfTheHill();
+        }
+        return new io.dm.deadman.tournament.events.chest.StaticChest();
     }
 }
