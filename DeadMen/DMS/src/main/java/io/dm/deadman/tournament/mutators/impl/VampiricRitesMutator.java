@@ -21,4 +21,9 @@ public class VampiricRitesMutator extends Mutator {
     public boolean hasAction() {
         return false;
     }
+
+    @Override
+    public boolean suppressHpRegen() {
+        return true;
+    }
 }

@@ -3,7 +3,10 @@ package io.dm.deadman.content.items;
 import io.dm.cache.ItemID;
 import io.dm.deadman.Deadman;
 import io.dm.deadman.tournament.mutators.Mutator;
+import io.dm.deadman.tournament.mutators.impl.BloodFrenzyMutator;
+import io.dm.deadman.tournament.mutators.impl.BountyHunterMutator;
 import io.dm.deadman.tournament.mutators.impl.EmptyMutator;
+import io.dm.deadman.tournament.mutators.impl.FamineMutator;
 import io.dm.deadman.tournament.mutators.impl.StaticGasMutator;
 import io.dm.deadman.tournament.mutators.impl.VampiricRitesMutator;
 import io.dm.deadman.tournament.TournamentConfig;
@@ -137,12 +140,23 @@ public class TournamentTicket {
             case 6:
                 p.dialogue(new MessageDialogue("Finally, we need to set a Mutator. These will mix up the fun drastically!"),
                         new OptionsDialogue(
-                                "Which Mutator would you like to enable, hit Random for a surprise!",
+                                "Which Mutator would you like to enable?",
                                 new Option("None", () -> { mutator = new EmptyMutator(); str_mutator = "None"; showDialogue(p, 7);}),
                                 new Option("Static Gas Zone", () -> { mutator = new StaticGasMutator(); str_mutator = "Static Gas"; showDialogue(p, 7);}),
-                                new Option("Vampiric Rites", () -> { mutator = new VampiricRitesMutator(); str_mutator = "Vampiric Rites"; showDialogue(p, 7);})
+                                new Option("Vampiric Rites", () -> { mutator = new VampiricRitesMutator(); str_mutator = "Vampiric Rites"; showDialogue(p, 7);}),
+                                new Option("More options...", () -> showDialogue(p, 61))
                         )
                 );
+                break;
+
+            case 61:
+                p.dialogue(new OptionsDialogue(
+                        "More mutators:",
+                        new Option("Famine", () -> { mutator = new FamineMutator(); str_mutator = "Famine"; showDialogue(p, 7);}),
+                        new Option("Blood Frenzy", () -> { mutator = new BloodFrenzyMutator(); str_mutator = "Blood Frenzy"; showDialogue(p, 7);}),
+                        new Option("Bounty Hunter", () -> { mutator = new BountyHunterMutator(); str_mutator = "Bounty Hunter"; showDialogue(p, 7);}),
+                        new Option("< Back", () -> showDialogue(p, 6))
+                ));
                 break;
 
             case 7:
