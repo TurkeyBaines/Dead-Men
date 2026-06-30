@@ -1,0 +1,33 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+version = '1.0'
+project.ext {
+    type = "tool"
+}
+
+javafx {
+    version = "21.0.2"
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.graphics']
+}
+
+dependencies {
+    implementation group: 'org.antlr', name: 'antlr4-runtime', version: '4.7.2'
+    implementation group: 'org.apache.commons', name: 'commons-compress', version: '1.26.0'
+}
+
+application {
+    mainClassName = 'io.dm.interfaceeditor.Launcher'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'io.dm.interfaceeditor.Launcher'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
