@@ -1,0 +1,6 @@
+node_modules/
+*.log
+.DS_Store
+# never commit a working copy of a cache placed at the project root for testing
+/cache/
+/test-cache/

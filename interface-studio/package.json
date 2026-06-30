@@ -1,0 +1,14 @@
+{
+  "name": "deadmen-interface-studio",
+  "version": "1.0.0",
+  "description": "Interface renderer & editor for the Dead-Men OSRS private server cache",
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "seek-bzip": "^2.0.0"
+  }
+}

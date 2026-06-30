@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dead-Men Interface Studio</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="open-overlay" class="overlay">
+  <div class="open-dialog">
+    <h1>Dead-Men <span>Interface Studio</span></h1>
+    <p class="sub">Point the studio at your OSRS cache folder (the directory containing
+      <code>main_file_cache.dat2</code> and the <code>.idx</code> files).</p>
+    <label>Cache folder path</label>
+    <input id="cache-path" type="text" placeholder="/path/to/Cache" />
+    <div id="suggestions" class="suggestions"></div>
+    <button id="open-btn" class="primary">Open Cache</button>
+    <div id="open-error" class="error"></div>
+  </div>
+</div>
+
+<header id="topbar" class="hidden">
+  <div class="brand">Dead-Men <strong>Interface Studio</strong></div>
+  <div class="cache-info" id="cache-info"></div>
+  <div class="spacer"></div>
+  <button id="btn-new">＋ New Interface</button>
+  <button id="btn-copy">⧉ Copy Interface</button>
+  <button id="btn-save" class="primary">💾 Save to Cache</button>
+  <button id="btn-reopen" class="ghost">Change Cache…</button>
+</header>
+
+<main id="app" class="hidden">
+  <aside id="sidebar">
+    <input id="iface-search" type="search" placeholder="Search interface id…" />
+    <div id="iface-list" class="tree"></div>
+  </aside>
+
+  <section id="workspace">
+    <nav class="tabs">
+      <button data-tab="render" class="tab active">Render</button>
+      <button data-tab="edit" class="tab">Edit</button>
+      <button data-tab="scripts" class="tab">CS2 Scripts</button>
+      <button data-tab="gameframe" class="tab">Render Mode</button>
+    </nav>
+
+    <div id="tab-render" class="tabpanel active">
+      <div class="panel-toolbar">
+        <span id="render-title">No interface loaded</span>
+        <div class="spacer"></div>
+        <label>Canvas <input id="canvas-w" type="number" class="num" /> × <input id="canvas-h" type="number" class="num" /></label>
+        <label><input id="show-bounds" type="checkbox" checked /> outlines</label>
+        <label>Zoom <input id="zoom" type="range" min="0.5" max="2" step="0.1" value="1" /></label>
+      </div>
+      <div class="render-scroll">
+        <div id="render-stage" class="stage checker"></div>
+      </div>
+    </div>
+
+    <div id="tab-edit" class="tabpanel">
+      <div class="edit-split">
+        <div class="comp-tree-pane">
+          <div class="pane-head">Components
+            <button id="add-component" class="mini">＋ Add</button>
+          </div>
+          <div id="comp-tree" class="tree"></div>
+        </div>
+        <div class="edit-form-pane">
+          <div id="edit-form"><p class="hint">Select a component to edit.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-scripts" class="tabpanel">
+      <div class="scripts-split">
+        <div class="script-list-pane">
+          <div class="pane-head">Scripts
+            <button id="new-script" class="mini">＋ New</button>
+          </div>
+          <input id="script-search" type="search" placeholder="script id…" />
+          <div class="subhead">Used by this interface</div>
+          <div id="script-used" class="tree small"></div>
+          <div class="subhead">All scripts</div>
+          <div id="script-all" class="tree small"></div>
+        </div>
+        <div class="script-editor-pane">
+          <div class="pane-head"><span id="script-title">No script selected</span>
+            <div class="spacer"></div>
+            <button id="save-script" class="primary mini">Save Script</button>
+          </div>
+          <div id="script-meta" class="script-meta"></div>
+          <textarea id="script-asm" spellcheck="false" placeholder="Select a script to view its CS2 instructions."></textarea>
+          <div id="script-msg" class="msg"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-gameframe" class="tabpanel">
+      <div class="panel-toolbar">
+        <span>Final in-game position</span>
+        <div class="spacer"></div>
+        <label>Frame
+          <select id="frame-mode">
+            <option value="fixed">Fixed (765×503)</option>
+            <option value="resizable">Resizable (1000×700)</option>
+          </select>
+        </label>
+        <label>Anchor
+          <select id="frame-anchor">
+            <option value="viewport">Game viewport (centred)</option>
+            <option value="full">Full screen overlay</option>
+            <option value="chat">Chat area</option>
+          </select>
+        </label>
+      </div>
+      <div class="render-scroll">
+        <div id="gameframe-stage" class="gameframe"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
