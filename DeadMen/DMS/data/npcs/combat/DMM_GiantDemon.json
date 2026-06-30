@@ -1,0 +1,47 @@
+[
+  { #DMM — The Dread Warden (custom Breach boss built on a scaled-up Black Demon)
+    #NPC id 2053 is unused in the standard OSRS cache entries already mapped.
+    #If 2053 doesn't render on your client, swap it for any large demon id you
+    #have available (e.g. 240 as a placeholder until a proper model is confirmed).
+    "ids": [ 2053 ],
+    "handler": "io.dm.deadman.tournament.events.breach.monsters.DMM_GiantDemon",
+    //Combat Info
+    "hitpoints": 750,
+    "aggressive_level": 999,
+    "max_damage": 28,
+    "attack_style": "CRUSH",
+    //Slayer Info
+    "slayer_level": 1,
+    "slayer_xp": 0.0,
+    //Combat Stats — massively boosted over a regular black demon
+    "attack": 250,
+    "strength": 260,
+    "defence": 200,
+    "ranged": 220,
+    "magic": 220,
+    //Aggressive Stats
+    "stab_attack": 0,
+    "slash_attack": 0,
+    "crush_attack": 60,
+    "magic_attack": 60,
+    "ranged_attack": 60,
+    //Defensive Stats
+    "stab_defence": 40,
+    "slash_defence": 40,
+    "crush_defence": 40,
+    "magic_defence": 30,
+    "ranged_defence": 40,
+    //Immunities
+    "poison_immunity": true,
+    "venom_immunity": true,
+    //Speeds — slower than a regular demon because it is massive
+    "attack_ticks": 5,
+    "death_ticks": 7,
+    "respawn_ticks": -1,
+    //Animations — reusing Black Demon animations; replace with proper giant ids when available
+    "spawn_animation": -1,
+    "attack_animation": 64,
+    "defend_animation": 65,
+    "death_animation": 67
+  }
+]
