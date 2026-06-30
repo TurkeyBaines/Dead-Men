@@ -13,9 +13,21 @@ javafx {
     modules = ['javafx.controls', 'javafx.fxml', 'javafx.graphics']
 }
 
+def javafxVersion = "21.0.2"
+def javafxModules = ['base', 'graphics', 'controls', 'fxml']
+// Bundle natives for every desktop platform so the single fat jar runs anywhere
+// (Windows, macOS Intel/ARM, Linux) without a platform-specific build.
+def javafxPlatforms = ['win', 'mac', 'mac-aarch64', 'linux']
+
 dependencies {
     implementation group: 'org.antlr', name: 'antlr4-runtime', version: '4.7.2'
     implementation group: 'org.apache.commons', name: 'commons-compress', version: '1.26.0'
+
+    javafxPlatforms.each { platform ->
+        javafxModules.each { mod ->
+            implementation "org.openjfx:javafx-${mod}:${javafxVersion}:${platform}"
+        }
+    }
 }
 
 application {
