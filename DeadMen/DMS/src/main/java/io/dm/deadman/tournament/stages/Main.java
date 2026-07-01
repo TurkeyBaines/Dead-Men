@@ -30,6 +30,10 @@ public class Main extends Stage {
         startTime = System.currentTimeMillis();
         duration = Deadman.getConfig().GAME_LENGTH.runtime;
         nextEvent = startTime + 900000;
+
+        if (config.MUTATOR != null && config.MUTATOR.hasAction()) {
+            config.MUTATOR.action();
+        }
     }
 
     @Override
@@ -70,6 +74,9 @@ public class Main extends Stage {
 
     @Override
     public void onRemove() {
+        if (config.MUTATOR != null) {
+            config.MUTATOR.clear();
+        }
         currentEvent = null;
         duration = -1;
         startTime = -1;
