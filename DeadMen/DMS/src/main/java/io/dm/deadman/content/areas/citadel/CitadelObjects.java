@@ -2,6 +2,7 @@ package io.dm.deadman.content.areas.citadel;
 
 import io.dm.cache.Color;
 import io.dm.cache.ItemID;
+import io.dm.cache.ObjectDef;
 import io.dm.deadman.Deadman;
 import io.dm.deadman.content.areas.overworld.OverworldHelper;
 import io.dm.deadman.content.items.TournamentTicket;
@@ -33,14 +34,31 @@ public class CitadelObjects {
     }
 
     private static void registerAltars() {
+        ArrayList<Option> initialOption = new ArrayList<>();
         ObjectAction.register(6552, 1, (p, o) -> {
+            initialOption.add(new Option("Normal", () -> SpellBook.MODERN.setActive(p)));
+
+            if (((Main) Deadman.getStage()).getRuntimePercentage() > 15)
+                initialOption.add(new Option("Lunar", () -> SpellBook.LUNAR.setActive(p)));
+            else
+                initialOption.add(new Option("Lunar (Locked until 15% GameTime)", () -> p.sendMessage("Lunar Spellbook is locked until 15% gametime, current: " + ((Main) Deadman.getStage()).getRuntimePercentage())));
+
+            if (((Main) Deadman.getStage()).getRuntimePercentage() > 25)
+                initialOption.add(new Option("Arceuus", () -> SpellBook.ARCEUUS.setActive(p)));
+            else
+                initialOption.add(new Option("Arceuus (Locked until 25% GameTime)", () -> p.sendMessage("Arceuus Spellbook is locked until 25% gametime, current: " + ((Main) Deadman.getStage()).getRuntimePercentage())));
+
+            if (((Main) Deadman.getStage()).getRuntimePercentage() > 35)
+                initialOption.add(new Option("Ancients", () -> SpellBook.ARCEUUS.setActive(p)));
+            else
+                initialOption.add(new Option("Ancients (Locked until 35% GameTime)", () -> p.sendMessage("Ancient Spellbook is locked until 25% gametime, current: " + ((Main) Deadman.getStage()).getRuntimePercentage())));
+
+
+
             p.dialogue(
                     new OptionsDialogue(
                             "Pick a spellbook to swap to",
-                            new Option("normal", () -> SpellBook.MODERN.setActive(p)),
-                            new Option("ancients", () -> SpellBook.ANCIENT.setActive(p)),
-                            new Option("lunar", () -> SpellBook.LUNAR.setActive(p)),
-                            new Option("arceuus", () -> SpellBook.ARCEUUS.setActive(p))
+                            initialOption.toArray(new Option[initialOption.size()])
                     )
             );
         });
@@ -69,9 +87,10 @@ public class CitadelObjects {
         });
 
         ObjectAction.register(32658, "Override", (p, o) -> {
-            if (!p.getInventory().hasItem(ItemID.TOURNAMENT_TICKET, 1)) {
-                TournamentTicket.process(p);
-            }
+//            if (p.getInventory().hasItem(ItemID.TOURNAMENT_TICKET, 1)) {
+//                TournamentTicket.process(p);
+//            }
+            p.sendMessage("Overrides are currently unavailable while we test the server.");
         });
 
         ObjectAction.register(32658, "Group Settings", (p, o) -> {

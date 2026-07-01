@@ -18,9 +18,7 @@ public class Final extends Stage {
         System.out.println("onLoad FINAL Running!");
         startTime = System.currentTimeMillis();
         duration = config.GAME_LENGTH.finals;
-        players().forEach(p -> {
-            p.dmmNeedsReset = true;
-        });
+
         event.init();
 
     }

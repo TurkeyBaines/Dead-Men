@@ -8,7 +8,7 @@ public class QuickSolo extends TournamentConfig {
         XP_RATE = 50;
         DROP_RATE = 5;
         PET_RATE = 5;
-        GAME_LENGTH = Timespan.ONE_HOUR;
+        GAME_LENGTH = Timespan.ONE_WEEK;
         TEAM_SIZE_MAX = TeamSize.TRIO;
         MUTATOR = new VampiricRitesMutator();
     }

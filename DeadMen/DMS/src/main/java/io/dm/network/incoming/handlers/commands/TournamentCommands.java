@@ -25,11 +25,19 @@ public class TournamentCommands {
                 setState(player, args);
                 break;
 
+            case "setutc":
+                setUTC(player, args);
+                break;
+
             case "event":
                 event(player, args);
                 break;
 
         }
+    }
+
+    private void setUTC(Player player, String[] args) {
+        player.utc = args[1];
     }
 
     private void print(Player p, String... args) {

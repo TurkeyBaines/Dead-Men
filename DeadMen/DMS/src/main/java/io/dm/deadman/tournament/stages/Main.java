@@ -9,6 +9,9 @@ import io.dm.deadman.tournament.Tournament;
 import io.dm.model.inter.dialogue.OptionsDialogue;
 import io.dm.model.inter.utils.Option;
 
+import java.security.SecureRandom;
+import java.util.stream.Collectors;
+
 public class Main extends Stage {
     public long nextEvent;
     public DMMEvent currentEvent;
@@ -19,7 +22,7 @@ public class Main extends Stage {
     @Override
     public void onLoad() {
         players().forEach(p -> {
-            p.dmmNeedsReset = true;
+            p.utc = Deadman.getUtc();
             p.dialogue(new OptionsDialogue(
                     "Please select an starting Sigil to unlock",
                     new Option("Sigil of the Ruthless Ranger", () -> { Sigil.unlock(p, Sigils.Ruthless_Ranger); }),

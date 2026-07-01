@@ -61,7 +61,7 @@ public abstract class PlayerAttributes extends Entity {
     @Expose @Getter public ItemContainer inventoryHolder;
     @Expose @Getter public Item[] equipmentHolder;
 
-    @Expose @Getter @Setter public boolean dmmNeedsReset;
+    @Expose @Getter @Setter public String utc;
     @Expose @Getter public int overworldPoints;
     @Expose @Getter public OverworldTools.Tier[] overworldToolTier;
 

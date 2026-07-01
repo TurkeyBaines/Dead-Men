@@ -1,6 +1,8 @@
 package io.dm.model.skills.construction.actions;
 
 import io.dm.api.utils.Random;
+import io.dm.deadman.Deadman;
+import io.dm.model.World;
 import io.dm.model.activities.wilderness.WildernessObelisk;
 import io.dm.model.entity.player.Player;
 import io.dm.model.inter.dialogue.MessageDialogue;
@@ -15,7 +17,9 @@ import io.dm.model.skills.construction.Buildable;
 import io.dm.model.stat.Stat;
 import io.dm.model.stat.StatType;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import static io.dm.model.map.object.actions.impl.FairyRing.ZANARIS;
@@ -23,15 +27,52 @@ import static io.dm.model.skills.construction.Buildable.*;
 
 public class SuperiorGarden {
 
+    private static HashMap<Player, Record> poolwatch;
+
+    private static class Record {
+        final long time;
+        final long timeout;
+
+        public Record(long timeout) {
+            this.time = System.currentTimeMillis();
+            this.timeout = timeout;
+        }
+        public boolean check() {
+            return (time + timeout) < System.currentTimeMillis();
+        }
+    }
+
     static { // pools
         List<Buildable> pools = Arrays.asList(RESTORATION_POOL, REVITALISATION_POOL, REJUVENATION_POOL, FANCY_REJUVENATION_POOL, ORNATE_REJUVENATION_POOL);
         for (int i = 0; i < pools.size(); i++) {
             int poolLevel = i;
             ObjectAction.register(pools.get(i).getBuiltObjects()[0], "drink", (player, obj) -> drinkFromPool(player, poolLevel));
         }
+        poolwatch = new HashMap<>();
     }
 
     private static void drinkFromPool(Player player, int poolLevel) {
+
+        // Citadel Pool Abuse Fix
+        /*
+            Adds a watcher to the citadel fountain which logs players
+            as they use it. They can only use this once every 5 minutes.
+         */
+        long timeout = 300000; //5 minutes
+        if (Deadman.getCitadel().contains(player)) {
+            if (poolwatch.containsKey(player)) {
+                if (poolwatch.get(player).check()) {
+                    poolwatch.remove(player);
+                } else {
+                    Record r = poolwatch.get(player);
+                    long time = r.time + timeout;
+                    player.sendMessage("You can only use this once every 5 minutes, try again in " + ((time - System.currentTimeMillis()) / 1000) + " seconds.");
+                    return;
+                }
+            }
+            poolwatch.put(player, new Record(timeout));
+        }
+
         player.animate(833);
         Config.SPECIAL_ENERGY.set(player, 1000);
         if (poolLevel >= 1) {
