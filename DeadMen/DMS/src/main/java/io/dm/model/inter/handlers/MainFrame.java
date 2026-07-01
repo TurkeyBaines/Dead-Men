@@ -26,7 +26,10 @@ public class MainFrame {
             h.actions[43] = (SimpleAction) p -> {
                 p.getPacketSender().sendClientScript(1749, "c", p.getPosition().getTileHash());
                 p.openInterface(InterfaceType.WORLD_MAP, Interface.WORLD_MAP);
-                p.getPacketSender().sendAccessMask(595, 17, 0, 4, 2);
+                // Click-to-teleport on the map canvas is a staff tool — only grant the
+                // access mask that lets the client fire it to admins/owners.
+                if (p.isAdmin() || io.dm.model.World.isDev())
+                    p.getPacketSender().sendAccessMask(595, 17, 0, 4, 2);
             };
             h.actions[30] = (SimpleAction) p -> p.getCombat().toggleSpecial();
         });
