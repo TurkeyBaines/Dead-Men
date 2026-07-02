@@ -52,7 +52,7 @@ public class Shanomi {
                                             "Harrallak certainly is an intelligent guy."),
                                     new NPCDialogue(npc, "It is as you say.").animate(590)
                             )),
-                            new Option("What items can I get from here?", () -> ShopManager.openIfExists(player, "")),//TODO Fill this in
+                            new Option("What items can I get from here?", () -> ShopManager.openIfExists(player, "Shanomi's Warrior Guild Token Exchange")),//TODO Fill this in
                             new Option("Bye", () -> player.dialogue(
                                     new PlayerDialogue("Bye!"),
                                     new NPCDialogue(npc, "Bye!").animate(590)))

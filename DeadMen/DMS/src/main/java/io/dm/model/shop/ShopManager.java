@@ -24,14 +24,24 @@ public class ShopManager {
     private static Map<String, Shop> shops = Maps.newConcurrentMap();
 
 
+    /**
+     * Normalises a shop name into its map key. Shops are addressed by their
+     * human-readable title (e.g. "General Store"); trimming + lower-casing makes
+     * lookups forgiving of stray whitespace and casing.
+     */
+    public static String key(String name) {
+        return name == null ? "" : name.trim().toLowerCase();
+    }
+
     public static void registerShop(Shop shop) {
         //log.info("Registering shop {}", shop); //annoying af
-        if(shops.containsKey(shop.identifier)){
-            shops.computeIfPresent(shop.identifier, (shopIdentifier, existingShop) -> existingShop.replace(shop));
+        String key = key(shop.title);
+        if(shops.containsKey(key)){
+            shops.computeIfPresent(key, (shopKey, existingShop) -> existingShop.replace(shop));
             return;
         }
 
-        shops.put(shop.identifier, shop);
+        shops.put(key, shop);
 
         shop.init();
         shop.populate();
@@ -42,8 +52,9 @@ public class ShopManager {
     }
 
 
-    public static Shop getByUUID(String uuid){
-        return shops.get(uuid);
+    /** Look a shop up by its title (case-insensitive). */
+    public static Shop getByName(String name){
+        return shops.get(key(name));
     }
 
 
@@ -122,7 +133,7 @@ public class ShopManager {
                     return;
                 }
 
-                if (shop.identifier.equalsIgnoreCase("472x281s-3k8d-10z8-99m2-206d6942cff8")) {
+                if (shop.title.equalsIgnoreCase("Sir Sell A Bit's Emporium")) {
                     player.sendMessage("You are not able to buy items from this shop!");
                     return;
                 }
@@ -171,10 +182,12 @@ public class ShopManager {
     public static final String CANNOT_SELL_TO_SHOP = "You can't sell that item to this shop!";
     public static final String SHOP_FULL = "The shop is full!";
 
-    public static void openIfExists(Player player, String uuid) {
-        Shop shop = getByUUID(uuid);
+    public static void openIfExists(Player player, String name) {
+        Shop shop = getByName(name);
         if(shop != null)
             shop.open(player);
+        else
+            log.warn("No shop registered under name '{}' (requested by {})", name, player.getName());
     }
 
     public static void shopTick(Event event, Shop shop) {

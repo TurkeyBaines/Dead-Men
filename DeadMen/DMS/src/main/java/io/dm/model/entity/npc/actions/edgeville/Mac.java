@@ -21,8 +21,8 @@ import static io.dm.cache.ItemID.COINS_995;
 
 public class Mac {
 
-    public static final String MAC_SHOP_UUID = "9cdf0778-af8d-49ca-8dad-dff2e4862583";
-    public static final String MAC_SHOP2_UUID = "9cdf0778-af8d-49ca-8dad-dff2e4862584";
+    public static final String MAC_SHOP_NAME = "Mac's Trimmed Cape Emporium";
+    public static final String MAC_SHOP2_NAME = "Mac's Untrimmed Cape Emporium";
     private static final int ECO_PRICE = 99000;
 
     static {
@@ -85,8 +85,7 @@ public class Mac {
 
 
         Shop trimmedCapeShop = Shop.builder()
-                .identifier(MAC_SHOP_UUID)
-                .title("Mac's Trimmed Cape Emporium")
+                .title(MAC_SHOP_NAME)
                 .currency(Currency.COINS)
                 .canSellToStore(false)
                 .defaultStock(trimmedCapes)
@@ -97,8 +96,7 @@ public class Mac {
         ShopManager.registerShop(trimmedCapeShop);
 
         Shop untrimmedCapeShop = Shop.builder()
-                .identifier(MAC_SHOP2_UUID)
-                .title("Mac's Untrimmed Cape Emporium")
+                .title(MAC_SHOP2_NAME)
                 .currency(Currency.COINS)
                 .canSellToStore(false)
                 .defaultStock(untrimmedCapes)
@@ -108,8 +106,8 @@ public class Mac {
 
         ShopManager.registerShop(untrimmedCapeShop);
 
-        NPCAction.register(6481, "buy-capes", (p, n) -> ShopManager.openIfExists(p, MAC_SHOP_UUID));
-        NPCAction.register(6481, "buy-capes 2", (p, n) -> ShopManager.openIfExists(p, MAC_SHOP2_UUID));
+        NPCAction.register(6481, "buy-capes", (p, n) -> ShopManager.openIfExists(p, MAC_SHOP_NAME));
+        NPCAction.register(6481, "buy-capes 2", (p, n) -> ShopManager.openIfExists(p, MAC_SHOP2_NAME));
         NPCAction.register(6481, "reset-levels", Mac::resetLevels);
 
     }

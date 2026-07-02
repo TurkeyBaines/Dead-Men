@@ -48,7 +48,7 @@ public class SlayerMaster {
                                 player.dialogue(
                                         new PlayerDialogue("Do you have anything to trade?"),
                                         new NPCDialogue(npc, "I have a wide variety of Slayer equipment for sale! Have a look..").lineHeight(28),
-                                        new ActionDialogue(() -> ShopManager.openIfExists(player, "44f369bf-6369-48c5-9952-b9b50011e89b"))
+                                        new ActionDialogue(() -> ShopManager.openIfExists(player, "Slayer Equipment"))
                                 );
                             }),
                             new Option("Have you any rewards for me?", () -> {
@@ -62,7 +62,7 @@ public class SlayerMaster {
                     )
             ));
             NPCAction.register(ID, "Assignment", SlayerMaster::assignment);
-            NPCAction.register(ID, "Trade", (player, npc) -> ShopManager.openIfExists(player, "44f369bf-6369-48c5-9952-b9b50011e89b"));
+            NPCAction.register(ID, "Trade", (player, npc) -> ShopManager.openIfExists(player, "Slayer Equipment"));
             NPCAction.register(ID, "Rewards", (player, npc) -> rewards(player));
         }
     }

@@ -90,11 +90,11 @@ public class EmblemTrader {
     }
 
 
-    public static final String SHOP_UUID = "";//TODO fill this out
+    public static final String SHOP_NAME = "";//TODO: set to the emblem trader's shop title once one exists
     public static int getResellPrices(Item itemSelling) {
         if (itemSelling.getDef().id == 21034 || itemSelling.getDef().id == 21079)
             return 0;
-        Shop shop = ShopManager.getByUUID(SHOP_UUID);
+        Shop shop = ShopManager.getByName(SHOP_NAME);
         if(shop == null)
             return 0;
         for (ShopItem item : shop.defaultStock) {

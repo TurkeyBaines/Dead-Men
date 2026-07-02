@@ -17,7 +17,7 @@
     "direction": "S",
     "walkRange": 3,
     "shopOptions": {
-      "trade": "692511b8-9397-4f34-a546-ae89dcb7790b"
+      "trade": "Battle Runes"
     }
   },
   {
@@ -1658,7 +1658,7 @@
     "direction": "S",
     "walkRange": 1,
     "shopOptions": {
-      "trade": "4080fd7d-e876-4780-af90-5a5c2270fbaf"
+      "trade": "Kolodian's Point Exchange"
     }
   },
   {
