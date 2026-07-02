@@ -89,7 +89,7 @@ public class SawmillOperator {
                                     new NPCDialogue(npc, "Wood and oak are all over the place, but teak and mahogany can only be found in a few places " +
                                             "like Karamja and Etceteria.")
                             )),
-                            new Option("Can I buy some housing supplies?", () -> ShopManager.openIfExists(player, "")),//TODO Fill this in
+                            new Option("Can I buy some housing supplies?", () -> ShopManager.openIfExists(player, "Construction Supplies")),//TODO Fill this in
                             new Option("Nothing, thanks.", () -> player.dialogue(
                                     new PlayerDialogue("Nothing, thanks."),
                                     new NPCDialogue(npc, "Well come back when you want some. You can't get good quality planks anywhere but here!")))

@@ -23,8 +23,10 @@ import java.util.function.Consumer;
 
 @Slf4j
 @ToString(exclude = {"viewingPlayers", "shopItems", "currencyHandler"})
-@JsonPropertyOrder({ "identifier", "title", "currency", "accessibleByIronMan", "generalStore", "canSellToStore", "restockRules", "defaultStock", "requiredAchievements", "requiredLevels" })
-@JsonIgnoreProperties({"currencyHandler", "viewingPlayers", "shopItems", "generatedByBuilder", "onTick"})
+@JsonPropertyOrder({ "title", "currency", "accessibleByIronMan", "generalStore", "canSellToStore", "restockRules", "defaultStock", "requiredAchievements", "requiredLevels" })
+// ignoreUnknown = true so legacy YAMLs that still carry an "identifier:" line (or any
+// other retired field) load cleanly instead of crashing the shop loader on boot.
+@JsonIgnoreProperties(value = {"currencyHandler", "viewingPlayers", "shopItems", "generatedByBuilder", "onTick"}, ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class Shop {
 
@@ -33,8 +35,7 @@ public class Shop {
     }
 
      @Builder
-    private Shop(String identifier, String title, Currency currency, CurrencyHandler currencyHandler, boolean generalStore, boolean canSellToStore, RestockRules restockRules, List<ShopItem> defaultStock, boolean accessibleByIronMan, boolean generatedByBuilder, Consumer<Shop> onTick) {
-        this.identifier = identifier;
+    private Shop(String title, Currency currency, CurrencyHandler currencyHandler, boolean generalStore, boolean canSellToStore, RestockRules restockRules, List<ShopItem> defaultStock, boolean accessibleByIronMan, boolean generatedByBuilder, Consumer<Shop> onTick) {
         this.title = title;
         this.currency = currency;
         this.currencyHandler = currencyHandler;
@@ -49,7 +50,6 @@ public class Shop {
 
     //TODO Adjust price based on stock
     public List<ShopContainerListener> viewingPlayers = Lists.newArrayList();
-    public String identifier;
     public String title;
 
     public boolean generatedByBuilder;
@@ -83,7 +83,6 @@ public class Shop {
 
     public void populate(){
         shopItems.clear();
-        //System.out.println("<SHOP ID>: " + identifier);
         if (defaultStock != null && !defaultStock.isEmpty()) {
             defaultStock.forEach(shopItem -> shopItems.add(shopItem));
             shopItems.forEach(shopItem -> shopItem.defaultStockItem = true);

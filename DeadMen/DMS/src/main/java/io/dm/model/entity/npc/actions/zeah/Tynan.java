@@ -15,7 +15,7 @@ public class Tynan {
         NPCAction.register(TYNAN, "talk-to", (player, npc) -> player.dialogue(
                 new NPCDialogue(npc, "If you're looking for fishing supplies, you've come to the right place."),
                 new OptionsDialogue(
-                        new Option("Let's see what you've got for sale.", () -> ShopManager.openIfExists(player, "")),//TODO Fill this in
+                        new Option("Let's see what you've got for sale.", () -> ShopManager.openIfExists(player, "Tynan's Fishing Supplies")),//TODO Fill this in
                         new Option("I'll be on my way.", () -> player.dialogue(
                                 new PlayerDialogue("I'll be on my way."),
                                 new NPCDialogue(npc, "See you around.")))

@@ -34,7 +34,7 @@ public class ProspectorPercy {
         player.dialogue(
                 new PlayerDialogue("Would you like to trade?"),
                 new NPCDialogue(npc, "If ye've found yerself some golden nuggets in this 'ere<br>mine, I'll do you a swap, yeah.").animate(593),
-                new ActionDialogue(() -> ShopManager.openIfExists(player, ""))//TODO Fill this in
+                new ActionDialogue(() -> ShopManager.openIfExists(player, "Prospector Percy's Nugget Shop"))//TODO Fill this in
         );
     }
 

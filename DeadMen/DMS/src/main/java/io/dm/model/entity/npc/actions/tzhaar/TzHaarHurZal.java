@@ -13,7 +13,7 @@ public class TzHaarHurZal {
         NPCAction.register(7688, "talk-to", (player, npc) -> player.dialogue(
                 new NPCDialogue(npc, "Can I help you JalYt-Ket-Xo-" + player.getName() + "?"),
                 new OptionsDialogue(
-                        new Option("What do you have to trade?", () -> ShopManager.openIfExists(player, "")),//TODO Fill this in
+                        new Option("What do you have to trade?", () -> ShopManager.openIfExists(player, "TzHaar-Hur-Zal's Equipment Store")),//TODO Fill this in
                         new Option("No I'm fine thanks.", () -> player.dialogue(new PlayerDialogue("No I'm fine thanks.")))
                 )
         ));

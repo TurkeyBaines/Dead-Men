@@ -440,7 +440,7 @@
     "direction": "N",
     "walkRange": 3,
     "shopOptions": {
-      "trade": "01b031a3-1d69-4e16-92d2-51ad05f4366f"
+      "trade": "TzHaar-Hur-Zal's Equipment Store"
     }
   },
   {
@@ -929,7 +929,7 @@
     "direction": "W",
     "walkRange": 3,
     "shopOptions": {
-      "trade": "e9637286-b832-448b-a83b-3c98e19da307"
+      "trade": "TzHaar-Hur-Rin's Ore and Gem Store"
     }
   },
   {

@@ -24,7 +24,7 @@ object Runa {
     private fun Player.talk(woman: NPC) = event {
         woman.chat("Hello there, Are you interested in looking at the Tournament Cosmetic Shop?")
         if (options("Yes", "No") == 1) {
-           ShopManager.openIfExists(player, "30c58469-c4b6-4035-a98b-100ff0b8407a")
+           ShopManager.openIfExists(player, "Tournament Cosmetics")
         } else {
             woman.chat("Very well.")
         }

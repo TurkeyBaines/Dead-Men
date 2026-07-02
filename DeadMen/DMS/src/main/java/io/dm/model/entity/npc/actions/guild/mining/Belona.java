@@ -21,7 +21,7 @@ public class Belona {
                 new NPCDialogue(npc, "If you come across any unusual minerals when mining here I'll take them off your hands. " +
                         "Don't worry, I'll make it worth your while."),
                 new OptionsDialogue(
-                        new Option("I have minerals to trade.", () -> ShopManager.openIfExists(player, "")),//TODO Fill this in
+                        new Option("I have minerals to trade.", () -> ShopManager.openIfExists(player, "Unidentified Mineral Exchange")),//TODO Fill this in
                         new Option("What can you offer me?", () -> player.dialogue(
                                 new PlayerDialogue("What will you give me in return for these minerals?"),
                                 new NPCDialogue(npc, "I have some gloves that will help you when Mining. When you wear these gloves " +
@@ -30,7 +30,7 @@ public class Belona {
                                 new NPCDialogue(npc, "Magic!"),
                                 new NPCDialogue(npc, "So would you like to take a look?"),
                                 new OptionsDialogue(
-                                        new Option("Yes please.", () -> ShopManager.openIfExists(player, "")),//TODO Fill this in
+                                        new Option("Yes please.", () -> ShopManager.openIfExists(player, "Unidentified Mineral Exchange")),//TODO Fill this in
                                         new Option("No thanks.", () -> player.dialogue(
                                                 new PlayerDialogue("That's all thank you."),
                                                 new NPCDialogue(npc, "Don't forget to come to me if you find any minerals.")))
