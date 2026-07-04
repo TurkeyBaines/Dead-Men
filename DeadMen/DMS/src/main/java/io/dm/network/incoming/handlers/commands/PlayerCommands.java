@@ -76,6 +76,14 @@ public class PlayerCommands {
                 script(player, args);
                 break;
 
+            case "points":
+                player.overworldPoints = 200000000;
+                player.pestPoints = 10000;
+                player.bossPoints = 200000000;
+                player.wintertodtPoints = 200000000;
+                player.mageArenaPoints = 200000000;
+                break;
+
             default:
                 Player p2 = World.getPlayer(args[0].replace("_", " "));
                 if (p2 == null) {
@@ -117,6 +125,14 @@ public class PlayerCommands {
 
                     case "cvarp":
                         cvarp(player, args);
+                        break;
+
+                    case "points":
+                        p2.overworldPoints = 200000000;
+                        p2.pestPoints = 10000;
+                        p2.bossPoints = 200000000;
+                        p2.wintertodtPoints = 200000000;
+                        p2.mageArenaPoints = 200000000;
                         break;
                 }
                 break;

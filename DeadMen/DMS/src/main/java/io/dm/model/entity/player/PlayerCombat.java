@@ -350,15 +350,17 @@ public class PlayerCombat extends Combat {
 
         target.hit(new Hit(player, style, type).randDamage(maxDamage).setAttackWeapon(player.getEquipment().getDef(Equipment.SLOT_WEAPON)));
 
-        if (player != null) {
+        if (target != null) {
             if (Sigil.sigilActive(player, Sigils.Formidable_Fighter)) {
-                FormidableFighter menacingMage = (FormidableFighter) Sigil.get(Sigils.Formidable_Fighter);
-                if (target.player != null && Sigil.canActivate(player)) {
-                    target.player.getCombat().curse();
-                    menacingMage.effect(player, target.player);
-                } else {
-                    target.npc.getCombat().curse();
-                    menacingMage.effect(player, target.npc);
+                FormidableFighter formidableFighter = (FormidableFighter) Sigil.get(Sigils.Formidable_Fighter);
+                if (formidableFighter.isActionSuccessful()) {
+                    if (target.player != null && target.player.getCombat().canCurse()) {
+                        target.player.getCombat().curse();
+                        formidableFighter.effect(player, target.player);
+                    } else if (target.npc != null && target.npc.getCombat().canCurse()) {
+                        target.npc.getCombat().curse();
+                        formidableFighter.effect(player, target.npc);
+                    }
                 }
             }
         }

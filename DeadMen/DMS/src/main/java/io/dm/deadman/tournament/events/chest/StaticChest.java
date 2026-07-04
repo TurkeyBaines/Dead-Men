@@ -161,7 +161,7 @@ public class StaticChest extends DMMEvent {
         AL_MINE(new Position(3295, 3287, 0), "in Al-Kharid Mine"),
         VAR_WESTMINE(new Position(3188, 3412, 0), "next to Varrock West Mine"),
         VAR_EASTMINE(new Position(3276, 3363, 0), "next to Varrock East Mine", 2),
-        CATHERBY(new Position(3276, 3363, 0), "near Catherby", 1),
+        CATHERBY(new Position(2782, 3463, 0), "near Catherby", 1),
         PORT_KHAZARD(new Position(2621, 3162, 0), "outside Port Khazard", 3),
         CASTLE_WARS(new Position(2443, 3066, 0), "near Castle Wars"),
         RIMMINGTON(new Position(2957, 3220, 0), "in Rimmington", 2),

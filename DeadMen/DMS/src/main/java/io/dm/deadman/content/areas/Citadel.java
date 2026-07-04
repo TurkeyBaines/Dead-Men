@@ -130,7 +130,10 @@ public class Citadel {
         for (int i = 0; i < StatType.values().length; i++) {
             holder[i][0] = p.getStats().get(StatType.get(i)).fixedLevel;
             holder[i][1] = (int) p.getStats().get(StatType.get(i)).experience;
-            p.getStats().set(StatType.get(i), ostats[i][0], ostats[i][1]);
+            p.getStats().get(StatType.get(i)).currentLevel = ostats[i][0];
+            p.getStats().get(StatType.get(i)).fixedLevel = ostats[i][0];
+            p.getStats().get(StatType.get(i)).experience = ostats[i][1];
+            p.getStats().get(StatType.get(i)).updated = true;
         }
         p.skillHolder = holder;
 

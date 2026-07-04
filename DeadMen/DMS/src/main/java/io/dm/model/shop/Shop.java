@@ -183,10 +183,12 @@ public class Shop {
 
         int possibleBuyAmount = currencyHandler.getPossibleBuyAmount(player, shopItem);
         int buyAmount = Math.min(possibleBuyAmount, stockAmount);
+        System.out.println("Attempting to buy " + buyAmount + " x " + shopItem.getDef().name);
         log.debug("Attempting to buy {} x {}", buyAmount, shopItem);
         if(buyAmount > 0) {
             int pricePer = getSellPrice(shopItem);
             int requiredCurrency = buyAmount * pricePer;
+            System.out.println("requiredCurrency: " + requiredCurrency);
             int removedCurrency = 0;
 
             // If the required currency is 0 we don't need to attempt to remove anything from the players inventory.
@@ -194,6 +196,7 @@ public class Shop {
 
                 removedCurrency = currencyHandler.removeCurrency(player, requiredCurrency);//Should result in 0 if actual currency < requiredCurrency
             }
+            System.out.println("removedCurrency: " + removedCurrency);
 
             if (removedCurrency == requiredCurrency) {
                 Item bought = new Item(shopItem.getId(), buyAmount);
@@ -202,9 +205,11 @@ public class Shop {
                     shopItem.getAdditionalItems().forEach(additional -> player.getInventory().add(new Item(additional.getId(), buyAmount * additional.getAmount())));
                 }
                 int removedFromshop = shopItems.remove(bought);
+                System.out.println("Player bought " + bought + " " + removedFromshop);
                 log.debug("Player bought {} {}", bought, removedFromshop);
                 sendUpdates();
             } else {
+                System.out.println("Failed to buy " + buyAmount + " x " + shopItem.getId() + " | removedCurrency " + removedCurrency);
                 log.debug("Failed to buy {} x {} | removedCurrency {}", buyAmount, shopItem.getId(), removedCurrency);
             }
         } else if(buyAmount == -2){

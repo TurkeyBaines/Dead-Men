@@ -19,6 +19,16 @@ public class Groups {
         teamList = new HashMap<>();
     }
 
+    /**
+     * Read-only view of all registered tournament teams. Added for the Server Panel
+     * (io.dm.panel) so the tournament tab can enumerate teams for a standings table.
+     * Returns an unmodifiable snapshot map; callers must not mutate team membership
+     * through it.
+     */
+    public java.util.Map<String, Group> getTeamList() {
+        return java.util.Collections.unmodifiableMap(teamList);
+    }
+
     public void newTeam(Player p, String name) {
         String ID = getNextID();
         teamList.put(

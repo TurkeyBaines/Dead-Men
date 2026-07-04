@@ -48,6 +48,12 @@ public abstract class FinalEvent {
         }
         System.out.println("Added " + players.size() + " players into the final event.");
 
+        if (players.isEmpty()) {
+            System.out.println("Skipping Finals due to lack of players.");
+            spawnedEnding = true;
+            finalFinished = true;
+        }
+
     }
 
     public void end() {

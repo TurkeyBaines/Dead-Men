@@ -150,6 +150,7 @@ public class NPCDef {
 
             case 2798:
             case 8149:
+            case 1798:
             case 1799:
             case 1800:
             case 1829:
@@ -162,6 +163,29 @@ public class NPCDef {
             case 15101:
                 name = "Sir Sell A Bit";
                 break;
+
+            case 15108:
+                options[0] = "Talk-to";
+                options[1] = "Tier 1 Shop";
+                options[2] = "Tier 2 Shop";
+                break;
+
+
+            case 15105:
+                options[0] = "Talk-to";
+                options[1] = "Tier 1 Shop";
+                options[2] = "Tier 2 Shop";
+                options[3] = "Tier 3 Shop";
+                break;
+
+            case 15106:
+                options[0] = "Talk-to";
+                options[1] = "Tier 1 Shop";
+                options[2] = "Tier 2 Shop";
+                options[3] = "Tier 3 Shop";
+                options[4] = "Tier 4 Shop";
+                break;
+
         }
 
         if(name != null) {

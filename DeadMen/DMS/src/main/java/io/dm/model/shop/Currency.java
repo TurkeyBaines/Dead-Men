@@ -1,5 +1,6 @@
 package io.dm.model.shop;
 
+import io.dm.api.utils.NumberUtils;
 import io.dm.cache.ItemID;
 import io.dm.model.entity.player.Player;
 import lombok.Getter;
@@ -19,6 +20,32 @@ public enum Currency {
     WARRIOR_GUILD_TOKEN(new ItemCurrencyHandler(ItemID.WARRIOR_GUILD_TOKEN)),
     VOTE_TICKETS(new ItemCurrencyHandler(ItemID.VOTE_TICKETS)),
     UNIDENTIFIED_MINERALS(new ItemCurrencyHandler(ItemID.UNIDENTIFIED_MINERALS)),
+    OVERWORLD_POINTS(new CurrencyHandler("Overworld Points") {
+        @Override
+        public int getCurrencyCount(Player player) {
+            return player.overworldPoints;
+        }
+
+        @Override
+        public int removeCurrency(Player player, int amount) {
+            if (amount > player.overworldPoints)
+                return 0;
+            player.overworldPoints -= amount;
+
+            player.sendMessage("You now have " + NumberUtils.formatNumber(player.overworldPoints) + " Overworld Points.");
+
+            return amount;
+        }
+
+        @Override
+        public int addCurrency(Player player, int amount) {
+            player.overworldPoints += amount;
+
+            player.sendMessage("You gain " + NumberUtils.formatNumber(amount) + " Overworld Points, you now have " + NumberUtils.formatNumber(player.overworldPoints) + ".");
+
+            return amount;
+        }
+    }),
     WILDERNESS_SLAYER_POINTS(new CurrencyHandler("wilderness slayer points") {
         @Override
         public int getCurrencyCount(Player player) {

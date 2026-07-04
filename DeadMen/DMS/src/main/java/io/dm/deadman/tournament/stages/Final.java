@@ -15,6 +15,7 @@ public class Final extends Stage {
     }
     @Override
     public void onLoad() {
+
         System.out.println("onLoad FINAL Running!");
         startTime = System.currentTimeMillis();
         duration = config.GAME_LENGTH.finals;

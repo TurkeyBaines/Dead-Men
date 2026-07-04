@@ -10,6 +10,7 @@ import io.dm.deadman.content.sigils.Sigils;
 import io.dm.deadman.tournament.Stage;
 import io.dm.deadman.tournament.Tournament;
 import io.dm.deadman.tournament.TournamentConfig;
+import io.dm.deadman.tournament.configs.Test;
 import io.dm.deadman.tournament.stages.Lobby;
 import io.dm.deadman.tournament.stages.Main;
 import io.dm.deadman.tournament.team.Groups;
@@ -20,6 +21,8 @@ import io.dm.model.inter.dialogue.OptionsDialogue;
 import io.dm.model.inter.utils.Option;
 import io.dm.model.item.Item;
 import io.dm.model.item.ItemContainer;
+import io.dm.model.stat.Stat;
+import io.dm.model.stat.StatType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -154,7 +157,17 @@ public class Deadman {
             p.getEquipment().sendUpdates();
             p.getBank().clear();
             p.getBank().sendUpdates();
-            p.getStats().reset();
+            for (StatType stat : StatType.values()) {
+                if (stat == StatType.Hitpoints) {
+                    p.getStats().get(stat).currentLevel = 10;
+                    p.getStats().get(stat).fixedLevel = 10;
+                    p.getStats().get(stat).experience = 1154;
+                    p.getStats().get(stat).updated = true;
+                    continue;
+                }
+
+                p.getStats().get(stat).resetTo1();
+            }
         }
     }
 

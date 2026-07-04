@@ -73,6 +73,7 @@ public class Citadel {
 
         CitadelObjects.register();
         CitadelNPCs.register();
+        CitadelShop.register();
 
         MapListener.registerBounds(bounds)
                 .onEnter(Citadel::entered)

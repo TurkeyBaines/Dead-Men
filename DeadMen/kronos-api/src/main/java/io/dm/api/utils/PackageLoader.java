@@ -12,6 +12,27 @@ import java.util.zip.ZipInputStream;
 
 public class PackageLoader {
 
+    /**
+     * Packages excluded from the eager {@code Class.forName(..)} scan.
+     *
+     * <p>The scan force-<em>initializes</em> every class it visits (to run content
+     * self-registration static blocks). The in-process Server Panel ({@code io.dm.panel})
+     * is a JavaFX UI whose control classes must NOT be initialized on the boot/main
+     * thread before the JavaFX toolkit is up — doing so throws "Toolkit not initialized"
+     * and permanently poisons those classes. The panel has no static registration to
+     * run here, so it is simply skipped; it initializes lazily on the JavaFX thread.
+     */
+    private static final String[] EXCLUDED_PACKAGES = { "io.dm.panel" };
+
+    private static boolean isExcluded(String classOrPackageName) {
+        for (String excluded : EXCLUDED_PACKAGES) {
+            if (classOrPackageName.equals(excluded) || classOrPackageName.startsWith(excluded + ".")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static Class[] load(String packageName, Class<?> ext) throws Exception {
         return load(packageName, ext, true);
     }
@@ -63,7 +84,8 @@ public class PackageLoader {
                 ZipEntry entry;
                 while((entry = in.getNextEntry()) != null) {
                     String name = codePath(entry.getName());
-                    if(name.endsWith(".class") && name.startsWith(packageName)) {
+                    if(name.endsWith(".class") && name.startsWith(packageName)
+                            && !isExcluded(name.substring(0, name.length() - 6))) {
                         try {
                             classes.add(Class.forName(name.substring(0, name.length() - 6)));
                         } catch(Throwable t) {
@@ -87,12 +109,14 @@ public class PackageLoader {
                 if(file.isDirectory()) {
                     if(name.contains("."))
                         continue;
+                    if(isExcluded(packageName + "." + name))
+                        continue;
                     List<Class> loaded = findClasses(file, packageName + "." + name);
                     if(loaded != null)
                         classes.addAll(loaded);
                     continue;
                 }
-                if(name.endsWith(".class")) {
+                if(name.endsWith(".class") && !isExcluded(packageName)) {
                     try {
                         classes.add(Class.forName(packageName + '.' + name.substring(0, name.length() - 6)));
                     } catch(Throwable t) {

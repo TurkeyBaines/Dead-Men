@@ -2,6 +2,7 @@ package io.dm.deadman.tournament;
 
 import io.dm.cache.Color;
 import io.dm.deadman.Deadman;
+import io.dm.deadman.tournament.configs.Test;
 import io.dm.deadman.tournament.mutators.Mutator;
 import io.dm.deadman.tournament.configs.QuickSolo;
 import io.dm.model.World;
@@ -28,13 +29,14 @@ public abstract class TournamentConfig {
     }
 
     public enum Timespan {
-        ONE_HOUR("1 Hour", 3600000, 900000),            // 1 Hour   | 15 Mins
-        THREE_HOURS("3 Hours", 10800000, 1800000),      // 3 Hours  | 30 Mins
-        FIVE_HOURS("5 Hours", 18000000, 1800000),       // 5 Hours  | 30 Mins
-        EIGHT_HOURS("8 Hours", 28800000, 2700000),      // 8 Hours  | 45 Mins
-        TEN_HOURS("10 Hours", 36000000, 2700000),       // 6 Hours  | 45 Mins
-        TWELVE_HOURS("12 Hours", 43200000, 3600000),    // 12 Hours |  1 Hour
-        ONE_WEEK("1 Week", 604800000, 7200000);         // 12 Hours |  1 Hour
+        TEST("10 Minutes", 600000, 180000),            // 20 Mins    | 3 Mins
+        ONE_HOUR("1 Hour", 3600000, 900000),            // 1 Hour    | 15 Mins
+        THREE_HOURS("3 Hours", 10800000, 1800000),      // 3 Hours   | 30 Mins
+        FIVE_HOURS("5 Hours", 18000000, 1800000),       // 5 Hours   | 30 Mins
+        EIGHT_HOURS("8 Hours", 28800000, 2700000),      // 8 Hours   | 45 Mins
+        TEN_HOURS("10 Hours", 36000000, 2700000),       // 6 Hours   | 45 Mins
+        TWELVE_HOURS("12 Hours", 43200000, 3600000),    // 12 Hours  |  1 Hour
+        ONE_WEEK("1 Week", 604800000, 7200000);         // 12 Hours  |  1 Hour
 
         public String text;
         public long runtime;
@@ -53,7 +55,7 @@ public abstract class TournamentConfig {
             return Deadman.getNext_config();
         }
 
-        return new QuickSolo();
+        return new Test();
     }
 
     public void printConfig() {

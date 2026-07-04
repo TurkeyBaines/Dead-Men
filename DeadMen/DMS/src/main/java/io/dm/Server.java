@@ -210,6 +210,12 @@ public class Server extends ServerWrapper {
          */
         NettyServer nettyServer = NettyServer.start(World.type.getWorldName() + " World (" + World.id + ") Server", World.port, LoginDecoder.class, 5, World.isDev());
 
+        /*
+         * Server Panel (in-process JavaFX ops dashboard). Launched on its own thread
+         * AFTER the network is up so a UI failure can never block or delay server boot.
+         */
+        new Thread(io.dm.panel.ServerPanelLauncher::launch, "server-panel-bootstrap").start();
+
         //log.info("Data path = {}", Server.dataFolder.getAbsolutePath());
         ServerWrapper.println("Started server in " + (System.currentTimeMillis() - startTime) + "ms.");
 

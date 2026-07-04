@@ -1,6 +1,6 @@
 ---
 title: "Sir Sell A Bit's Emporium"
-currency: "COINS"
+currency: "BLOOD_MONEY"
 accessibleByIronMan: true
 canSellToStore: true
 generalStore: true

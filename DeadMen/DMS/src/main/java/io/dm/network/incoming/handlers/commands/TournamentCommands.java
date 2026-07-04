@@ -43,6 +43,13 @@ public class TournamentCommands {
     private void print(Player p, String... args) {
         switch (args[1]) {
 
+            case "percent": case "rtp": case "rt":
+                if (Deadman.getStage() instanceof Main) {
+                    Main main = (Main) Deadman.getStage();
+                    p.sendMessage("Percentage: " + main.getRuntimePercentage());
+                }
+                break;
+
             case "state":
                 p.sendMessage("Current Stage: " + Deadman.getStage().stageName().name());
                 break;
@@ -56,14 +63,14 @@ public class TournamentCommands {
                 break;
 
             case "remaining":
-                if (Deadman.getStage().stageName() == Tournament.StageName.FINAL) {
+                if (Deadman.getStage() instanceof Final) {
                     Final f = (Final) Deadman.getStage();
                     p.sendMessage("Players Alive in Final: " + f.getEvent().players.size());
                 }
                 break;
 
             case "final":
-                if (Deadman.getStage().stageName() == Tournament.StageName.FINAL) {
+                if (Deadman.getStage() instanceof Final) {
                     Final f = (Final) Deadman.getStage();
 
                     p.sendMessage("Running: " + ((System.currentTimeMillis() - f.startTime) / 1000) + " seconds");

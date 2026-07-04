@@ -11,6 +11,10 @@ plugins {
     id 'application'
     id 'org.jetbrains.kotlin.jvm' version '2.1.21' apply false
     id 'io.franzbecker.gradle-lombok' version '3.3.0' apply false
+    // Server Panel (in-process JavaFX ops dashboard). Declared here with apply false
+    // so the plugin is on every subproject's classpath, then applied only in :DMS
+    // (mirrors the kotlin/lombok pattern above). See DMS/build.gradle.
+    id 'org.openjfx.javafxplugin' version '0.1.0' apply false
 }
 
 mainClassName = ""
