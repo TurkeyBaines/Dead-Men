@@ -1,0 +1,50 @@
+STAGE 10 — Player FX & zone FX live verification (and fixes)
+STATUS: NOT STARTED
+DEPENDS ON: Stage 00; ideally after 02/03/05 so there's enough working gameplay to trigger FX.
+Follow the RULES in stages/README.txt.
+
+## GOAL
+Systematically verify — for the first time ever — the two big "code-complete, never live-tested"
+subsystems, and fix what fails:
+A. Player extended info (Milestone 2, RsProt.pushMaskUpdates, RsProt.java ~line 715):
+   animations, spot-anims/graphics, hitsplats + hp bar, overhead chat bubbles, face-entity,
+   face-angle, forced text, forced movement, run/walk toggle rendering.
+B. Zone FX (Milestone 1, PacketSender.queueZonePayload + the six sends): projectiles, graphics
+   (MapAnim), area sounds — plus object add/remove if Stage 02 didn't already confirm them.
+
+## KNOWN BEST-EFFORT MAPPINGS TO WATCH (documented guesses, most likely to be wrong)
+- sendProjectile: legacy curve/something were mapped positionally onto RSProt angle/progress
+  (PacketSender.java ~line 801). If arcs look flat/wrong, this is why.
+- sendAreaSound: legacy type/distance mapped onto loops/range+dropOffRange (~line 847).
+- Hitsplats push sourceIndex=-1 (no attacker tint) — ACCEPTED limitation, do not fix, just
+  confirm damage numbers + hp bar render.
+
+## STEPS
+1. Build a checklist run with the human (one session, ordered):
+   - Emote from the emote tab → animation plays. [needs Stage 05-class clicking working]
+   - Attack an NPC (or another player/bot) → your attack animation, target hitsplat, your
+     overhead hp bar when hit back.
+   - Cast a spell or use ranged → projectile flies start→target with a sane arc; impact graphic.
+   - Public chat → overhead chat bubble (chatbox line already known working — the BUBBLE is
+     what tests ChatUpdate/setChat).
+   - Toggle run on/off → gait changes.
+   - Anything with forced movement (agility shortcut, certain doors) if reachable.
+   - A graphic on a tile (teleport spell gfx) + an area sound.
+2. For each failure: the transmit side is a single known method in PacketSender.java or a single
+   branch in pushMaskUpdates — instrument, compare against the sources jar's field docs, fix.
+3. Watch for the replay bug class: any animation/gfx repeating every tick means a setSent(true)
+   path was missed in pushMaskUpdates.
+4. Compile after each fix; re-run only failed items with the human.
+
+## SUCCESS CRITERIA
+Every checklist row above either confirmed working or (if the triggering content itself is
+broken/unreachable) explicitly recorded as untestable-with-reason in your HANDOFF note. No
+per-tick replays. Projectile arc and sound falloff at least plausible to the human eye/ear.
+
+## NON-GOALS
+NPC-side FX (Stage 09). Weapon-specific idle/walk animation overrides (known TODO at RsProt.java
+~line 911 — note it, skip it). Music system correctness beyond "a MidiSong packet doesn't crash".
+
+## WRAP-UP
+Per README RULES #7. This stage closing means Milestones 1+2 from MIGRATION.txt are finally DONE
+— update their checkboxes in MIGRATION.txt too.

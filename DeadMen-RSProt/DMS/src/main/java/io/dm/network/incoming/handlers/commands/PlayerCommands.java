@@ -1,0 +1,347 @@
+package io.dm.network.incoming.handlers.commands;
+
+import io.dm.cache.ItemID;
+import io.dm.cache.Varpbit;
+import io.dm.model.World;
+import io.dm.model.combat.Hit;
+import io.dm.model.entity.player.Player;
+import io.dm.model.inter.utils.Config;
+
+import java.util.ArrayList;
+import java.util.Objects;
+
+public class PlayerCommands {
+
+    public void process(Player player, String... args) {
+        switch (args[0].toLowerCase()) {
+
+            case "varp":
+                varp(player, args);
+                break;
+
+            case "cvarp":
+                cvarp(player, args);
+                break;
+
+            case "maxset":
+                maxset(player);
+                break;
+
+            case "heal":
+                heal(player);
+                break;
+
+            case "spec":
+                spec(player);
+                break;
+
+            case "god": case "godmode":
+                god(player);
+                break;
+
+            case "anim":
+                anim(player, false, args);
+                break;
+
+            case "animall":
+                animAll(player, args);
+                break;
+
+            case "animx":
+                animx(player, args);
+                break;
+
+            case "gfx":
+                gfx(player, false, args);
+                break;
+
+            case "sgfx": case "servergfx": case "servergraphic":
+            case "sgraphic":
+                gfx(player, true, args);
+                break;
+
+            case "debug": case "db":
+                debug(player);
+                break;
+
+            case "lock":
+                lock(player, false);
+                break;
+
+            case "unlock":
+                lock(player, true);
+                break;
+
+            case "script":
+                script(player, args);
+                break;
+
+            case "points":
+                player.overworldPoints = 200000000;
+                player.pestPoints = 10000;
+                player.bossPoints = 200000000;
+                player.wintertodtPoints = 200000000;
+                player.mageArenaPoints = 200000000;
+                break;
+
+            default:
+                Player p2 = World.getPlayer(args[0].replace("_", " "));
+                if (p2 == null) {
+                    player.sendMessage("This player is offline or you entered the command incorrectly.");
+                    return;
+                }
+                switch (args[1]) {
+                    case "heal":
+                        heal(p2);
+                        break;
+
+                    case "god": case "godmode":
+                        god(p2);
+                        break;
+
+                    case "anim":
+                        anim(p2, true, args);
+                        break;
+
+                    case "debug": case "db":
+                        debug(p2);
+                        break;
+
+                    case "lock":
+                        lock(p2, false);
+                        break;
+
+                    case "unlock":
+                        lock(p2, true);
+                        break;
+
+                    case "kill":
+                        kill(p2);
+                        break;
+
+                    case "varp":
+                        varp(player, p2, args);
+                        break;
+
+                    case "cvarp":
+                        cvarp(player, args);
+                        break;
+
+                    case "points":
+                        p2.overworldPoints = 200000000;
+                        p2.pestPoints = 10000;
+                        p2.bossPoints = 200000000;
+                        p2.wintertodtPoints = 200000000;
+                        p2.mageArenaPoints = 200000000;
+                        break;
+                }
+                break;
+
+        }
+    }
+
+    private void kill(Player p) {
+        p.hit(new Hit().fixedDamage(255));
+    }
+
+    private void maxset(Player p) {
+        p.getInventory().clear();
+        p.getEquipment().clear();
+
+        p.getEquipment().add(ItemID.NEITIZNOT_FACEGUARD);
+        p.getEquipment().add(ItemID.INFERNAL_CAPE);
+        p.getEquipment().add(ItemID.PRIMORDIAL_BOOTS);
+        p.getEquipment().add(ItemID.VESTAS_CHAINBODY);
+        p.getEquipment().add(ItemID.AVERNIC_DEFENDER);
+        p.getEquipment().add(ItemID.VESTAS_PLATESKIRT);
+        p.getEquipment().add(ItemID.AMULET_OF_FURY);
+        p.getEquipment().add(ItemID.BERSERKER_RING_I);
+        p.getEquipment().add(ItemID.VESTAS_SPEAR);
+        p.getEquipment().add(ItemID.BARROWS_GLOVES);
+
+        p.getInventory().add(ItemID.COINS_995, 2147483647);
+        p.getInventory().add(ItemID.ZURIELS_HOOD, 1);
+        p.getInventory().add(ItemID.ZURIELS_ROBE_TOP, 1);
+        p.getInventory().add(ItemID.ZURIELS_ROBE_BOTTOM, 1);
+        p.getInventory().add(ItemID.ZURIELS_STAFF, 1);
+        p.getInventory().add(ItemID.BLOOD_RUNE, 2147483647);
+        p.getInventory().add(ItemID.DEATH_RUNE, 2147483647);
+        p.getInventory().add(ItemID.WATER_RUNE, 2147483647);
+        p.getInventory().add(ItemID.ETERNAL_BOOTS, 1);
+        p.getInventory().add(ItemID.SEERS_RING_I, 1);
+
+        p.getInventory().add(ItemID.CRYSTAL_HELM, 1);
+        p.getInventory().add(ItemID.CRYSTAL_BODY, 1);
+        p.getInventory().add(ItemID.CRYSTAL_LEGS, 1);
+        p.getInventory().add(ItemID.CRYSTAL_BOW, 1);
+        p.getInventory().add(ItemID.PEGASIAN_BOOTS, 1);
+        p.getInventory().add(ItemID.ARCHERS_RING_I, 1);
+    }
+
+    private void heal(Player p) {
+        if (p.isAdmin())
+            p.setHp(255);
+        else
+            p.setHp(p.getMaxHp()+25);
+    }
+
+    private void spec(Player p) {
+        Config.SPECIAL_ENERGY.set(p, 1000);
+    }
+
+    private void god(Player player) {
+        if (!player.isInvincible()) {
+            player.setInvincible(true);
+            player.sendMessage("You have enabled God Mode");
+        } else {
+            player.setInvincible(false);
+            player.sendMessage("You have disabled God Mode");
+        }
+    }
+
+    private void anim(Player player, boolean other, String... args) {
+        if (other) {
+            player.animate(Integer.parseInt(args[2]));
+        } else {
+            player.animate(Integer.parseInt(args[1]));
+        }
+    }
+
+    private void animx(Player player, String... args) {
+        int start = Integer.parseInt(args[1]);
+        int iterations = Integer.parseInt(args[2]);
+        player.startEvent(e -> {
+            for (int i = 0; i < iterations; i++) {
+                player.forceText("Anim ID: " + (start+i));
+                player.animate(start+i);
+                long timeout = 3;
+                long curr = 0;
+                while (player.isAnimating() && (curr < timeout)) {
+                    curr++;
+                    e.delay(1);
+                }
+
+                player.forceText("! END !");
+                e.delay(2);
+            }
+
+        });
+    }
+
+    private void animAll(Player player, String... args) {
+        World.players.forEach(p2 -> { if (p2 != player) p2.animate(Integer.parseInt(args[2])); });
+    }
+
+    private void gfx(Player player, boolean server, String... args) {
+        int id = Integer.valueOf(args[1]);
+
+        int height = 0;
+        if(args.length > 3)
+            height = Integer.valueOf(args[1]);
+
+        int delay = 0;
+        if(args.length > 1)
+            delay = Integer.valueOf(args[2]);
+
+        if (server)
+            World.sendGraphics(id, height, delay, player.getPosition());
+        else
+            player.graphics(id, height, delay);
+    }
+
+    private void debug(Player player) {
+        player.debug = !player.debug;
+        player.sendMessage("Player > Debug: " + player.debug);
+    }
+
+    private void lock(Player p, boolean unlock) {
+        if (unlock)
+            p.unlock();
+        else
+            p.lock();
+    }
+
+    private void varp(Player p, String... args) {
+        int id = Integer.parseInt(args[2]);
+        if (args[1].equalsIgnoreCase("get")) {
+            p.sendMessage("varp[" + id + "]: " + p.varps[id]);
+        } else if (args[1].equalsIgnoreCase("set")) {
+            int val = Integer.parseInt(args[3]);
+            p.varps[id] = val;
+            p.getPacketSender().sendVarp(id, val);
+        } else if (args[1].equalsIgnoreCase("def")) {
+            int varpbit = Integer.parseInt(args[2]);
+            Varpbit def = Varpbit.get(varpbit);
+            if (def != null) {
+                p.sendMessage("[Varpbit Def] varp="+ def.varpId +", start="+ def.leastSigBit +", end="+ def.mostSigBit +", maxValue="+ Math.pow(2, (def.mostSigBit - def.leastSigBit)));
+                p.sendMessage("[Varpbit Def] value=" + p.varps[def.varpId]);
+            } else {
+                p.sendMessage("No definition entry found for varpbit "+ varpbit +".");
+            }
+        }
+    }
+
+    private void cvarp(Player p, String... args) {
+        int id = Integer.parseInt(args[2]);
+        if (args[1].equalsIgnoreCase("set")) {
+            int val = Integer.parseInt(args[3]);
+            p.getPacketSender().sendVarp(id, val);
+        }
+    }
+
+    private void varp(Player p, Player p2, String... args) {
+        int id = Integer.parseInt(args[2]);
+        if (args[1].equalsIgnoreCase("get")) {
+            p.sendMessage(p2.getName() + " | varp[" + id + "]: " + p2.varps[id]);
+        } else if (args[1].equalsIgnoreCase("set")) {
+            int val = Integer.parseInt(args[3]);
+            p2.varps[id] = val;
+            p2.getPacketSender().sendVarp(id, val);
+        } else if (args[1].equalsIgnoreCase("def")) {
+            int varpbit = Integer.parseInt(args[2]);
+            Varpbit def = Varpbit.get(varpbit);
+            if (def != null) {
+                p.sendMessage("[Varpbit Def] varp="+ def.varpId +", start="+ def.leastSigBit +", end="+ def.mostSigBit +", maxValue="+ Math.pow(2, (def.mostSigBit - def.leastSigBit)));
+            } else {
+                p.sendMessage("No definition entry found for varpbit "+ varpbit +".");
+            }
+        }
+    }
+
+    private void script(Player p, String... args) {
+
+        ArrayList<Object> params = new ArrayList<>();
+        int id = Integer.parseInt(args[1]);
+        String type = "";
+        if (args.length > 2) {
+            type = args[2];
+        }
+        if (args.length > 3) {
+            for (int i = 3; i < args.length; i++) {
+                if (args[i].contains("int")) {
+                    params.add(Integer.parseInt(args[i].split("\\(")[1].replace(")", "")));
+                }
+                if (args[i].contains("str")) {
+                    params.add(args[i].split("\\(")[1].replace(")", ""));
+                }
+                if (args[i].contains("bool")) {
+                    params.add(Boolean.parseBoolean(args[i].split("\\(")[1].replace(")", "")));
+                }
+            }
+
+            String strParam = "";
+            for (Object o : params) {
+                strParam += "~" + o.toString() + " ";
+            }
+
+            p.sendMessage("running Client Script [" + id + " / " + type + "] " + strParam);
+
+            p.getPacketSender().sendClientScript(id, type, params.toArray());
+            return;
+        }
+
+        p.sendMessage("running Client Script [" + id + " / " + type + "]");
+        p.getPacketSender().sendClientScript(id, type);
+    }
+
+}

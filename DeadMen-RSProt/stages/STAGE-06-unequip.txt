@@ -1,0 +1,52 @@
+STAGE 06 — Unequip from the worn-equipment tab
+STATUS: NOT STARTED
+DEPENDS ON: Stage 05 (same subsystem; its root cause likely applies here — read its HANDOFF note
+and any NOTES FROM OTHER STAGES below before starting).
+Follow the RULES in stages/README.txt.
+
+## GOAL
+Clicking a worn item in the equipment tab (interface 387) unequips it back to inventory.
+
+## SYMPTOM (human-reported 2026-07-08)
+"Equipment doesn't work correctly - I can force equip items, and they appear in the correct
+place, but I'm unable to unequip things from the player."
+(The "appear in the correct place" part means the equipment container, appearance sync, and the
+387 pane rendering are all fine — ONLY the click→unequip path is broken.)
+
+## KNOWN STATE
+- Access mask for 387 was added best-effort and NEVER validated: RsProt.openFrame (RsProt.java
+  ~line 879) sends mask 2046 to components 6..16 with start/end = -1/-1. Flagged at the time as
+  lower-confidence than the inventory mask (which is a proven value and now demonstrably works).
+- Expected server path when the packet arrives: If3Button → ActionButtonHandler →
+  InterfaceHandler.getAction(387, childId 6-16) → TabEquipment.itemAction → option 1 →
+  player.getEquipment().unequip(item).
+
+## STEPS — first fork on one binary question
+Does PROTOCOL_DUMP.txt show an If3Button line when the human clicks a worn item?
+- NO → the client never sends it → the 387 access mask is wrong. Candidates: the -1/-1 slot
+  range (a single-obj component may still need 0..0 — check how RSProt's IfSetEvents encodes
+  ranges in the sources jar, and how the 228 client treats them); the mask VALUE (2046 was
+  derived, not copied from a proven analog); or components 6..16 being stale 184-era children
+  for 387 (Cache228 reports 387 has 31 components — CACHE_INTERFACE_DUMP.txt lists them; the
+  right slots may have moved). Fix the mask/components, retest.
+- YES → server-side swallow, same shape as Stage 05: compare received iface/comp/slot/obj/op
+  against what TabEquipment.itemAction expects (does it key off childId or slot? does it check
+  get(slot, itemId)?), apply the same class of fix Stage 05 landed.
+
+## TEST SCRIPT (human)
+1. Force-equip full gear via command (known working).
+2. Left-click each worn piece: item returns to inventory, character model updates, worn slot
+   empties. Test at least: weapon, body, legs, a ring/ammo slot (edge slots catch bad ranges).
+3. Right-click a worn item: menu options render and match behavior.
+4. Re-equip from inventory (Stage 05's fix) and unequip again — round trip works.
+
+## SUCCESS CRITERIA
+All worn slots unequip correctly; round trip stable; no console exceptions.
+
+## NON-GOALS
+Equipment stats interface rendering (Stage 04). Item stat bonuses/combat correctness.
+
+## WRAP-UP
+Per README RULES #7. Record the final verified 387 mask/components in HANDOFF.txt — it is the
+codebase's only example of a "single-slot components" access mask and future interfaces will
+copy it.

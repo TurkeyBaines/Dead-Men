@@ -1,0 +1,402 @@
+# THE PLAN — Dead-Men RSProt (Rev 228) Migration: Status & Path to Complete
+Generated 2026-07-08 by reviewing HANDOFF.txt + MIGRATION.txt line-by-line AND independently
+verifying the claims against the actual source tree (grep'd the real files, ran a real compile).
+Everything marked VERIFIED below was checked against code on disk, not just read from the logs.
+
+## >>> UPDATE 2026-07-08: STAGED WORK PLAN NOW LIVES IN stages/ <<<
+The actionable work has been broken into small, self-contained stage briefs designed to be
+drip-fed to agents one per session: see stages/README.txt for the index, dependency order, and
+the prompt template to hand an agent. A fresh human live-test (2026-07-08) also reported new
+symptoms that refine this file's status sections:
+  - Ground items don't spawn/render at all            → stages/STAGE-02 (found: ObjDel never
+    ported; zone-resend-on-region-load suspect)
+  - NPCs don't spawn AT ALL                            → stages/STAGE-03 (confirmed: NpcAvatar
+    allocation was never implemented — not a bug, a missing feature)
+  - Main/modal interfaces (incl. bank) never open      → stages/STAGE-04 (found: InterfaceType
+    .MAIN=548:21 etc. are stale 184-era slots; 228 frame layout differs)
+  - Inventory actions dispatch but do nothing          → stages/STAGE-05
+  - Can't unequip (force-equip works)                  → stages/STAGE-06
+  - Object clicks walk you there but never interact    → stages/STAGE-07
+  - Chatbox dialogs: smelting OK, choose-option bg missing → stages/STAGE-11
+Where the new findings contradict older status lines below, the stage files win.
+
+## HOW TO USE THIS FILE
+This is the entry point for understanding overall state. Read this first, top to bottom, before
+touching HANDOFF.txt or MIGRATION.txt. For actually doing work, use the stage briefs in stages/. Those two files are still useful as an appendix — they contain the detailed
+"why", the bugs that were found, and the reasoning trail — but they are write-once session logs,
+not maintained status trackers, and they've grown to 690 + 82 lines of dense narrative. This file
+is the maintained summary. When you finish a milestone or find something new, update THIS file's
+checkboxes and status lines; you can still append detail to HANDOFF.txt in the same style as
+before if you want the paper trail, but THE_PLAN.txt is what the next person should trust for
+"what's the current state."
+
+Section 12 at the bottom maps every claim in this file back to the exact HANDOFF.txt section name
+if you need the full rationale.
+
+---
+
+## 0. URGENT — READ THIS FIRST: THE WORK IS NOT IN GIT
+`git status` (run from `DeadMen-RSProt/`) shows almost the ENTIRE project — `DMS/src`, `dm-net/`,
+`kronos-api/`, `HANDOFF.txt`, `MIGRATION.txt`, `build.gradle`, all of it — as **untracked**.
+`git log --oneline -- DeadMen-RSProt` returns **zero commits, ever**. The git repo root is
+`C:/Users/Turk/Documents/GitHub/Dead-Men` (one level up, shared with the sibling `DeadMen/`
+legacy-184 project), and nobody has ever run `git add` on the `DeadMen-RSProt/` folder except one
+single file (`GroundItemCommands.java`, currently staged).
+
+**This means weeks of migration work — every milestone described below — exists ONLY as
+uncommitted files on this one machine's disk.** A bad `git clean`, a disk failure, or a careless
+`rm -rf` would destroy all of it with no recovery path.
+
+Recommended immediate action (confirm with the user before running — this stages/commits a large
+number of files and they should sanity-check the file list first, e.g. exclude `Cache/`,
+`Cache228/`, `build/`, `.gradle/`, `.idea/` which are build artifacts / large binary caches, not
+source):
+```
+cd DeadMen-RSProt
+git add DMS/src dm-net kronos-api build.gradle settings.gradle gradle.properties \
+        DMS/build.gradle rsprox-proxy-targets.yaml HANDOFF.txt MIGRATION.txt THE_PLAN.txt \
+        DMS/server.example.properties azure-pipelines.yml jav_config.ws .gitignore DMS/.gitignore
+git commit -m "Checkpoint: RSProt rev-228 migration state as of 2026-07-08"
+```
+Do NOT `git add -A` blindly — `Cache/`, `Cache228/`, `DMFS/`, `build/`, `.gradle/`, `.idea/` are
+large generated/binary directories that should stay untracked (add them to `.gitignore` if they
+aren't already covered). Check `git status` after staging, before committing.
+
+---
+
+## 1. TL;DR STATUS
+The migration replaces the legacy rev-184 Netty/Kronos network stack with `net.rsprot` (rev 228)
+for real player connections, while AI bots continue to use the old legacy path unchanged (they
+have no Netty channel either way, so the dual-path design is intentional and permanent, not a
+migration artifact to remove).
+
+- **Core plumbing (login, movement, chat, region/zone sync loop): DONE, compiles, and is live-
+  confirmed working.**
+- **Ground items / objects / projectiles / graphics / area sounds (Milestone 1): code-complete,
+  including a coordinate-system bug found and fixed 2026-07-08. NOT YET re-tested live since that
+  fix.** This is the single highest-value thing to live-test next — see Section 6.
+- **Player animations/graphics/hitsplats/chat-bubbles/face-direction/forced-movement (Milestone
+  2): code-complete. Has NEVER been live-tested at all**, at any point in the log. Second-highest
+  priority to test — see Section 6.
+- **Chatbox/display-name gate (Milestone 3): code fix applied, compiles. Never explicitly
+  re-confirmed with a dedicated test, but strongly implied working** by later live-testing
+  sessions (chat/commands were usable enough for testers to report on other bugs). Low priority to
+  explicitly re-verify.
+- **Object/NPC/player/ground-item clicks + movement (part of Milestone 4): CONFIRMED working
+  live.**
+- **Inventory item display (part of Milestone 4): CONFIRMED working live** (items land in correct
+  slots).
+- **Equip, drop, drag-reorder, and the bank interface (part of Milestone 4): STILL BROKEN as of
+  the last live test (2026-07-08, Round 3). Root cause open for equip/drop; bank rendering
+  completely unresolved.** The user has said they're handling this area themselves — see Section 7
+  for the current state, but this file does not propose a fix.
+- **Item-on-object / item-on-npc / item-on-player / item-on-item / interface-drag (also part of
+  Milestone 4): wired in code, but never explicitly confirmed live even once, before or after the
+  Round 2 access-mask fix.** Untested, not "broken" — genuinely unknown state. See Section 7.
+- **NPC animations/graphics/hitsplats (mirror of Milestone 2, but for NPCs instead of players):
+  NOT STARTED.** NPCs move correctly (position sync works) but will appear to glide around
+  without playing any animation, since only the player-avatar mask bridge was built. This is a
+  real gap nobody has flagged as its own milestone yet — see Section 8.
+- **Legacy code cleanup (Milestone 5): NOT STARTED.** `io.dm.network.*` (legacy 184) and
+  `kronos-api` are both still fully present and in use (AI bots depend on them) — do not touch
+  until every RSProt milestone above is live-confirmed.
+
+---
+
+## 2. ARCHITECTURE ORIENTATION (for a fresh agent who's never seen this repo)
+- **`dm-net/`** (Kotlin) — isolated module wrapping RSProt + Netty. Knows nothing about the game
+  model. Talks to the game engine only via functional lambdas injected from `DMS`
+  (`FilestoreCacheProvider`, `DmLoginService`, consumer-registry listener bindings).
+- **`DMS/`** (Java, the actual game engine — "Kronos") — this is where 99% of the migration work
+  lives. Key files:
+  - `DMS/src/main/java/io/dm/network/rsprot/RsProt.java` (~1026 lines) — the RSProt integration
+    hub: login construction (`doLogin`), the per-tick sync loop (`driveUpdate`/`pushMaskUpdates`),
+    and the 15 incoming-packet listener registrations (`start()`).
+  - `DMS/src/main/java/io/dm/network/PacketSender.java` (~1056 lines) — every outbound packet
+    method. Each has an RSProt-path branch (`queueRsprot(...)` / `queueZonePayload(...)`, returns
+    `true` to skip the legacy path) followed by the untouched legacy 184 `OutBuffer` fallback for
+    AI bots / anything without a session.
+  - `DMS/src/main/java/io/dm/process/CoreWorker.java` — the main game-tick loop; calls
+    `RsProt.driveUpdate()` once per tick, and skips legacy `PlayerUpdater` write/flush steps for
+    any player with a non-null `getSession()`.
+  - `DMS/src/main/java/io/dm/network/logging/NetworkLogger.java` — writes every incoming
+    interaction packet to `PROTOCOL_DUMP.txt` (project root, accumulates across sessions).
+  - `DMS/src/main/java/io/dm/cache/CacheInterfaceDumper.java` — writes real Cache228 interface
+    shapes to `CACHE_INTERFACE_DUMP.txt` (project root, regenerated fresh every boot) at startup.
+    **Neither dump file exists yet on this machine** — nobody has booted the server since this
+    logging was added. Booting it once is free ground-truth data for the still-open bugs.
+  - Everything else the game already had pre-migration (`io.dm.model.*`, `io.dm.network.incoming
+    .handlers.*`, etc.) is UNCHANGED legacy-184 game logic — the migration's whole strategy is
+    "bridge RSProt's decoded packets into this existing logic," not rewrite it. If you're
+    debugging a gameplay behavior (not a protocol/rendering behavior), the bug is almost certainly
+    in this pre-existing code and applies equally to the legacy 184 client and AI bots.
+- **`kronos-api/`** — the legacy rev-184 Netty transport. Still load-bearing (AI bots use it).
+  Do not remove until Milestone 5.
+- **Cache**: `Cache228/cache/` + `Cache228/xteas.json` is the real rev-228 cache the RSProt client
+  renders from. `Cache/` is the older legacy cache, still read via `Server.fileStore` (index 3) for
+  some bookkeeping (e.g. `InterfaceDef.COUNTS`) that hasn't been ported to read Cache228 yet — this
+  legacy-cache/real-cache mismatch has already caused two separate bugs (see Section 7).
+- **Target revision**: 228.2. RSProt dependency: `net.rsprot:osrs-228-{model,common,desktop,
+  internal}:1.0.0-ALPHA-20260630`. There is NO local AlterRSPS reference checkout anywhere on this
+  machine — earlier log entries citing it are pre-existing knowledge from before this session, not
+  a live source; treat any "per AlterRSPS" claim in HANDOFF.txt as unverifiable folklore unless a
+  checkout actually shows up.
+
+---
+
+## 3. HOW TO BUILD
+```
+cd DeadMen-RSProt
+./gradlew :DMS:compileJava
+```
+Confirmed working as of 2026-07-08 (`BUILD SUCCESSFUL`). If this fails, fix the compile error
+before doing anything else — nothing downstream matters until this passes.
+
+## 4. HOW TO RUN / LIVE-TEST
+1. Build: `./gradlew :DMS:compileJava` (see above).
+2. Server config: `DMS/server.example.properties` is the template (cache path, world port 13302,
+   etc.) — copy/rename to `server.properties` next to it if one doesn't already exist, and fill in
+   real `database_*` values if the server needs a DB connection to boot (check `Server.java`'s
+   `main()` for what's actually required vs optional).
+3. Entry point / main class: `io.dm.Server` (`DMS/build.gradle`: `mainClassName =
+   'io.dm.Server'`). Run via `./gradlew :DMS:run` or your IDE's run configuration.
+4. Client proxy: launch RSProx, import `rsprox-proxy-targets.yaml` (instructions are in that
+   file's own header comment — "+" next to the target selector, select this file, restart RSProx,
+   pick "Dead-Men (Local)"). This points a real rev-228 client at `127.0.0.1:13302` through RSProx.
+5. After any live-test session, check the project root for two files that are pure gold for
+   debugging and did not exist as of this writing:
+   - `PROTOCOL_DUMP.txt` — every incoming interaction packet (object/npc/player/ground-item click,
+     button click, item-on-X, drag), one line per packet, accumulates across runs.
+   - `CACHE_INTERFACE_DUMP.txt` — every interface group's real child-component count + resolved
+     scripts/configs, read straight from Cache228, regenerated fresh each boot.
+   Read these before forming a new hypothesis about a bug — they're strictly more reliable than
+   guessing, and multiple bugs in this project were only solved once someone actually looked at
+   real cache data instead of assuming.
+
+---
+
+## 5. DONE — verified working, no action needed
+- [x] `dm-net` module structure + Netty/RSProt isolation from the game model — VERIFIED (module
+  exists, compiles, `NetworkBootstrap.kt` wires the lambda seams as described).
+- [x] JS5 cache streaming (255/N ref tables + archives) for the rev-228 client.
+- [x] Phase A — `Player implements DmNetworkPlayer`, `rsprotSession`/`playerInfo`/`npcInfo`/
+  `worldEntityInfo` fields.
+- [x] Phase B — real login construction in `RsProt.doLogin()` (index alloc, `Config.load`,
+  `LoginInfo`, GSON save load/persist via `PlayerFile.loadForRsProt`/`.save`).
+- [x] Phase C — `CoreWorker` drives `RsProt.driveUpdate()` once per tick; legacy update/flush is
+  skipped for any player with a session.
+- [x] Phase E — `MoveGameClick`/`MoveMinimapClick` routed to the real pathfinder; `ClientCheat`
+  (`::commands`) and `MessagePublic` (public chat) routed and working.
+- [x] Object / NPC / player / ground-item single-click actions (options 1-5, or 1-8 for player) —
+  **live-confirmed working** 2026-07-08.
+- [x] Walking/movement — **live-confirmed working**.
+- [x] Inventory item display (`UpdateInvFull`/`UpdateInvPartial`) — **live-confirmed working**,
+  items land in their own slot (was a real bug — 2-arg vs 3-arg `InventoryObject.pack`, fixed).
+- [x] Fixed-frame login panes (inventory 149, equipment 387, prayer 541, etc.) render AND are
+  clickable (`Player.setVisibleInterface` bookkeeping bug fixed, array-growth hardened).
+- [x] Diagnostic infrastructure: `NetworkLogger` → `PROTOCOL_DUMP.txt`, `CacheInterfaceDumper` →
+  `CACHE_INTERFACE_DUMP.txt`. Both VERIFIED present in source and wired into `Server.java`/
+  `RsProt.java`; neither output file exists yet because nobody has booted since they were added.
+
+---
+
+## 6. CODE-COMPLETE BUT NOT LIVE-VERIFIED — highest priority next steps
+These compile clean and their authors believe them correct, but nobody has watched a real client
+render them. **This is the most valuable use of the next live-test session** — bigger payoff than
+chasing Milestone 4's remaining bugs, since these haven't been touched at all.
+
+### 6a. Zone-scoped payloads (ground items, object add/remove, projectiles, graphics, area sounds)
+- VERIFIED IN CODE: `PacketSender.queueZonePayload()` (line ~92) uses
+  `x & ~0x7, y & ~0x7` (absolute zone south-west corner) — this is the 2026-07-08 fix for a bug
+  where everything was silently sent to the wrong zone and rendered nothing.
+- **Test procedure**: boot server + RSProx, log in, spawn a ground item near the player (there's a
+  `GroundItemCommands.java` admin command for this — it's the one file already staged in git),
+  place/remove an object, and trigger a projectile if there's an easy way to (a spell or ranged
+  weapon). All five should now appear at the correct tile.
+- Known lower-confidence sub-parts even if the coordinate fix works: `sendProjectile`'s
+  `curve`/`something` → RSProt `angle`/`progress` mapping, and `sendAreaSound`'s `type`/`distance`
+  → `loops`/`range`+`dropOffRange` mapping, are both positional best-effort guesses (no exact
+  legacy-name match existed). If ground items/objects render correctly but a projectile's arc
+  looks wrong or a sound's falloff is off, start here.
+
+### 6b. Player update masks → PlayerAvatarExtendedInfo (animations, graphics, hitsplats, chat
+bubbles, face-entity, face-angle, forced-text, forced-movement, move/teleport speed, appearance)
+- VERIFIED IN CODE: `RsProt.pushMaskUpdates()` (line ~715), called from `driveUpdate()` step 0.
+  Handles all 11 player-applicable mask classes.
+- **This has literally never been live-tested.** Every "confirmed working" note in HANDOFF/
+  MIGRATION for Milestone 4 is about clicking/movement, not about whether your character's own
+  animations, hitsplats, or graphics actually render on a real client.
+- **Test procedure**: log in, attack something (or use a command that plays an animation) and
+  confirm: (1) animation plays, (2) if it deals damage, a hitsplat + hp bar appear, (3) any
+  spot-anim/graphic renders, (4) public chat still shows an overhead chat bubble (separate from
+  the chatbox itself — this exercises `ChatUpdate`/`setChat`), (5) face-entity (auto-turning to
+  face an NPC/player you interact with) and forced movement (if anything triggers it, e.g. certain
+  teleports/cutscenes) look correct.
+- Known accepted gap even if this all works: hitsplats/hp-bar render with no attacker-tinting
+  (`sourceIndex = -1` always) since the legacy code never tracked an attacker on `Splat`. Cosmetic
+  only — do not "fix" unless asked; it's documented as an accepted known limitation, not a bug.
+
+### 6c. Chatbox / display-name gate
+- VERIFIED IN CODE: `player.start()` (fires the display-name burst) is called after the RSProt
+  session + game frame exist in `RsProt.doLogin()`, not before.
+- Not explicitly re-tested with a dedicated pass, but Milestone 4's later live-testing rounds
+  clearly had working chat/commands (testers were reporting bugs via what appears to be normal
+  chat-adjacent interaction), so this is very likely fine. Low priority — just confirm the "You
+  must set a name..." overlay never appears on a fresh login, and move on.
+
+---
+
+## 7. IN PROGRESS — Milestone 4, entity & interface interactions
+**Per the user: this area (interfaces + item interactions) is being worked on directly by them /
+another agent right now. Do not attempt fixes here without being asked — this section exists so
+whoever picks it up next has the current state without re-reading 690 lines of log.**
+
+### Confirmed working
+- Object/NPC/player/ground-item clicks (options 1-5, or 1-8 for player), movement, inventory item
+  display (own-slot correctness).
+
+### Confirmed still broken (as of Round 3, 2026-07-08)
+- **Equip and drop** (both route through `If3Button` → `ActionButtonHandler` → interface 149's
+  `TabInventory.click`). The access-mask gate that was blocking ALL inventory clicks is fixed
+  (Round 2) — clicks now dispatch and fire events — but the action itself still silently doesn't
+  execute. Root cause open. `TabInventory.click`'s two silent-return branches
+  (`player.isLocked()` returning unexpectedly true, or `player.getInventory().get(slot, itemId)`
+  returning null on a slot/id mismatch) are the two remaining candidates, per HANDOFF's Round 3
+  section — a `[INV-CLICK]` temp diagnostic that targeted this was added then later removed and
+  replaced by the permanent `PROTOCOL_DUMP.txt`/`NetworkLogger` infrastructure (Section 5 above),
+  so the next live test's `PROTOCOL_DUMP.txt` output on an equip attempt is the next real lead.
+- **Drag-reorder within inventory** (`IfButtonD` → `InterfaceDragHandler`) — same symptom class,
+  not separately root-caused yet.
+- **Bank interface** — server sends its full expected packet sequence (confirmed via logs) with no
+  exceptions, but nothing renders on the client. A concrete bug (missing `sendClientScript(917,
+  "ii", -1, -1)` call) was found and fixed in `Bank.java` (VERIFIED IN CODE, line ~47) but did NOT
+  resolve the symptom on the next test. `Interface.BANK` (=12) / `Interface.BANK_INVENTORY` (=15)
+  were empirically checked against the real Cache228 cache (140 and 70 real child components
+  respectively) — plausible, but neither proves nor disproves correctness. **The documented next
+  step, never yet done: a live RSProx packet capture of a real rev-228 client's own bank-open
+  sequence, diffed byte-for-byte against what this server sends.** That's the only way left to
+  settle whether the interface IDs themselves are wrong.
+
+### Wired but never actually tested (not "broken" — just unknown)
+- Item-on-object / item-on-ground-item / item-on-npc / item-on-player (`OpLocT`/`OpObjT`/
+  `OpNpcT`/`OpPlayerT`) and item-on-item (`IfButtonT`) — the human tester's Round-1 note ("all item
+  options do not work, no debug message is fired") predates the Round 2 access-mask fix, so it's
+  unclear if this is still true. Nobody has explicitly retested these specific packet types since.
+- Examine (option 6 on objects/NPCs/ground-items) — deliberately left on the no-op path. The
+  legacy handlers' own option-6 branches are debug-only and don't send player-visible text even on
+  the old 184 client, so this is a non-issue, not a gap, unless examine text becomes a real
+  feature requirement later.
+
+### Available tools for whoever debugs this next
+- `PROTOCOL_DUMP.txt` / `CACHE_INTERFACE_DUMP.txt` (Section 4) — did not exist as of this writing;
+  will be populated the next time the server boots and someone clicks something.
+- `ActionButtonHandler.handleAction` / `InterfaceDragHandler.handleDrag` still have their own
+  `[BUTTON] resolved ...` / `[DRAG] resolved ...` console prints (intentionally left in — VERIFIED
+  IN CODE, distinct from the removed `[INV-CLICK]`/top-level `[BUTTON]`/`[DRAG]` prints).
+
+---
+
+## 8. NOT STARTED — real gaps nobody has scheduled yet
+- **NPC avatar extended info (animations, graphics, hitsplats for NPCs).** VERIFIED IN CODE:
+  `RsProt.pushMaskUpdates()` explicitly only handles the PLAYER-side `PlayerAvatarExtendedInfo`.
+  There is no equivalent for `NpcAvatarExtendedInfo` anywhere in the codebase (confirmed via grep
+  — zero hits for `NpcAvatarExtendedInfo`, `TransformUpdate`, or `pushNpcMaskUpdates`). NPCs will
+  correctly walk around (position sync via `npcInfoProtocol` works — that part IS done) but will
+  never play an attack animation, never show a hitsplat, never show a graphic/spell effect. This
+  will be very visible the moment anyone fights an NPC and should probably be treated as its own
+  Milestone (call it Milestone 2b) once Milestone 4 settles down. The mask-bridging pattern
+  already exists and works for players (`pushMaskUpdates`) — this is mostly "do that again, but
+  for the NPC entity type and `NpcAvatarExtendedInfo`'s setter surface," not a from-scratch design
+  problem.
+- **Weapon-specific animation overrides.** `RsProt.java:911` comment: "Default idle/walk/run anims
+  (Alter's DEFAULT_ANIM_SET). Weapon-specific overrides = TODO." Currently every player probably
+  uses one generic animation set regardless of equipped weapon. Cosmetic, low priority relative to
+  the above.
+- **Milestone 5 — legacy cleanup.** Not started, and per the file's own stated ordering, shouldn't
+  be until every RSProt milestone above is live-confirmed. When it's time: delete
+  `io.dm.network.*`'s legacy packet-writing paths (NOT the game-logic handlers under
+  `io.dm.network.incoming.handlers.*` — those stay, they're shared with RSProt) and strip
+  `kronos-api`'s Netty transport — but only the parts that exclusively serve real player
+  connections. AI bots' login/session path needs to be re-checked at that time to make sure it
+  doesn't ALSO get deleted; it was explicitly called out throughout this migration as depending on
+  the same legacy code paths.
+- **World-entity info** (`worldEntityInfo`/`worldEntityInfoProtocol`) is wired into the tick loop
+  (`driveUpdate()` step 2) but nothing in this codebase currently appears to allocate/use dynamic
+  world entities (the rev-220+ "instanced overlay" feature). If this server doesn't use that
+  feature, this is dead-but-harmless plumbing, not a gap — just noting it so nobody mistakes the
+  empty usage for a bug.
+
+---
+
+## 9. UNRESOLVED TECHNICAL QUESTIONS (things future work should not re-litigate from scratch)
+- `Interface.BANK` (12) / `Interface.BANK_INVENTORY` (15) — plausible against real Cache228 data,
+  unproven. Do not change on a hunch (this has been explicitly warned against twice already in
+  HANDOFF.txt); get a real packet capture first.
+- `InterfaceDef.COUNTS` and related bookkeeping (`Player.visibleInterfaceIds`,
+  `InterfaceHandler`'s dispatch arrays) are sourced from the LEGACY (184) cache via
+  `Server.fileStore` index 3, not Cache228. Two bugs already came from this mismatch and were
+  patched with "grow the array on demand" rather than "read the real cache" — that's a durable
+  workaround, not a root fix. If a THIRD bug of this exact shape shows up, it's worth building a
+  proper Cache228 interface-config reader instead of patching around it a third time
+  (`CacheInterfaceDumper` already proves the read pattern works — it's just a one-off dumper, not
+  a live-queryable API yet).
+- `sendProjectile` and `sendAreaSound`'s field mappings (Section 6a) are positional best-effort
+  guesses pending live confirmation.
+
+---
+
+## 10. RECOMMENDED ORDER OF OPERATIONS
+1. **Commit the current state to git** (Section 0) — before anything else touches a single file.
+2. Boot server + RSProx once, just to generate `PROTOCOL_DUMP.txt` / `CACHE_INTERFACE_DUMP.txt`
+   baselines and confirm the build still boots cleanly end to end.
+3. Live-test Section 6a (zone payloads) and 6b (player update masks) — neither has ever been
+   watched on a real client, and both are code-complete. This is the highest-value, lowest-risk
+   next step: either they just work and two whole milestones close out, or they surface a bug
+   while the diagnostic infrastructure is fresh and nobody's mid-debugging something else.
+4. Let the user / whoever owns it continue Milestone 4 (Section 7) independently.
+5. Once Milestones 1-4 are all live-confirmed: build NPC avatar extended info (Section 8) as its
+   own short milestone — the pattern to copy already exists in `pushMaskUpdates`.
+6. Only after all of the above: Milestone 5 legacy cleanup.
+
+---
+
+## 11. GLOSSARY (for a fresh agent unfamiliar with this stack)
+- **RSProt** — third-party Kotlin library implementing the OSRS network protocol for a given
+  revision; this project pins revision 228.
+- **RSProx** — a client-side proxy that lets a real, unmodified rev-228 OSRS client connect to a
+  custom server (this one) instead of Jagex's servers.
+- **Rev / revision** — a specific version of the OSRS client protocol. This project is migrating
+  from rev 184 (the original Kronos base) to rev 228.
+- **Zone** — an 8x8 tile chunk; ground items/objects/projectiles/graphics/sounds are all addressed
+  by which zone they're in, not raw tile coordinates, hence the `x & ~0x7` bug in Section 6a.
+- **Mask** — a legacy-184-era bitflag-driven per-tick "this entity changed" structure (animation,
+  graphics, hits, etc.). RSProt replaces this whole concept with an `ExtendedInfo` object with
+  named setters — "bridging a mask" means reading the legacy structure's current state and calling
+  the equivalent RSProt setter once per tick it's dirty.
+- **`If3Button`/`IfButtonD`/`IfButtonT`** — RSProt's incoming message types for, respectively, a
+  normal interface-component click, a drag action, and an item-on-item action.
+- **Access mask (`IfSetEvents`)** — a per-component server→client message that tells the rev-228
+  client which click/drag options are even enabled for a given interface component's slot range.
+  Without one, the client won't send the corresponding click packet at all — this was the root
+  cause of Milestone 4's inventory/equipment click silence (Section 7 history).
+
+---
+
+## 12. WHERE TO FIND MORE DETAIL (HANDOFF.txt section index)
+If you need the full reasoning/rationale behind any claim above, HANDOFF.txt has it under these
+exact section headers (search for the `##`/`###` heading text):
+- "Core RSProt Signatures (From javap)" — the actual RSProt API surface used throughout.
+- "Completed Integration State & File Modifications" — Phases A-E detail (Section 5 above).
+- "Milestone 1 Fix (2026-07-07): Zone-Scoped Payload Port" — Section 6a's original implementation.
+- "Milestone 2 Fix (2026-07-07): Player Update Mask → PlayerAvatarExtendedInfo Bridge" — Section
+  6b's implementation, including the "replays forever" bug and the face-entity index-space fix.
+- "Milestone 3 Fix (2026-07-07): Chatbox / Display-Name Gate Root Cause" — Section 6c.
+- "Milestone 4 Fix (2026-07-07): Entity & Interface Interaction Wiring" — Section 7's original
+  11-listener wiring.
+- "Milestone 4 Fix — Live Testing Round 1/2/3 (2026-07-08)" — Section 7's bug-by-bug history; Round
+  3 also contains Section 6a's coordinate-fix discovery (filed there because that's the session
+  that found it, even though the fix belongs to Milestone 1's code).
+- "Protocol & Cache Dump Logging (2026-07-08)" — Section 4/5's diagnostic infrastructure.
+
+MIGRATION.txt is a shorter roll-up of the same milestones with less blow-by-blow narrative — use
+it if you want the summary-of-the-summary rather than HANDOFF's full detail.

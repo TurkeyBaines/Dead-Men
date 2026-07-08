@@ -1,0 +1,66 @@
+---
+title: "OLD - Tier 1 Shop"
+currency: "OVERWORLD_POINTS"
+accessibleByIronMan: true
+canSellToStore: false
+generalStore: false
+restockRules:
+  restockTicks: 100
+  restockPerTick: 1
+defaultStock:
+  - id: 556
+    amount: 5000
+    placeholderId: 556
+    price: 15
+  - id: 558
+    amount: 5000
+    placeholderId: 558
+    price: 15
+  - id: 557
+    amount: 2500
+    placeholderId: 557
+    price: 20
+  - id: 555
+    amount: 2500
+    placeholderId: 555
+    price: 20
+  - id: 554
+    amount: 5000
+    placeholderId: 554
+    price: 25
+  - id: 563
+    amount: 5000
+    placeholderId: 563
+    price: 60
+  - id: 333
+    amount: 1000
+    placeholderId: 333
+    price: 15
+  - id: 329
+    amount: 1000
+    placeholderId: 329
+    price: 25
+  - id: 121
+    amount: 250
+    placeholderId: 121
+    price: 180
+  - id: 115
+    amount: 250
+    placeholderId: 180
+    price: 180
+  - id: 133
+    amount: 250
+    placeholderId: 133
+    price: 180
+  - id: 139
+    amount: 150
+    placeholderId: 139
+    price: 270
+  - id: 884
+    amount: 2500
+    placeholderId: 884
+    price: 5
+  - id: 886
+    amount: 2500
+    placeholderId: 884
+    price: 10

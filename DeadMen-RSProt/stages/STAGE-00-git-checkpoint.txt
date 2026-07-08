@@ -1,0 +1,48 @@
+STAGE 00 — Git safety checkpoint
+STATUS: NOT STARTED
+DEPENDS ON: nothing. Do this before ANY other stage.
+Follow the RULES in stages/README.txt.
+
+## GOAL
+Get the entire RSProt migration committed to git. As of 2026-07-08, `git log --oneline --
+DeadMen-RSProt` returns ZERO commits — every file in this project (DMS/src, dm-net/, kronos-api/,
+build files, HANDOFF.txt, MIGRATION.txt) is untracked, existing only on this machine's disk.
+One disk failure or careless `git clean` destroys weeks of work.
+
+## CONTEXT
+- The git repo root is one level UP: C:/Users/Turk/Documents/GitHub/Dead-Men (shared with the
+  sibling legacy `DeadMen/` project — do not touch that folder's changes).
+- One file is already staged: DMS/src/main/java/io/dm/network/incoming/handlers/commands/
+  GroundItemCommands.java. Include it in the commit.
+- Large generated/binary dirs that must STAY untracked: Cache/, Cache228/, DMFS/, build/,
+  .gradle/, .idea/, .kotlin/, DMS/data/, DMS/server-data/ (contains rsa.properties — a PRIVATE
+  key, never commit it), DMS/src/test if it's generated output (check first — if it's real test
+  source, commit it).
+
+## STEPS
+1. Run `git status` from DeadMen-RSProt/ and review the untracked list.
+2. Update/create DeadMen-RSProt/.gitignore so the excluded dirs above are covered (a .gitignore
+   already exists — extend it, don't replace it). Explicitly ensure `server-data/` or at minimum
+   `**/rsa.properties` and `server.properties` are ignored.
+3. Stage the source tree: DMS/src, DMS/build.gradle, DMS/.gitignore, DMS/gradle*,
+   DMS/server.example.properties, dm-net/, kronos-api/ (source only — check for out/ or build/
+   inside it first), build.gradle, settings.gradle, gradle.properties, gradlew, gradlew.bat,
+   gradle/, rsprox-proxy-targets.yaml, jav_config.ws, azure-pipelines.yml, .gitignore,
+   HANDOFF.txt, MIGRATION.txt, THE_PLAN.txt, stages/.
+4. `git status` again. Read the staged list carefully: nothing from Cache/, Cache228/, build
+   output, or anything named *.properties containing credentials/keys. server.example.properties
+   is fine (it's a template with dummy values); server.properties and rsa.properties are NOT.
+5. Commit: `git commit -m "Checkpoint: RSProt rev-228 migration state as of <today>"`.
+6. Do NOT push unless the human says to (the remote may be shared/public; the human decides).
+
+## SUCCESS CRITERIA
+- `git log --oneline -1` shows the checkpoint commit.
+- `git status` shows no untracked SOURCE files under DeadMen-RSProt (caches/build dirs still
+  untracked-and-ignored is correct).
+- `git show --stat HEAD` contains no cache blobs, no rsa.properties, no server.properties.
+
+## NON-GOALS
+No code changes. No push. No touching the sibling DeadMen/ folder's modified files.
+
+## WRAP-UP
+Per README RULES #7: flip STATUS above, append a summary to HANDOFF.txt.

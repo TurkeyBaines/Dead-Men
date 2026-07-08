@@ -1,0 +1,691 @@
+# Dead-Men → RSProt: Technical Handoff & Blueprints (Rev 228)
+Target: Revision 228 (Aligning with AlterRSPS reference).
+Cache: 'cache-oldschool-live-en-b228-2025-02-05-11-45-05-openrs2' in Cache228/cache/ + Cache228/xteas.json.
+
+## Core RSProt Signatures (From javap)
+- RebuildNormal(zoneX, zoneZ, worldArea, XteaProvider)
+- RebuildLogin(zoneX, zoneZ, worldArea, XteaProvider, PlayerInfo)
+- NetworkService.getPlayerInfoProtocol()
+- PlayerInfoProtocol.alloc(int, OldSchoolClientType) / .update() / .dealloc(PlayerInfo)
+- PlayerInfo.updateCoord(level,x,z) / .updateRenderCoord(worldId,level,x,z) / .updateBuildArea(worldId,zoneX,zoneZ,w,h) / .toPacket()
+
+## Completed Integration State & File Modifications
+
+### 1. Core Framework Overhauls
+- Player.java: 'implements DmNetworkPlayer'. Added 'rsprotSession', public fields 'playerInfo', 'npcInfo', 'worldEntityInfo', and 'getUsername() = getName()'.
+- LoginInfo.java (kronos-api): Added null-channel guard to ctor: 'if(channel == null || channel.id() == null)'.
+- PacketSender.java: Added 'queueRsprot(msg)' helper. Directs RSProt players to session queues while preserving the legacy 184 path for AI bots via '|| player.getChannel() == null' check.
+
+### 2. CoreWorker.java Loop Wiring (Phase B+C+E)
+- logic(): Runs before 'player.process()':
+  for p: if p.getSession()!=null: p.getSession().processIncomingPackets(p)
+- update(): Replaces legacy update/flush loops for RSProt players with Alter sequence:
+  1) for p (session!=null): playerInfo.updateCoord(h,x,y); npcInfo.updateCoord(-1,h,x,y); worldEntityInfo.updateCoord(-1,h,x,y); maybeRebuildRegion(p).
+  2) ONCE: worldEntityInfoProtocol.update(); then per p: queue worldEntityInfo.toPacket(); then per p: playerInfo.updateRenderCoord(-1,h,x,y).
+  3) ONCE: playerInfoProtocol.update(); npcInfoProtocol.update().
+  4) per p: queue SetActiveWorld(RootWorldType(h)), playerInfo.toPacket(), SetNpcUpdateOrigin(x-(bazX<<3), y-(bazZ<<3)), npcInfo.toPacket(-1); session.flush().
+
+### 3. Real Player Login Construction Recipe (RsProt.java)
+Executed on 'Server.worker' thread via 'Server.worker.execute(() -> doLogin(...))':
+int index = firstFreeIndex();
+Player player = new Player();
+Config.load(player);
+LoginInfo info = new LoginInfo(null, username, "password", "", "", null, 0, false, 0, World.id, new int[4]);
+info.update(username, "", ListUtils.toList((World.isDev()?ADMINISTRATOR:REGISTERED).id));
+player.setIndex(index);
+player.init(info); 
+if (player.newPlayer) player.getPosition().copy(new Position(3222,3218,0)); // Spawn Lumbridge
+player.lastRegion = player.getPosition().getRegion();
+player.start(); player.setOnline(true);
+World.players.set(index, player);
+player.playerInfo = playerInfoProtocol.alloc(index, DESKTOP); // Also alloc npcInfo, worldEntityInfo
+player.playerInfo.updateCoord(player.getPosition().getZ(), player.getAbsX(), player.getAbsY()); // RSProt z = legacy Y, level = height
+Session s = DmLogin.accept(rh, block, player, index, ...);
+s.queue(new RebuildLogin(x>>3, z>>3, -1, xtea, player.playerInfo));
+// Followed by updateBuildArea on all 3 protocols, syncAppearance, and opening Top Interface 548
+
+### 4. Dynamic Look & Data Formats
+- Appearance Array: Identkit 0..6 uses '[0,10,18,26,33,36,42]' for naked male defaults, but reads dynamically from 'Player.getAppearance()' styles/colors and 'Player.getEquipment()'.
+- Account Persistence: 'PlayerFile.loadForRsProt(name, checkPassword)' decodes characters/name.json via GSON, runs BCrypt checks (dev-mode skips auth), and calls 'PlayerFile.save(player, 0)' on session cleanup.
+
+### 5. Client Crash Workarounds (Crucial Code Comments)
+- TabQuest.java: LoginListener registration commented out in static block to disable custom noticeboard interface 720 (crashed 228 client).
+- Area Registers: Citadel and Overworld area registers commented out to disable custom head/overhead icons crashing client at 'nq.ay'.
+- UpdateInvFull / UpdateInvPartial: CombinedId hardcoded to -1 (unbound) to bypass positive combined ID crashes on container refreshes.
+
+## Current Phase D Packet Status & Missing Ports
+- Ported Packets: sendMessage (MessageGame), sendVarp (VarpSmall/Large dirty-tracked), sendStat (UpdateStatV2), sendRunEnergy (UpdateRunEnergy), sendInterface/removeInterface (IfOpenSub/IfCloseSub), sendString (IfSetText), setHidden (IfSetHide), sendAccessMask (IfSetEvents), sendClientScript (RunClientScript), sendLogout (Logout.INSTANCE), sendGameFrame (IfOpenTop), sendItem (IfSetObject), sendSystemUpdate (UpdateRebootTimer), sendWeight (UpdateRunWeight), sendSoundEffect/sendMusic (SynthSound/MidiSongV2), sendHintIcon (HintArrow), sendGraphics (MapAnim), sendCreateObject (LocAddChangeV2), sendRemoveObject (LocDel), sendGroundItem (ObjAdd), sendProjectile (MapProjAnim), sendAreaSound (SoundArea) — the last six are zone-scoped, wrapped in 'UpdateZonePartialEnclosed' via the new 'queueZonePayload()' helper (see "Milestone 1 Fix" below).
+- Remaining Missing Ports:
+  1) Player Update Masks: FIXED (code-complete, not yet live-client-verified) — see "Milestone 2 Fix" below.
+  2) Chatbox Gate: FIXED (code-complete, not yet live-client-verified) — see "Milestone 3 Fix" below.
+
+## Milestone 1 Fix (2026-07-07): Zone-Scoped Payload Port
+- **Added 'queueZonePayload(x, y, level, ZoneProt)' to 'PacketSender.java'** (mirrors the existing
+  'queueRsprot(msg)' pattern): builds the single payload sub-message (one of 'ObjAdd', 'LocAddChangeV2',
+  'LocDel', 'MapAnim', 'MapProjAnim', 'SoundArea'), encodes it via
+  'DesktopUpdateZonePartialEnclosedEncoder.Companion.buildCache(allocator, List.of(payload))' into a
+  ByteBuf, wraps that in 'new UpdateZonePartialEnclosed(zoneX, zoneZ, level, buf)' (zoneX/zoneZ = x/y
+  >> 3), and queues it on the player's session — same "return true to skip the legacy OutBuffer path,
+  false falls through" contract as every other ported send method.
+- **Gradle fix required — this was the actual compile blocker:** 'net.rsprot:osrs-228-api' (the
+  dependency 'dm-net/build.gradle' declares) only exposes 'osrs-228-common' + 'osrs-228-model' on its
+  *compile* classpath per RSProt's own published Gradle module metadata; 'osrs-228-desktop' (where
+  'DesktopUpdateZonePartialEnclosedEncoder' lives) and 'osrs-228-internal' are wired **runtime-only**.
+  Fixed by adding both as explicit 'api' dependencies in 'dm-net/build.gradle' so they flow through to
+  ':DMS'. Since this server only ever allocates DESKTOP client sessions (HANDOFF.txt already notes
+  'PlayerInfoProtocol.alloc(index, DESKTOP)'), depending on the desktop codec module directly is
+  correct, not a workaround.
+- **Revision-mismatch caught mid-implementation:** the first draft of 'sendProjectile' was written
+  against RSProt rev 239's API ('MapProjAnimV2'), which doesn't exist in rev 228 — this project targets
+  228 ('dm-net/build.gradle: ext.rsprotRev = "228"'). Corrected to rev 228's actual 'MapProjAnim' class,
+  which has a materially different field layout: relative 'deltaX'/'deltaZ' offsets from the start tile,
+  not an absolute end 'CoordGrid' like the 239 class. All six classes' constructor parameter orders were
+  re-verified directly against decompiled bytecode of the real jars this project depends on
+  ('net.rsprot:osrs-228-{model,desktop,internal}:1.0.0-ALPHA-20260630') rather than trusted from name
+  similarity alone.
+- **Best-effort field mappings still needing live-client confirmation** (compile-safe, semantics
+  unconfirmed): 'sendProjectile's legacy 'curve'/'something' bytes map positionally onto RSProt's
+  'angle'/'progress' fields (no exact legacy-name match); 'sendAreaSound's legacy 'type'/'distance'
+  fields map onto 'loops'/'range'+'dropOffRange' the same way. Every other mapping (ground items, object
+  add/remove, graphics) is a direct 1:1 field correspondence with no ambiguity.
+- **Status: code-complete, compiles clean (2026-07-07).** Not yet live-client-tested — next step is
+  booting the server + RSProx and confirming ground items, object placement/removal, graphics, area
+  sounds, and projectiles all render correctly, paying closest attention to projectile arc/curve and
+  area-sound falloff since those two used the positional best-effort mapping above.
+
+## Milestone 2 Fix (2026-07-07): Player Update Mask → PlayerAvatarExtendedInfo Bridge
+- **Added 'RsProt.pushMaskUpdates(Player)'**, called once per online RSProt player as a new "step 0"
+  at the top of 'RsProt.driveUpdate()' — runs before step 3's 'playerInfoProtocol.update()' gathers
+  each avatar's currently-flagged extended-info blocks into that cycle's snapshot. Reads each of the
+  11 player-applicable legacy masks (of the 12 classes in 'model/entity/shared/masks/'; the 12th,
+  'TransformUpdate', is NPC-only — never instantiated in 'Player.init()'s 'masks[]' array, so there is
+  nothing to bridge for players there) and calls the matching 'PlayerAvatarExtendedInfo' setter:
+  'AnimationUpdate'->'setSequence(id,delay)'; 'GraphicsUpdate'->'setSpotAnim(0,id,delay,height)'
+  (legacy only ever has one graphic slot, so slot 0 is a fixed constant, not a guess); 'HitsUpdate'->
+  'addHitMark(...)' per queued splat + 'addHeadBar(...)' for the hp ratio; 'ChatUpdate'->'setChat(...)';
+  'EntityDirectionUpdate' (face entity)->'setFacePathingEntity(...)'; 'MapDirectionUpdate' (face
+  angle)->'setFaceAngle(direction)'; 'ForceTextUpdate'->'setSay(forceText)'; 'ForceMovementUpdate'->
+  'setExactMove(...)'; 'MovementModeUpdate'->'setMoveSpeed(mode)' (values 1=walk/2=run match RSProt's
+  own numbering exactly, confirmed against the call sites in 'PlayerMovement.java'); 'TeleportModeUpdate'
+  ->'setTempMoveSpeed(mode)' (only ever called with 127, RSProt's own "Teleport" sentinel — exact
+  match, not a guess); 'Appearance'->re-invokes the existing 'syncAppearance(player)' (already used at
+  login) whenever 'Appearance.hasUpdate(false)' is true, so equipment/title/combat-level changes
+  mid-game now also reach RSProt, not just the initial login snapshot.
+- **Getters added to 8 mask classes** ('GraphicsUpdate', 'HitsUpdate', 'ChatUpdate',
+  'EntityDirectionUpdate', 'ForceMovementUpdate', 'ForceTextUpdate', 'MapDirectionUpdate',
+  'MovementModeUpdate', 'TeleportModeUpdate') plus 8 new pass-through getters on 'Entity'/'Player'
+  (mirroring the pre-existing 'getAppearance()'/'getChatUpdate()' pattern) so 'RsProt.java' — which
+  already reaches into 'Player'/'Appearance'/'Equipment' for 'syncAppearance()' — can read the other
+  10 masks the same way. Purely additive; no existing field or method signature changed.
+- **'ChatUpdate' needed an actual fix, not just a getter, for the bridge to be possible at all:**
+  'set()' immediately Huffman-encodes the message into 'messageData' and never kept the plaintext
+  anywhere, so there was no string left for RSProt's self-encoding 'setChat(...)' to consume. Added a
+  'message' field, populated from the same case-fixed string that gets encoded, so both paths render
+  identical text. (In practice, real RSProt players' own public chat already renders via a separate,
+  already-working path — 'RsProt.onPublicChat()' bridges the incoming 'MessagePublic' straight to
+  'setChat()' before this mask is ever touched; 'ChatUpdate' itself is currently only populated by the
+  legacy-184 'ChatHandler.java', i.e. AI bots / non-RSProt connections. Bridged anyway per this
+  milestone's explicit "Chat" requirement, and in case anything else starts writing to it later.)
+- **'EntityDirectionUpdate' (face-entity) needed real behavioral thought, not just a passthrough:**
+  two separate issues, both fixed:
+  1. *Index-space mismatch:* the legacy 'direction' field stores 'Entity.getClientIndex()'s encoding
+     (players = realIndex + 32768, NPCs = realIndex), but RSProt's 'setFacePathingEntity' expects
+     players = realIndex + 0x10000 (65536). A raw passthrough would have put every player face-lock
+     roughly 32768 too low — landing in, and potentially colliding with, the NPC index range instead
+     of the player range. Fixed with 'RsProt.toRsProtEntityIndex()', which re-derives the real index
+     and re-encodes it in RSProt's own scheme.
+  2. *Delayed-remove quirk doesn't apply to RSProt:* 'faceNone(true)' (used a lot — e.g.
+     'PlayerCombat.java:638' on every non-death combat disengage) delays the actual 'direction' field
+     flip by up to 2 game cycles via an internal 'stage' counter, solely to work around a legacy 184
+     client quirk. Replicating that delay for RSProt would add a real, visible 2-tick lag to un-facing
+     that the modern client doesn't need. Added 'resolvedTarget'/'consumeResolvedUpdate()' to
+     'EntityDirectionUpdate', updated immediately by both 'set()' and 'remove()' regardless of the
+     'delay' flag, so the RSProt bridge reflects the game logic's actual intent ("stop facing now")
+     instead of the 184-specific staging artifact. The existing 'direction'/'stage'/'sent' state
+     machine driving the legacy 184 encoder is untouched.
+- **Caught a "replays forever" bug before it shipped:** 'Entity.resetUpdates()' only calls a mask's
+  'reset()' once 'isSent()' is true, and the ONLY place that ever called 'setSent(true)' was the
+  legacy 'PlayerUpdater.writeMasks()' — which 'CoreWorker.update()' explicitly skips for RSProt
+  players ('if(player.getSession() == null)'). Without 'pushMaskUpdates()' also calling 'setSent(true)'
+  itself on every mask it consumes, 'hasUpdate(false)' would never go false again after the first
+  trigger, and this bridge would have replayed the same animation/graphic/hitsplat/chat/etc. every
+  single tick forever instead of once. Fixed by calling '.setSent(true)' at the end of every branch
+  (except face-entity, which self-tracks via 'resolvedDirty' independently of 'sent'/'reset()') so the
+  existing 'resetUpdates()' cleanup — already called once per cycle for every online player,
+  regardless of transport — correctly clears these masks too.
+- **Hit-source tinting is a known best-effort gap** (same spirit as the curve/progress and
+  type/loops notes under "Milestone 1 Fix" above): 'HitsUpdate.add()' only ever kept a hit's 'type'
+  ordinal + 'damage' in its private 'Splat', never the attacker. 'addHitMark'/'addHeadBar' are
+  therefore pushed with 'sourceIndex = -1' — damage numbers and the hp bar render correctly for
+  everyone, but nobody gets the attacker-tinted hitmark variant. Would need 'Hit.attacker' threaded
+  through 'Splat' (and through the same client-index re-encoding as face-entity above) to close.
+- **Status: code-complete, compiles clean (2026-07-07)** ('./gradlew :DMS:compileJava'). Not yet
+  live-client-tested — next step is booting the server + RSProx and confirming animations, spot-anims,
+  hitsplats/hp bar, force-text/chat bubbles, face-entity/face-angle, and forced movement all render on
+  a real RSProt-connected character, the same live-verification step Milestones 1 and 3 are also still
+  waiting on.
+
+## Milestone 3 Fix (2026-07-07): Chatbox / Display-Name Gate Root Cause
+- **Real root cause was NOT a wrong Varbit/Varp — it was a sequencing bug.** 'Player.start()' (the
+  shared login-finalize method, still used by both the legacy 184 path and RsProt) fires a burst of
+  ONE-SHOT packets: 'packetSender.sendVarp(1737, -2147483648)', 'sendClientScript(1105, "i", 1)',
+  '**sendClientScript(423, "s", name)**' (passes the player's own name — almost certainly the actual
+  CS2 script that populates the client's display-name state), 'sendClientScript(2498, "i11", 1, 0, 0)',
+  '**Config.HAS_DISPLAY_NAME.set(player, 1)**' (varbit 8199 -> resolves to its parent varp via
+  'io.dm.cache.Varpbit', the SAME mechanism that already worked on the legacy 184 client),
+  'sendClientScript(828, "i", 1)', and two 'sendClientScript(233, ...)' calls.
+- 'RsProt.java's old 'doLogin()' called 'player.start()' at what is now line ~262 — BEFORE
+  'DmLogin.INSTANCE.accept(...)' had created the RSProt 'Session'. 'PacketSender.queueRsprot()'
+  (PacketSender.java:60) returns 'false' with no session, and every send method then falls through to
+  the legacy 'OutBuffer'/'write()' path, which ALSO no-ops because RSProt players have a null Netty
+  channel (PacketSender.java:42-48). Net effect: the ENTIRE one-shot burst above — including the
+  '423' clientscript that sets the display name — was silently dropped for every RSProt login. Only
+  varp/varbit writes made via 'Config.set()' survived even partially, because those go through
+  'Player.updateVarp()' (dirty-tracking, Player.java:752) and get re-flushed every tick by
+  'Player.sendVarps()' once the session exists — which is exactly why the earlier "toggle varp 1055"
+  attempt visibly reached the client (it's dirty-tracked) yet still didn't clear the gate: **1055 was
+  just the wrong number** (an unverified guess — 'Config.DISPLAY_NAME = varp(1055, true)' in
+  Config.java is not a real cache-verified mapping), while the ACTUAL mechanism ('sendClientScript(423,
+  "s", name)', an immediate non-dirty-tracked send) never reached the client at all.
+- **Fix applied in 'DMS/src/main/java/io/dm/network/rsprot/RsProt.java' ('doLogin()'):**
+  1. Removed the early 'player.start()' call (was right after 'player.newPlayer = false;') and the
+     ineffective 'io.dm.model.inter.utils.Config.DISPLAY_NAME.set(player, 1)' varp-1055 hack alongside it.
+  2. Re-inserted 'player.start()' AFTER the session-null check, 'RebuildLogin', 'setBuildAreas',
+     'syncAppearance', and 'openFrame(s)' — i.e. after the RSProt session AND the game frame both
+     exist, so 'queueRsprot()' actually queues every packet in the burst instead of dropping it.
+  3. Left 'Config.HAS_DISPLAY_NAME' (varbit 8199) as the trusted, cache-verified flag — it was never
+     the problem, it just needed its sibling clientscript (423) to actually arrive too.
+- **Side benefit:** this also fixes the welcome message, 'LoginListener.executeAll()' UI, pet spawn,
+  and daily-reset messages for RSProt players, which were equally being silently dropped by the same
+  bug (all called from inside 'Player.start()').
+- **Status: code-complete, NOT yet compiled or live-client-tested** (a compile check was in progress
+  when this session ended). Next step before trusting this fixed: '(cd DeadMen-RSProt &&
+  ./gradlew :DMS:compileJava)', then boot + RSProx login and confirm the "You must set a name..."
+  overlay is gone and '::commands'/public chat work.
+
+## Milestone 4 Fix (2026-07-07): Entity & Interface Interaction Wiring
+- **Root cause:** 'RsProt.java's Consumer Registry (Phase E) only ever wired four incoming message
+  types — 'MoveGameClick'/'MoveMinimapClick' (movement), 'ClientCheat' (::commands), and
+  'MessagePublic' (chat). Every other decoded 'IncomingGameMessage' — every object, NPC, ground-item,
+  and player click, every inventory/equipment/bank/interface button, and every item-on-X combination
+  — fell through to 'DmIncomingPackets.registerNoOpsExcept's accept-and-drop no-op. The packet reached
+  the server (so the client never desynced or errored), but no game logic ever ran: clicking anything
+  in the world or on any interface was silently swallowed.
+- **Fix applied in 'RsProt.java' ('start()'):** registered 11 additional real listeners, each a thin
+  bridge from an RSProt-decoded message straight into the existing legacy Kronos handler under
+  'io.dm.network.incoming.handlers.*' — no new gameplay logic was written; those handlers already
+  fully implement this behaviour for the legacy 184 protocol (and still serve AI bots via that same
+  path), they simply weren't reachable from RSProt-connected clients yet:
+  - 'OpLoc' (object clicks, options 1-5) -> 'ObjectActionHandler.handleAction'
+  - 'OpNpc' (NPC clicks, options 1-5) -> 'NPCActionHandler.handleAction'
+  - 'OpObj' (ground-item clicks, options 1-5) -> 'GroundItemActionHandler.handleAction'
+  - 'OpPlayer' (player clicks, options 1-8) -> 'PlayerActionHandler.handleAction'
+  - 'If3Button' (every inventory/interface/equipment component click, options 1-10) ->
+    'ActionButtonHandler.handleAction'
+  - 'OpLocT'/'OpObjT'/'OpNpcT'/'OpPlayerT' (item- or spell-used-on-object/ground-item/npc/player) ->
+    'InterfaceOnObjectHandler'/'InterfaceOnGroundItemHandler'/'InterfaceOnEntityHandler'
+  - 'IfButtonT' (item-on-item, e.g. combining two inventory items) ->
+    'InterfaceOnInterfaceHandler.handleAction'
+  - 'IfButtonD' (interface drag, e.g. reordering inventory slots) -> 'InterfaceDragHandler.handleDrag'
+- **Equip / unequip confirmed end-to-end, not just plumbed:** traced 'If3Button' all the way through
+  'ActionButtonHandler.handleAction' -> 'InterfaceHandler.getAction(player, interfaceId, childId)' to
+  the actual per-interface handlers. Interface 149 (Inventory) child 0's 'handleClick' is
+  'TabInventory.click', which for `option == def.equipOption` (option 1 for ordinary gear) calls
+  'player.getEquipment().equip(item)'. Interface 387 (Equipment) children 6-16 (one per worn slot) are
+  'TabEquipment's 'itemAction', which for `option == 1` calls 'player.getEquipment().unequip(item)'.
+  Both are reached automatically once 'If3Button' is wired — no separate equip/unequip-specific code
+  was needed, only the dispatch path itself.
+- **Why the plumbing "just fit":** decompiled RSProt's 'CombinedId' value class (bytecode, since only
+  'osrs-228-model' ships sources — 'CombinedId' itself lives in the base 'protocol' artifact) and
+  confirmed `combinedId = ((interfaceId and 0xffff) shl 16) or (componentId and 0xffff)`, with 0xffff
+  ("no value") normalized to -1 on the way out — bit-for-bit the same packed format and sentinel
+  convention as the legacy `interfaceHash` parameter every 'ActionButtonHandler'/'InterfaceHandler'/
+  'InterfaceOn*Handler' method already takes. So 'msg.getCombinedId()' (or '.getSelectedCombinedId()'/
+  '.getTargetCombinedId()' on the *T/'IfButtonD'/'IfButtonT' variants) drops straight into those
+  existing parameters with no translation code required.
+- **Visibility widened on 8 legacy handler methods, behaviour untouched:** 'NPCActionHandler',
+  'PlayerActionHandler', 'GroundItemActionHandler', 'InterfaceOnObjectHandler',
+  'InterfaceOnGroundItemHandler', 'InterfaceOnEntityHandler', 'InterfaceOnInterfaceHandler', and
+  'InterfaceDragHandler' each kept their real per-option logic in a 'private' (one 'protected') static
+  method, reachable only via their own 'handle(Player, InBuffer, int)' entry point in the same package.
+  Widened each to 'public static' (pure visibility change, no logic touched) so 'RsProt.java' — in a
+  different package — can call them directly with RSProt's already-decoded fields.
+  'PlayerActionHandler's private 4-arg 'handle' was additionally renamed to 'handleAction' (its two
+  internal call sites updated to match) purely so all four entity-action handlers
+  (Object/NPC/Player/GroundItem) share one consistent public entry-point name.
+- **isLocked()/resetActions() guard duplicated, not moved, for four of the eight:** 'ObjectAction-',
+  'NPCAction-', 'GroundItemAction-', and 'PlayerActionHandler' each apply
+  `if(player.isLocked()) return; player.resetActions(true, true, true);` inside their
+  'handle(Player, InBuffer, int)' entry point, BEFORE calling into the now-public 'handleAction' this
+  milestone bridges into directly — so calling 'handleAction' straight from RSProt would have skipped
+  that guard entirely (RSProt players could then fire object/npc/player/ground-item actions while
+  stunned/busy/mid-dialogue, or stack actions without clearing the previous one). Rather than move the
+  guard into 'handleAction' itself — which would also strip it from those classes' own inline
+  'option == 6' (examine) branch, changing existing legacy-184/AI-bot behaviour — each new
+  'RsProt.java' bridge method ('onObjectAction'/'onNpcAction'/'onGroundItemAction'/'onPlayerAction')
+  duplicates the same two-line guard before calling 'handleAction', leaving the legacy entry points
+  completely untouched. The other four handlers ('ActionButtonHandler', 'InterfaceOnGroundItem-'/
+  'InterfaceOnObject-'/'InterfaceOnEntity-'/'InterfaceOnInterfaceHandler', and 'InterfaceDragHandler')
+  needed no duplicated guard: the first never gated button clicks behind 'isLocked' in the legacy path
+  either, and the rest already carry their own 'isLocked()' check *inside* the shared 'handleAction'/
+  'handleDrag' method being called, so calling them directly preserves the exact existing guard.
+- **Startup-crash trap avoided:** decompiled 'GameMessageConsumerRepositoryBuilder.addListener'
+  (bytecode) and confirmed it throws 'IllegalArgumentException' if a message class is registered
+  twice. 'DmIncomingPackets.registerNoOpsExcept' registers a no-op for every rev-228 incoming class
+  NOT in its caller-supplied exclusion set — so all 11 newly-wired classes had to be added to that
+  'java.util.Set.of(...)' alongside the pre-existing four (movement/chat/commands), or the no-op
+  registration pass would collide with the real listener and crash the server on boot before ever
+  accepting a connection.
+- **Scope note:** the three "examine" variants ('OpLoc6'/'OpNpc6'/'OpObj6', the option-6 click on
+  objects/NPCs/ground-items) were deliberately left on the existing no-op path — outside the requested
+  options-1-through-5 scope, and the legacy handlers' own option-6 branches are debug-only today (no
+  player-visible examine text is sent even on the legacy 184 client), so nothing user-visible regresses.
+- **Status (2026-07-07): code-complete, compiles clean.** Live-testing began 2026-07-08 — see
+  "Milestone 4 Fix — Live Testing Round 1" below for what was found and what's still open. Do not
+  treat this milestone as done; several bugs were found once a real client actually clicked things.
+
+## Milestone 4 Fix — Live Testing Round 1 (2026-07-08)
+- **First live-test pass reported broken:** wield, drop, inventory limited to visually one item
+  (spawning a new item overwrote the previous one), dragging items, and clicking objects moved the
+  player but never triggered the object's action. Two real bugs found and fixed; a third fix then
+  exposed a fourth. Equip/drop/drag and the bank interface are **still broken** after all of this —
+  see the end of this section for current status and next steps.
+- **Bug 1 — login never registered the fixed-frame panes as "visible."** 'RsProt.java's
+  'openFrame(Session)' queued raw 'IfOpenSub' messages directly (`s.queue(new IfOpenSub(...))`)
+  instead of calling 'PacketSender.sendInterface(...)'. That matters because 'sendInterface' does two
+  things, not one: it sends the packet *and* calls 'player.setVisibleInterface(interfaceId, parentId,
+  childId)' — the bookkeeping 'InterfaceHandler.getAction' checks (via 'isVisibleInterface') before
+  running any click handler. Bypassing it meant every fixed-frame pane (inventory 149, equipment 387,
+  prayer 541, etc.) rendered correctly on screen but was permanently "not visible" server-side, so
+  every click on any of them silently no-opped — explaining wield/drop/drag/interfaces uniformly.
+  **Fix:** changed 'openFrame' to take the 'Player' and call
+  'player.getPacketSender().sendGameFrame(FIXED_TOP_LEVEL_INTERFACE)' +
+  '.sendInterface(pane[0], FIXED_TOP_LEVEL_INTERFACE, pane[1], 1)' per pane, reusing the same
+  already-ported, already-correct methods the rest of the game uses to open interfaces (bank, shops,
+  etc.), instead of hand-building RSProt messages a second time.
+- **Bug 2 — that fix immediately crashed login with an "Index 80 out of bounds for length 80"
+  'ArrayIndexOutOfBoundsException' in 'Player.setVisibleInterface'.** Root cause: 'setVisibleInterface'
+  sizes its 'visibleInterfaceIds[parentId]' bookkeeping array from 'InterfaceDef.COUNTS[parentId]' —
+  and 'InterfaceDef.COUNTS' is loaded from `Server.fileStore.get(3)`, the **legacy** (older-revision)
+  cache, per the existing "JS5 cache is a separate FileStore" note above. The legacy cache reports
+  interface 548 (the game frame) as having 80 children. The real 228 client's interface 548 has more —
+  the fixed-frame-pane table (sourced from AlterRSPS, a modern-228 reference) uses child slots up to
+  93 for skills/quest/inventory/equipment/prayer/magic/clan chat/etc. The very first pane whose slot
+  (80, "combat options") reached that ceiling threw immediately, taking the whole login down with it.
+  This mismatch was always latent — it just had nothing to trip it until Bug 1's fix started actually
+  calling 'setVisibleInterface' for every pane. **Fix:** 'setVisibleInterface', 'removeVisibleInterface',
+  'isVisibleInterface', and 'moveVisibleInterface' in 'Player.java' now grow 'visibleInterfaces'
+  (flat array) and each 'visibleInterfaceIds[parentId]' (per-parent child array) on demand instead of
+  trusting the legacy cache's counts are complete — a general fix, not a special case for interface
+  548, so it should also protect any other interface whose real (228) child/id range exceeds what the
+  legacy cache reports.
+- **Bug 3 — inventory partial updates always wrote to slot 0.** Reported as "inventory limited to a
+  single item / spawning a new item overrides the first item." Root cause in
+  'PacketSender.updateItems()': the 'UpdateInvPartial.IndexedObjectProvider.provide(slot)' callback
+  returned 'InventoryObject.pack(it.getId(), it.getAmount())' — the **2-arg** overload. Decompiling
+  'InventoryObject' (bytecode; 'osrs-228-common' has no published sources) showed 'pack(int, int)' is
+  literally `pack(0, id, count)` — it always packs slot **0**. That's correct for 'UpdateInvFull' (full
+  syncs are positional: slot = position in the stream, the packed value's own slot bits are never
+  read), but 'UpdateInvPartial' is sparse — its own 'buildInventory' loop asserts
+  `InventoryObject.getSlot(obj) >= 0`, i.e. it reads the slot back out of the packed value itself. So
+  every partial update — regardless of which real slot changed — told the client "slot 0 changed,"
+  and every new/changed item visually replaced whatever was already in slot 0. **Fix:** use the 3-arg
+  'InventoryObject.pack(slot, id, count)' for the populated-item branch, and 'pack(slot, -1, -1)'
+  (RSProt's own documented "empty slot" form for partial updates, per its 'check()' message) instead
+  of the bare 'NULL' sentinel for the removed/invalid-item branch — 'NULL' has no slot embedded either
+  and would have had the same "can't tell the client which slot to clear" problem for removals.
+- **Confirmed working after Bugs 1–3:** login no longer crashes; object/NPC/ground-item clicks and
+  movement work; inventory items now land in their own slot instead of all colliding on slot 0.
+- **Still broken after Bugs 1–3 (2026-07-08, unresolved):**
+  - Equipping and dropping items still don't work (both route through 'If3Button' ->
+    'ActionButtonHandler.handleAction' -> interface 149's 'TabInventory' action).
+  - Dragging items within the inventory still doesn't work ('IfButtonD' -> 'InterfaceDragHandler').
+  - Opening the bank sends every expected packet server-side with no exceptions (confirmed via this
+    file's pre-existing '[IFACE]' first-occurrence diagnostic in 'PacketSender.logIfaceTarget' —
+    'Bank.open()'s full 'IfOpenSub'/'IfSetEvents'/'IfSetText' sequence for interfaces 12/15/548 all
+    fired in the expected order) but no interface appears on the client.
+  - Ruled out during investigation: 'player.inTutorial' (defaults 'false', never set 'true' anywhere
+    live) is not gating 'ActionButtonHandler'; the base inventory has never sent an explicit
+    'sendAccessMask'/'IfSetEvents' anywhere in this codebase (confirmed by grep) even for the legacy
+    184 client, so a "missing access mask" is very unlikely to be the cause for the *inventory grid*
+    specifically (unlike bank, which does send several).
+  - **Leading open hypothesis, not yet confirmed:** 'Interface.java' constants such as 'Interface.BANK'
+    (=12, inferred from the '[IFACE]' log lines matching 'Bank.open()'s call order exactly) may be
+    stale values from whatever revision this codebase originally targeted before the 228/RSProt
+    migration began, never audited against the real 228 cache — unlike the fixed-frame-pane ids, which
+    were deliberately sourced from a modern (AlterRSPS) reference. If true, the bank's interface id
+    itself could be wrong for the 228 client, independent of anything RSProt-specific. No local
+    AlterRSPS checkout exists in this repo to diff against; the more authoritative source available is
+    this project's own 'Cache228/cache' (the actual cache the 228 client renders from) — not yet
+    checked.
+  - **Temporary diagnostic logging added, not yet acted on** (remove once root-caused): 'RsProt.java's
+    'onButton'/'onInterfaceDrag' print the raw incoming 'If3Button'/'IfButtonD' fields
+    (`[BUTTON] iface=... comp=... sub=... obj=... op=...` / `[DRAG] fromIface=... toIface=...`) before
+    dispatching; 'ActionButtonHandler.handleAction'/'InterfaceDragHandler.handleDrag' print the
+    resolved interfaceId/childId, 'isVisibleInterface' result, and whether 'InterfaceHandler.getAction'
+    found a handler (`[BUTTON] resolved inter=... visible=... actionFound=...` /
+    `[DRAG] resolved inter=... visible=... actionFound=...`). Not yet exercised against a fresh
+    live-test — this is the immediate next step for whoever picks this up: reproduce equip/drop/drag,
+    capture this output, and it will show directly whether the packet never arrives, arrives with an
+    unexpected interfaceId, or arrives correctly but 'isVisibleInterface'/'actionFound' comes back
+    false.
+- **Status: PARTIALLY WORKING, live-testing in progress, NOT complete.** Compiles clean throughout
+  (each fix above was verified with './gradlew :DMS:compileJava' before moving on). Do not mark this
+  milestone done until equip/drop/drag and the bank interface are confirmed working live, and remove
+  the temporary '[BUTTON]'/'[DRAG]' diagnostic prints once they've served their purpose.
+- **Human Addition On This Step:** I have tested the requested debugs, and while they seem to work
+  for (most) objects, they do not work for items. dragging items usually moves the model around,
+  this isn't happening at all. all item options do not work. no debug message is fired when interacting
+  with any item, using any option. It should be noted that chatbox interfaces seem to appear, some are
+  broken (x option interface - text appears but background doesn't), but others seem to work correctly (text input).
+  The logout button now works correctly where it didn't before, and moving between side bar interfaces (inventory,
+  skills, quests, etc) fires an interface change debug in the server output.
+
+## Milestone 4 Fix — Live Testing Round 2 (2026-07-08)
+- **Root cause confirmed for the item-click/drag silence: rev 228's client-side interface system (IF3)
+  never enables clicking or dragging on a component's slots until the server explicitly sends it an
+  access mask.** The Round 1 diagnostics (`[BUTTON]`/`[DRAG]` at the very top of 'RsProt.java's
+  'onButton'/'onInterfaceDrag', which print unconditionally the instant a message is decoded, before
+  any dispatch/lookup logic runs) produced **zero output** for any inventory item click or drag during
+  this round's live test — not "wrong interfaceId," not "handler not found," nothing at all. That rules
+  out a server-side dispatch bug and means the rev-228 client itself never transmitted an 'If3Button' /
+  'IfButtonD' packet in the first place, exactly matching the documented rev-228 behaviour: without a
+  RSProt 'IfSetEvents' access mask registered for a component's slot range, the client has nothing
+  enabled to click or drag there and never builds the outgoing packet. This codebase already proves it
+  knows this rule — it sends access masks for every OTHER item-holding interface ('Bank.java',
+  'Trade.java', 'RunePouch.java', 'LootingBag.java', 'ItemSet.java', 'Barrows.java',
+  'EquipmentStats.java', ...) — grepping every 'sendAccessMask' call site in the repo confirmed the
+  standalone inventory (149) and worn-equipment (387) panes were the only two item-holding interfaces
+  that never got one, on either the legacy 184 path or the RSProt one.
+- **Fix applied in 'RsProt.java's 'openFrame(Player)'** (the exact method requested — the fixed-frame
+  login flow this milestone's inventory pane is opened from): after the existing loop opens all
+  'FIXED_FRAME_PANES', two new 'sendAccessMask' calls are added:
+  1. **Inventory (149, component 0, slots 0-27): mask 1181694.** Not a guess — this is the *exact* mask
+     value this codebase's own 'Bank.java' already sends for 'Interface.BANK_INVENTORY' component 3, a
+     proven-shape precedent for "the same 28-slot personal inventory container, fully interactive."
+     Decoded, the mask is bits 1-10 (all ten click options — matches 'TabInventory.click' treating
+     option 10 as examine and options 1-5 as item actions) plus bits 17+20 (full drag-reorder, needed
+     since 'TabInventory.drag'/'IfButtonD' handles slot reordering). RSProt itself doesn't interpret or
+     name these bits (confirmed by pulling 'osrs-228-model's sources jar and reading 'IfSetEvents.kt' —
+     the 'events' field is an opaque server-defined int as far as RSProt is concerned); their meaning is
+     purely a client/cache convention, so reusing this codebase's own already-proven value for the
+     equivalent container is safer than deriving a new one from first principles.
+  2. **Equipment (387, components 6-16, one per worn slot): mask 2046, start/end = -1/-1.** Explicitly
+     lower-confidence than the inventory fix above — flagging that clearly rather than presenting it
+     with the same certainty. Equipment slots hold a single item each, not a 0-27 array, so they're
+     addressed with this codebase's existing "no sub-range" convention (the same `start=end=-1` form
+     already used for other single, non-list components like 'NPCDialogue'/'YesNoDialogue'), and the
+     mask (bits 1-10, no drag bits — real OSRS equipment slots aren't drag-reorderable) is derived from
+     'TabEquipment.itemAction's own option range (1-6 possible custom actions + option 10 examine)
+     rather than copied from an existing proven analog. Added because 'TabEquipment''s unequip path
+     (interface 387, option 1) was reported broken in the exact same live-testing round as inventory and
+     shares this identical root cause — leaving it out would almost certainly just produce the same bug
+     report again immediately after. Needs live-client confirmation like every other best-effort mapping
+     in this document (see Milestone 1's curve/progress and type/loops notes for the established
+     pattern) — worst case if the mask is imperfect, unequip stays exactly as broken as it is today; it
+     cannot regress a currently-working path, since equipment interaction doesn't work at all right now.
+- **Bank rendering: found and fixed a concrete, high-confidence bug, independent of the above.**
+  'Bank.java's 'open()' had `//player.getPacketSender().sendClientScript(917, "ii", -1, -2147483648);`
+  — commented out, AND with a corrupted second argument (`-2147483648` = `Integer.MIN_VALUE`, which
+  doesn't match this codebase's convention anywhere else). Grepping every 'sendClientScript(917, ...)'
+  call site in the repo found the exact same `sendClientScript(917, "ii", -1, -1)` call, live and
+  uncommented, immediately before opening a `MAIN`-type interface, in **fifteen other places**:
+  'Barrows.java', 'EquipmentStats.java', 'XpCounter.java', 'TabStats.java', four call sites in
+  'BankPin.java', two in 'Trade.java', 'CanoeStation.java', 'HouseViewer.java', 'SlayerUnlock.java',
+  'Player.sendScroll()' — and, tellingly, **this same 'Bank.java' class's own 'openDepositBox()' and
+  the bank's 'closedAction'**, both of which call it correctly. 'Bank.open()' (the main bank window) was
+  the single exception across the entire codebase. Restored the call with the correct, universally-used
+  `-1, -1` arguments, in the same position it already occupied (immediately before
+  `setInterfaceUnderlay`/opening the interfaces) — a minimal, mechanical fix, not a redesign.
+- **Correction to a hypothesis raised mid-session: 'Interface.BANK' (=12) and 'Interface.BANK_INVENTORY'
+  (=15) were NOT changed, and should not be assumed stale.** This session initially cross-checked those
+  constants against this repo's vendored 'runelite/' checkout ('WidgetID.java': `BANK_GROUP_ID = 12`,
+  `BANK_INVENTORY_GROUP_ID = 15`, matching 'Interface.java' exactly) and treated that as proof they're
+  correct for rev 228 — **that reasoning was flagged as wrong during this session: the vendored
+  'runelite/' checkout targets revision 184, not 228.** Agreement with a rev-184 reference is equally
+  consistent with these being stale 184-era values nobody has audited against 228 (i.e. exactly the
+  original hypothesis), so it proves nothing either way and the claim is retracted. What actually *does*
+  still hold up independently of that mistake: 'Interface.INVENTORY' (=149) and 'Interface.EQUIPMENT'
+  (=387) are corroborated by a *different*, genuinely rev-228-specific source — the 'FIXED_FRAME_PANES'
+  table in 'RsProt.java', explicitly sourced from AlterRSPS (a modern-228 reference, per this file's
+  earlier notes), plus live behaviour (both panes render correctly and hold items correctly; only
+  clicking/dragging on inventory failed, and that's now root-caused above to the missing access mask,
+  not the id). 'Interface.BANK'/'Interface.BANK_INVENTORY' have **no equivalent 228-specific
+  corroboration anywhere in this repo** — they're only exercised via 'Bank.java'/'InterfaceType.java',
+  neither of which this file's own prior notes claim was audited against a modern reference. **Status:
+  genuinely unresolved, left untouched rather than guessed at** — changing a group id on a hunch risks
+  turning a currently-maybe-correct value into a definitely-wrong one. If the 'sendClientScript(917,...)'
+  fix above doesn't fully resolve the bank's rendering on the next live test, the next real step is
+  either (a) a live RSProx packet capture of a real rev-228 client opening its bank, diffed against what
+  this server sends, or (b) a from-scratch reader for Cache228's modern interface-config format — this
+  codebase's only existing interface-cache reader ('io.dm.cache.InterfaceDef.java') is built for the
+  legacy pre-228 archive format ('Server.fileStore', index 3, one file per component) and cannot be
+  repointed at 'Cache228' as-is to answer "does group 12 actually look like a bank." Neither was
+  attempted this round; (a) needs a live client this session doesn't have, and (b) is a substantial
+  reverse-engineering undertaking that didn't seem justified before seeing whether the 917 fix alone
+  resolves it.
+- **Diagnostic logging left in place, deliberately.** '[BUTTON]'/'[DRAG]' (RsProt.java, ActionButton-
+  Handler, InterfaceDragHandler), '[IFACE]' (PacketSender.logIfaceTarget), and '[VARP]' (PacketSender.
+  sendVarp) are all still present. Per this file's own Round-1 instruction, they're only meant to come
+  out once root-caused *and confirmed*; this round changed the code they'd be verifying but no live
+  client was available in this session to exercise it, so "confirmed" isn't true yet. Whoever runs the
+  next live test should see '[BUTTON]'/'[DRAG]' output for the first time ever on an inventory item
+  click/drag/equip/unequip — if that output appears and the interactions actually work, that's the
+  signal it's finally safe to strip the temporary prints.
+- **Status: code-complete, compiles clean ('./gradlew :DMS:compileJava', 2026-07-08). NOT yet
+  live-client-tested this round** — no client/RSProx available in this session. Next step for whoever
+  picks this up: boot the server + RSProx, log in, and re-test (in order of what this round touched)
+  inventory item clicks (wield/drop/examine), inventory drag-reordering, equipment unequip, and opening
+  the bank. If bank still doesn't render after the 917 fix, capture a real rev-228 client's bank-open
+  packet sequence via RSProx and diff it against this server's — that will settle the still-open
+  'Interface.BANK' id question definitively instead of by inference.
+
+## Milestone 4 Fix — Live Testing Round 3 (2026-07-08)
+
+- **'AlterRSPS' access status, checked again this round: still no local checkout anywhere on this
+  machine** (re-confirmed via 'grep -r AlterRSPS' across the whole repo — every hit is a comment citing
+  it as a past reference, e.g. this file's own "Slots/ids from AlterRSPS's InterfaceDestination" note
+  and 'rsprox-proxy-targets.yaml's header comment; none is a path or URL to an actual checkout). Per
+  this session's own ground rule ("cross-reference AlterRSPS as absolute source of truth"), a codebase
+  that isn't actually available cannot be honestly cross-referenced — doing so would mean fabricating
+  claims about code nobody in this session has read. Substituted the two sources that this repo already
+  established (in Milestone 1) as legitimate and actually authoritative: (a) the real
+  'net.rsprot:osrs-228-{model,common,desktop,internal}:1.0.0-ALPHA-20260630' jars themselves (this
+  project's Gradle cache has both classes and, for 'osrs-228-model' specifically, a full **sources jar**
+  — extracted to inspect 'If3Button.kt', the 'UpdateZone*.kt' family, 'ObjAdd.kt'/'LocAddChangeV2.kt',
+  'RebuildNormal.kt' and 'SetActiveWorld.kt' directly, not decompiled bytecode guesswork); (b) this
+  project's own 'Cache228/cache' (the actual 228 cache the client renders from), read empirically via
+  this repo's own existing 'io.dm.api.filestore.FileStore'/'IndexFile' classes — the same classes
+  'RsProt.java' already uses to serve that exact cache to real clients, so reusing them for read-only
+  inspection carries no format-guessing risk. Both are strictly stronger ground truth than a third-party
+  reference repo would have been, since they're the literal bytes the server and client already agree on.
+
+- **Ground items / objects invisible — ROOT CAUSE FOUND AND FIXED, high confidence.**
+  'PacketSender.queueZonePayload(x, y, level, payload)' (used by all six zone-scoped sends —
+  'sendGroundItem'/'sendCreateObject'/'sendRemoveObject'/'sendProjectile'/'sendGraphics'/
+  'sendAreaSound') built its 'UpdateZonePartialEnclosed' wrapper with `x >> 3, y >> 3` as the packet's
+  'zoneX'/'zoneZ'. Reading 'UpdateZonePartialEnclosed.kt's own KDoc directly from the sources jar: *"the
+  zoneX and zoneZ coordinates are relative to the build area in their **absolute form, not in their
+  shifted zone form**. If the player is at an absolute coordinate of 50, 40 ... the expected coordinates
+  to transmit here would be **48, 40**"* — i.e. the zone's south-western corner in absolute tile units
+  (`x & ~7`), NOT the divided/shifted zone-index form (`x >> 3`) that 'RebuildNormal'/'updateBuildArea'
+  use for their *own* same-named 'zoneX'/'zoneZ' parameters (confirmed by the same read: 'RebuildNormal.kt's
+  KDoc has no such "absolute vs shifted" caveat, and this codebase's own 'RsProt.maybeRebuildRegion'
+  already correctly uses the shifted form there). 'UpdateZoneFullFollows.kt'/'UpdateZonePartialFollows.kt'
+  carry the identical "absolute, not shifted" wording, confirming this is a deliberate, consistent
+  convention specific to the zone-*update* packet family, not a one-off. Passing the shifted form (e.g.
+  zoneX=6 instead of 48 for x=50) pointed every 'ObjAdd'/'LocAddChangeV2'/etc. at a zone the client
+  wasn't tracking as part of the player's build area — the packet is well-formed (no crash, no server
+  error, matching the reported symptom exactly) but the client has nothing loaded at that coordinate to
+  apply it to, so nothing renders. **Fix applied in 'PacketSender.queueZonePayload'**: `x >> 3, y >> 3`
+  → `x & ~0x7, y & ~0x7`. This is the single shared helper behind all six zone-scoped methods, so the
+  fix applies uniformly to ground items, object add/remove, projectiles, graphics and area sounds in
+  one place — all six were "not yet live-client-verified" per Milestone 1, so this was very likely
+  silently breaking all six, not just the two (ObjAdd/LocAddChangeV2) this round's live test happened to
+  probe. The in-zone offset bits sent inside each payload itself ('groundItem.x & 0x7' etc.) were already
+  correct and untouched — only the wrapper wrapper's own zone coordinate was wrong.
+  - **'SetActiveWorld'/'UpdateZonePartialFollows' before Obj Add/LocAddChangeV2 — checked, not the
+    cause.** This session's brief was to verify whether the 228 client needs an explicit
+    zone-synchronization packet before zone payloads. 'SetActiveWorld' is already queued unconditionally
+    once per game cycle for every online RSProt player in 'RsProt.driveUpdate()' step 4 (before
+    'playerInfo.toPacket()'), continuously, well before any on-demand ground-item/object spawn event —
+    so the client's active-world context is already kept fresh tick over tick regardless of when a zone
+    payload happens to fire. 'UpdateZonePartialEnclosed' (the class actually used here) is documented as
+    self-contained ("used to send a batch of updates for a given zone all in one packet") unlike the
+    "Follows" variants, which exist specifically for when you want to precede a *separate, raw* zone
+    payload packet with a lighter-weight pointer-setter — not a requirement layered on top of the
+    Enclosed variant. No evidence either mechanism was the actual problem; not changed.
+
+- **Equip/drop still not executing despite events firing — the specific hypothesis this session was
+  asked to check (a rev184-vs-228 'If3Button' option-id offset) is DISPROVEN by primary source, not
+  confirmed.** 'If3Button.kt's own KDoc: *"@property op the option clicked, ranging from 1 to 10"* —
+  this is the exact same 1-based, examine-is-10 convention 'ActionButtonHandler'/'TabInventory'/'Bank'
+  already use throughout the legacy-184-shared game logic. Traced the full parameter chain field-by-field
+  against this ground truth: 'RsProt.onButton' passes 'msg.getOp()' (1-10) / 'msg.getCombinedId()' /
+  'msg.getSub()' (slot) / 'msg.getObj()' (itemId) straight into 'ActionButtonHandler.handleAction' in
+  the same order its signature already expects, which calls 'action.handleClick(player, option, slot,
+  itemId)' unchanged. No offset, no off-by-one, no rev-184-vs-228 mismatch anywhere in this path — it is
+  bit-for-bit consistent with RSProt's documented contract. **Do not "fix" this by adding an offset that
+  isn't there; that would break a currently-correct mapping.**
+  - **What was actually found: 'InterfaceHandler''s dispatch-table arrays are sized from the stale
+    legacy-184 'InterfaceDef.COUNTS', the same staleness bug class as the already-fixed 'interface 548
+    has 80 legacy children vs 93+ real' bug (Round 1, Bug 2) — but that fix was only ever applied to
+    'Player.java's visibility bookkeeping, never to this sibling data structure.** 'InterfaceHandler's
+    constructor did `new InterfaceAction[InterfaceDef.COUNTS[id]]` and 'HANDLERS' was a fixed-size array
+    sized off 'InterfaceDef.COUNTS.length' — both legacy-cache-derived. **Checked empirically, this is
+    not currently an active crash or silent-failure for interface 149/387/12/15 specifically**: wrote a
+    small standalone checker against this repo's own 'FileStore'/'IndexFile' classes (same ones
+    'RsProt.java' already uses) pointed at both 'Cache228/cache' and the legacy 'Cache/', querying index
+    3 (interfaces — same archive 'InterfaceDef.load()' already reads) for real per-interface child
+    counts. Cross-validated against the one number already independently known (interface 548: legacy
+    cache reports exactly 80, matching this file's own Round-1 finding verbatim) — confirming the method
+    is sound. Results: interface 149 (Inventory) has exactly **1** real child component in Cache228 (this
+    is *consistent with*, not contrary to, id 149 being correct — OSRS's actual inventory interface has
+    historically been a single bare item-container component, with the tab chrome drawn by the
+    surrounding 548 frame, not by 149 itself); 387 (Equipment) has 31; both comfortably fit every child
+    index 'TabInventory'/'TabEquipment' or the new access-mask calls in 'RsProt.openFrame' reference. So
+    this specific bug is not what's silently swallowing equip/drop right now — every currently-coded
+    'InterfaceHandler.register(...)' call's own hardcoded indices already fit inside its legacy count
+    (if they didn't, the mismatched one would already crash the server at boot, which isn't happening).
+    **Fixed anyway, as hardening**: 'InterfaceHandler''s constructor now grows defensively (mirrors
+    'Player.ensureVisibleCapacity' exactly) instead of trusting the legacy count is sufficient, and
+    'HANDLERS' grows via a new 'ensureHandlerCapacity' the same way. This is a real, if not currently
+    triggered, risk: the legacy cache has 724 total interface groups and this codebase's own
+    'Interface.java' already references ids up to 722 ('UPGRADE_MACHINE_INVENTORY') — a 2-slot margin,
+    confirmed by the same empirical check. Any future interface addition, or any interface whose true
+    228 child count needs more room than its legacy count offers, would previously have crashed the
+    server at boot (array-creation) or silently returned null actions (array-bounds check in
+    'getAction') instead of dispatching a real, wanted click handler.
+  - **Root cause of the actual symptom is still open — added targeted diagnostics rather than guess
+    further.** With the option-id hypothesis disproven and the 'InterfaceHandler' sizing ruled out for
+    this specific interface, the remaining candidates are both inside 'TabInventory.click(...)' itself
+    (shared verbatim with the legacy-184/AI-bot path, so unlikely to be a *new* bug, but not yet ruled
+    out for RSProt specifically): 'player.isLocked()' returning true unexpectedly, or
+    'player.getInventory().get(slot, itemId)' returning null because the '(slot, itemId)' pair the 228
+    client echoes back doesn't match server state (checked 'ItemContainerG.get(slot,itemId)' — it's a
+    plain raw 'item.getId() != itemId' check with no legacy +1/-1 wire-encoding baked in, so this isn't
+    an encoding mismatch of the kind already fixed twice elsewhere in this migration, but a slot/id
+    *value* mismatch is still possible for other reasons). **Added '[INV-CLICK]' temp diagnostics** at
+    both silent-'return' points in 'TabInventory.click' (mirrors the existing '[BUTTON]'/'[DRAG]'
+    convention) so the next live test shows directly which branch is actually firing instead of more
+    inference. Remove once root-caused, same as the other temp '[...]' prints.
+
+- **Bank still not rendering after the Round-2 917 fix — re-confirmed this round the fix is still in
+  place and correct ('Bank.java' line ~47: `sendClientScript(917, "ii", -1, -1)`, uncommented, correct
+  args), so it was evidently not sufficient alone.** Traced 'Bank.open()''s entire sequence
+  (script 917 → 'setInterfaceUnderlay' → 'openInterface(MAIN, BANK)' → 'openInterface(INVENTORY,
+  BANK_INVENTORY)' → access masks → strings → 'sendAll=true') against two other long-established,
+  pre-migration call sites that follow the identical recipe minus the optional underlay tint —
+  'Trade.open()' (917 → 'openInterface(MAIN, 335)' → 'openInterface(INVENTORY, 336)') and
+  'Player.sendScroll()' (917 → 'openInterface(MAIN, 119)') — found no structural difference. Confirmed
+  'player.openInterface(...)' resolves to the exact same 'PacketSender.sendInterface' call (and the
+  exact same 'IfOpenSub' RSProt message) already proven to render correctly for the fixed-frame panes at
+  login — there is no separate/different code path for on-demand vs. login-time 'IfOpenSub' sends.
+  - **Important architectural correction: "chatbox text-input interfaces work correctly" (this round's
+    reported working comparison point) does NOT actually validate the 'IfOpenSub' modal-opening
+    mechanism Bank depends on.** Checked 'Player.integerInput'/'stringInput' — they call *only*
+    'sendClientScript(108/110, "s", message)', with no 'openInterface'/'sendInterface'/'IfOpenSub' call
+    at all. Modern OSRS's number/string entry overlay is a pure client-side construct the game's own CS2
+    script builds and tears down entirely on the client once triggered; the server never opens an
+    "interface" for it in the 'IfOpenSub' sense. So its success only confirms 'RunClientScript' delivery
+    works (already independently known-good), not that 'IfOpenSub'-based modal interfaces render
+    correctly for RSProt players — those two mechanisms are unrelated. 'IfOpenSub' itself *is*
+    separately confirmed working, via the fixed-frame panes — so the bank's specific failure is not
+    "IfOpenSub is broken for RSProt," it's something specific to how/what this particular interface
+    opens as.
+  - **Empirically checked 'Interface.BANK' (12) / 'Interface.BANK_INVENTORY' (15) against the real
+    Cache228 cache for the first time** (HANDOFF's Round 1/2 both flagged this as open and explicitly
+    not yet checked). Using the same 'FileStore'/'IndexFile' read described above: interface 12 has
+    **140** real child components in Cache228, interface 15 has **70** — both comfortably exceed every
+    child id 'Bank.java' actually references (highest direct 'h.actions[N]'/'sendAccessMask' childId
+    used is 66; the 0-815 range seen in `sendAccessMask(Interface.BANK, 13, 0, 815, ...)` is a *slot
+    range within component 13*, a different axis, not a component count, and 140 total components is a
+    plausible size for a real bank interface's tab/button/settings chrome). **This neither proves nor
+    disproves id 12/15 are correct** — a wrong interface could coincidentally have a similar child count
+    — but it found no counter-evidence, and the previous "maybe stale, unaudited" concern is at least
+    not supported by a degenerate/near-zero component count the way a truly wrong id might show. Given
+    the explicit prior-session warning against changing this id on a hunch, **left unchanged** — no new
+    evidence tips the balance either way strongly enough to justify it, and this is exactly the kind of
+    change that turns "maybe correct" into "provably wrong" if guessed at.
+  - **No code change applied for bank rendering beyond re-confirming the existing 917 fix** — every
+    other angle checked (opening sequence, underlay call routing, access-mask targets, interface id
+    plausibility) matches already-proven-correct patterns elsewhere in this codebase. **Next step is
+    still what Round 2 already recommended and this round could not do in-session: a live RSProx packet
+    capture of a real rev-228 client's bank-open sequence, diffed byte-for-byte against what this server
+    sends** — that is the only remaining way to distinguish "id 12/15 wrong" from "some other
+    still-unknown cause," now that the more easily checkable alternatives (917 script, opening sequence
+    shape, component-count plausibility) have all been ruled out or confirmed already-correct.
+
+- **Status: 'PacketSender.queueZonePayload' coordinate fix is high-confidence and should resolve ground
+  item / object / projectile / graphic / area-sound invisibility — compiles clean
+  ('./gradlew :DMS:compileJava', 2026-07-08), NOT yet live-client-tested this round.** 'InterfaceHandler'
+  hardening + 'TabInventory' diagnostics are code-complete and compile clean, but equip/drop's actual
+  root cause is still open pending the next live test's '[INV-CLICK]' output. Bank rendering is
+  unresolved; no further code change was safe to make without a live packet capture. Next step for
+  whoever picks this up: boot the server + RSProx and, in order, (1) spawn a ground item and place/remove
+  an object — should now render at the correct tile; (2) re-test equip/drop and capture the new
+  '[INV-CLICK]' output if they still don't work; (3) if bank still doesn't render, capture and diff a
+  real client's bank-open packet sequence via RSProx.
+
+## Protocol & Cache Dump Logging (2026-07-08)
+- **Added a permanent, always-on replacement for the temporary '[BUTTON]'/'[DRAG]'/'[INV-CLICK]' console
+  diagnostics used throughout the Milestone 4 sections above.** Those were always meant to come out
+  "once root-caused and confirmed" (see Round 2's "Diagnostic logging left in place, deliberately" note)
+  but were still open pending live re-testing. Instead of stripping them with nothing in their place,
+  they're replaced with a permanent, file-based logger so every future live-test session leaves a
+  durable record on disk instead of console output that scrolls away.
+- **'io.dm.network.logging.NetworkLogger'** (new file) appends one timestamped line per incoming
+  interaction packet to 'PROTOCOL_DUMP.txt' (project root — same relative-path convention as
+  'RsaKeys'/'server-data/rsa.properties', so it lands next to 'server.properties'). Each line records
+  player / packet name / interfaceId / componentId / option / slot / item-or-target-id, plus a free-form
+  "extra" segment for packet-specific raw data (world x/z for entity clicks, the second target for
+  item-on-item). Also exposes 'interfaceIdFromCombined'/'componentIdFromCombined', unpacking RSProt's
+  combined id ('(interfaceId shl 16) or (componentId and 0xffff)', the exact formula this file's own
+  "Why the plumbing 'just fit'" note documents) for the message types that only expose the packed form.
+- **Wired into all 11 of 'RsProt.java's incoming interaction bridges** — the exact set Milestone 4 wired
+  up ('onObjectAction'/'onNpcAction'/'onGroundItemAction'/'onPlayerAction'/'onButton'/'onItemOnObject'/
+  'onItemOnGroundItem'/'onItemOnNpc'/'onItemOnPlayer'/'onItemOnItem'/'onInterfaceDrag'). Each now logs
+  the packet's raw decoded fields as the very first thing it does, before any 'isLocked'/dispatch logic
+  runs, so the dump reflects everything the client actually sent, not just what the server acted on.
+  'onButton'/'onInterfaceDrag's old '[BUTTON]'/'[DRAG]' TEMP prints are gone, replaced by this same call.
+- **'io.dm.cache.CacheInterfaceDumper'** (new file) runs once at startup, right after
+  'InterfaceDef.load()' in 'Server.java' (same place/dependency order — needs 'Server.fileStore',
+  'ScriptDef', and 'Varpbit'/'Varp' already loaded). Iterates every interface group in index 3 (the same
+  archive 'InterfaceDef' already reads) via this repo's own 'FileStore'/'IndexFile' classes and writes
+  each group's id, total child component count, and any scripts/varp/varbit configs
+  'InterfaceDef.getScripts()' can resolve for it, to 'CACHE_INTERFACE_DUMP.txt' (project root,
+  overwritten fresh each boot — unlike 'PROTOCOL_DUMP.txt', which accumulates across sessions since it's
+  a click-session log, not a cache snapshot). Every per-interface step (component count, then
+  scripts/configs) is individually try-caught, and the whole 'dump()' body is wrapped again at the
+  outermost level, so a corrupt or missing archive entry can only ever produce an "ERROR" line for that
+  one interface — it cannot abort the dump or block server boot.
+- **Removed the temp diagnostics this replaces**, now that a permanent equivalent is in place:
+  'RsProt.java's '[BUTTON]'/'[DRAG]' prints in 'onButton'/'onInterfaceDrag', and 'TabInventory.java's
+  '[INV-CLICK]' prints (plus their now-stale surrounding comment) at 'click()'s two silent-return
+  branches. Note: 'ActionButtonHandler.handleAction' and 'InterfaceDragHandler.handleDrag' still have
+  their own '[BUTTON] resolved ...'/'[DRAG] resolved ...' prints (the "what the dispatcher resolved this
+  to" half of the same original diagnostic pair) — intentionally left as-is, out of scope for this pass.
+- **Status: infrastructure only, not a behavioural fix.** This doesn't change equip/drop/drag/bank
+  behaviour — it gives whoever picks up Milestone 4's still-open items (equip/drop root cause, bank
+  rendering) a permanent, greppable record of every click plus the real cache's interface shapes to
+  check hypotheses against, instead of re-deriving it by hand or relying on console scrollback.

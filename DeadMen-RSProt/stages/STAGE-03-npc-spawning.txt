@@ -1,0 +1,68 @@
+STAGE 03 — NPCs spawn and are visible
+STATUS: NOT STARTED
+DEPENDS ON: Stage 00. Independent of Stages 02/04-08.
+Follow the RULES in stages/README.txt.
+
+## GOAL
+NPCs that exist server-side (Lumbridge spawns: men, goblins, shopkeepers...) are visible to a
+rev-228 client, move/wander, and appear/disappear correctly on spawn/despawn.
+
+## SYMPTOM (human-reported 2026-07-08)
+"NPC's aren't spawned/spawning."
+
+## VERIFIED ROOT CAUSE — this feature was never built
+Grepping the entire repo for NpcAvatar / AvatarFactory finds exactly ONE hit: a javadoc comment
+in RsProt.java line ~690. In RSProt's architecture, per-player NpcInfo (which IS wired: each
+player gets `npcInfoProtocol.alloc(index, DESKTOP)` at login, `npcInfo.updateCoord(...)` +
+`npcInfoProtocol.update()` + `npcInfo.toPacket(-1)` + SetNpcUpdateOrigin every tick — see
+RsProt.driveUpdate(), lines ~617-677) can only ever show NPCs that have been allocated a global
+NpcAvatar via the NpcAvatarFactory. Nothing in this codebase ever allocates one, so the NPC info
+packet is permanently empty. Nothing is "broken" — the NPC-avatar half of the integration is
+simply missing.
+
+## STEPS
+1. Learn the real API from ground truth (README RULE #4): pull NpcAvatarFactory, NpcAvatar, and
+   NpcInfo from the RSProt jars in the Gradle cache (osrs-228-model has a sources jar; javap the
+   others). Establish: how to obtain the factory from NetworkService (there is a getter — the
+   pattern will resemble getNpcInfoProtocol()), the alloc(...) signature (index, npc id, level,
+   x, z, likely spawn direction and a few flags), how per-tick movement is expressed on the
+   avatar (walk/crawl/teleport methods or updateCoord-style), and dealloc/release semantics.
+   Also check how AlterRSPS-style servers drive it IF a reference is available — but the sources
+   jar is authoritative.
+2. Find the server's NPC lifecycle: DMS/src/main/java/io/dm/model/entity/npc/NPC.java, the world
+   NPC list (World class), spawn loading at boot, and death/despawn/respawn paths
+   (model/entity/shared/listeners/SpawnListener.java is a lead). Confirm NPCs actually DO exist
+   server-side at boot (log World NPC count) before assuming the client side is the only gap.
+3. Implement:
+   - A field on NPC holding its RSProt avatar.
+   - Alloc on spawn/registration (and at RsProt.start() time for NPCs already loaded), dealloc on
+     despawn/death-removal. NPC indices must match what OpNpc clicks send back (the click
+     handlers are already wired and use the legacy index space — keep server NPC index == avatar
+     index or you will break clicking).
+   - Per-tick position sync driven from RsProt.driveUpdate() (or CoreWorker) BEFORE
+     npcInfoProtocol.update(): simplest correct first pass is teleport-style coord setting;
+     use the avatar's walk-step API if it's straightforward so movement animates instead of
+     glides. Match the existing try/catch-per-player style so one bad NPC can't kill the tick.
+4. Mind thread-safety: RSProt protocol calls in this codebase all happen on the Server.worker
+   game thread (see driveUpdate / doLogin). Keep avatar alloc/dealloc on that thread too.
+5. Compile. Hand the human the TEST SCRIPT.
+
+## TEST SCRIPT (human)
+1. Log in at Lumbridge: NPCs must be visible around you.
+2. Watch a wandering NPC for 30s: it should move (walking animation is Stage 09's problem —
+   gliding is acceptable HERE, invisible is not).
+3. Right-click an NPC: menu shows its name/options; clicking Attack/Talk should at least fire
+   (PROTOCOL_DUMP.txt gets an OpNpc line — full combat/dialogue correctness is other stages).
+4. If you can kill one: it should disappear on death and reappear on respawn.
+5. Walk two regions away and back: NPCs still render correctly (no ghosts/duplicates).
+
+## SUCCESS CRITERIA
+Test points 1, 2, 3, 5 confirmed (4 if combat is testable). No [TICK] exception spam in console.
+
+## NON-GOALS
+NPC animations/hitsplats/transformations/overheads — Stage 09 (it builds directly on your avatar
+field). Combat correctness. NPC pathfinding quality.
+
+## WRAP-UP
+Per README RULES #7. Record the exact factory/alloc API you used in your HANDOFF note — Stage 09
+starts from it.

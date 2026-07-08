@@ -1,0 +1,73 @@
+STAGE 07 — Object interactions execute on arrival
+STATUS: NOT STARTED
+DEPENDS ON: Stage 00; Stage 01 recommended. Read Stage 05's HANDOFF note if it's done — its root
+cause may be yours too.
+Follow the RULES in stages/README.txt.
+
+## GOAL
+Clicking an object performs its action when the player arrives: doors open, ladders climb, trees
+chop, bank booths open the bank (rendering needs Stage 04).
+
+## SYMPTOM (human-reported 2026-07-08)
+"Object actions register, but just like items, nothing actually happens (you move to an object,
+but don't interact with it)."
+IMPORTANT NUANCE: the click IS received (OpLoc is wired → ObjectActionHandler, confirmed live in
+earlier testing) and the player DOES path toward the object. What never happens is the action
+executing on arrival. So this is NOT a packet/dispatch bug — it's in the walk-to-then-act
+pipeline, or in what the handler does once reached.
+
+## HYPOTHESES, IN ORDER OF LIKELIHOOD (verify with evidence, not vibes)
+A. Reach/arrival check never satisfies. The server validates "am I next to this object?" using
+   ITS map data — loaded from the LEGACY 184 cache (server.properties cache_path=../Cache) —
+   while the client renders the 228 cache's world. If the object the client clicked doesn't
+   exist (or has different rotation/size/position) in the server's legacy map data, the reach
+   check can never pass: player walks over and stands there forever. Diagnostic: pick the tested
+   object's (id, x, y, z) from PROTOCOL_DUMP.txt and query the server's region/clip data — does
+   the server even HAVE that object at those coords?
+B. Option-index vs cache mismatch (Stage 05's prime hypothesis, object flavor): server matches
+   the received op (1-5) against ObjectDef actions from the legacy cache; if 228's option
+   ordering differs the server runs/finds nothing. Less likely to be uniform across ALL objects.
+C. The queued action is cleared or never ticked for RSProt players: find how
+   ObjectActionHandler.handleAction schedules the deferred action (walk-to callback? a
+   player.action field polled in Player.process()?) and check nothing in the RSProt path
+   (RsProt.onObjectAction's isLocked/resetActions guard, CoreWorker's session!=null branches)
+   resets or skips it.
+
+KEY DEBUGGING LEVER: AI bots use the exact same handlers over the legacy path and (per the
+migration logs) are the reason the legacy path still exists. If a bot can chop a tree/open a door
+(check for a bot script: model/entity/player/ai/, e.g. GoblinKiller.java) while an RSProt player
+cannot interact with the SAME object instance, hypothesis A/B weaken and C strengthens; if bots
+ALSO fail on that object, it's A (server data), not RSProt at all.
+
+## STEPS
+1. Trace ObjectActionHandler.handleAction end-to-end: how the target object is looked up
+   server-side, how walk-to+deferred-action is scheduled, where the arrival check lives, and
+   what executes it each tick. Write the chain down in your HANDOFF note (nobody has documented
+   it yet).
+2. Instrument the silent exits (object-not-found-in-map, reach-check false, action-cleared) via
+   NetworkLogger or temp prints. Have the human click a door + a ladder + a tree. Read output.
+3. Fix what the evidence shows. If it's hypothesis A (map-data divergence), fix the specific
+   blocker and escalate to the human: the durable fix (serving/loading 228 map data server-side)
+   is beyond this stage.
+4. Compile. TEST SCRIPT. Remove temp prints once confirmed.
+
+## TEST SCRIPT (human)
+1. Click a door → walk over, door opens.
+2. Click a ladder → climb animation/teleport.
+3. With an axe, click a tree → chopping starts (animation may be missing pre-Stage-10; logs +
+   tree falling + wood in inventory count).
+4. Click a bank booth → if Stage 04 done: bank renders; else: console shows Bank.open() fired.
+5. Click a distant object → player paths to it first, THEN interacts.
+
+## SUCCESS CRITERIA
+Points 1, 2, 5 confirmed and at least one of 3/4 (skilling/booth) — across objects in two
+different regions (rules out a single lucky map square).
+
+## NON-GOALS
+Bank rendering (04). Item-on-object (08). NPC interaction (03/09). Fixing the whole
+legacy-vs-228 map divergence if that's the root cause — diagnose, fix the minimum, escalate.
+
+## WRAP-UP
+Per README RULES #7. If hypothesis A confirmed, add a prominent note to THE_PLAN.txt Section 9
+(unresolved questions): "server world data is 184-era while client renders 228 — affects
+objects/collision everywhere" with your evidence.

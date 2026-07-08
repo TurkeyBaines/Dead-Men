@@ -1,0 +1,61 @@
+STAGE 08 — Item-on-X combinations and inventory drag
+STATUS: NOT STARTED
+DEPENDS ON: Stage 05 DONE (same subsystem; do not start before it). Stage 07 helpful for the
+item-on-object case.
+Follow the RULES in stages/README.txt.
+
+## GOAL
+Using an item on another item / an object / an NPC / a player works, and drag-reordering
+inventory items works.
+
+## SYMPTOM
+Drag "usually moves the model around — this isn't happening at all" (human, Round 1). Item-on-X
+has NEVER been explicitly tested since the access-mask fix landed — its packets may already
+arrive; state is unknown, not known-broken.
+
+## KNOWN STATE
+- All five listeners are wired in RsProt.start() (RsProt.java ~lines 176-194): OpLocT/OpObjT/
+  OpNpcT/OpPlayerT → InterfaceOn{Object,GroundItem,Entity}Handler; IfButtonT (item-on-item) →
+  InterfaceOnInterfaceHandler; IfButtonD (drag) → InterfaceDragHandler. All log to
+  PROTOCOL_DUMP.txt on arrival.
+- The inventory access mask (149 comp 0, value 1181694) includes drag bits 17+20 per the
+  migration logs — yet the client reportedly doesn't even move the item model when dragging,
+  which suggests the mask's drag bits may not be what the 228 client wants, or dragging needs a
+  separate/additional flag. The mask value was copied from Bank.java's bank-inventory mask.
+- Whatever root cause Stage 05 found for silent action swallowing likely applies to the T-family
+  handlers too (same slot/id/op echo patterns). Read Stage 05's HANDOFF note first.
+
+## STEPS
+1. Capture first, fix second: human performs the TEST SCRIPT actions once; check PROTOCOL_DUMP
+   for each — which packets arrive, with what fields.
+2. Drag: if IfButtonD never arrives AND the model doesn't visually drag, it's client-side
+   enablement (access mask drag bits) — verify against the sources jar / a known-good 228
+   reference what IfSetEvents bits enable dragging (DEPTH bits matter for drag targets), fix the
+   mask in RsProt.openFrame. If IfButtonD arrives but nothing reorders, trace
+   InterfaceDragHandler.handleDrag server-side (slot mapping, same Stage-05 pattern).
+3. Item-on-item: trace IfButtonT fields (two combinedIds/slots/objs) → InterfaceOnInterface-
+   Handler.handleAction. Verify a simple recipe (tinderbox+logs, knife+logs).
+4. Item-on-object/npc: same pattern with OpLocT/OpNpcT. Note item-on-object ALSO requires the
+   walk-to-then-act pipeline from Stage 07 — if 07 isn't done, packets arriving + handler firing
+   is this stage's bar for that case.
+5. Compile. TEST SCRIPT.
+
+## TEST SCRIPT (human)
+1. Drag an item to a new slot: model follows cursor, item lands in target slot, persists after
+   relog.
+2. Tinderbox on logs: fire attempt starts (or knife on logs → fletching dialog if smith'd).
+3. Use an item on an NPC (any — even a "Nothing interesting happens" response proves the chain).
+4. Use an item on an object (e.g. bones/item on an altar, bucket on a water source).
+5. Use an item on another player if testable (two clients) — otherwise skip, note untested.
+
+## SUCCESS CRITERIA
+Points 1-2 fully work; 3-4 demonstrably reach their handlers (PROTOCOL_DUMP + server reaction)
+with correct field values, and execute where the underlying content exists.
+
+## NON-GOALS
+Bank drag/withdraw modes (needs Stage 04 bank). Spell-on-X (same packet family; note as untested
+if you can't test). Content correctness of every recipe.
+
+## WRAP-UP
+Per README RULES #7. Record the final verified inventory mask value (if changed) in HANDOFF.txt —
+it's the template every other item container copies.

@@ -1,0 +1,45 @@
+[
+  { #Citadel Shopkeeps (2)
+    "ids": [ 15103, 15108, 15105, 15106 ],
+    "handler": "",
+    //Combat Info
+    "hitpoints": 99,
+    "aggressive_level": 0,
+    "max_damage": 0,
+    "attack_style": "CRUSH",
+    //Slayer Info
+    "slayer_level": 1,
+    "slayer_xp": 0.0,
+    "slayer_tasks": [],
+    //Combat Stats
+    "attack": 0,
+    "strength": 0,
+    "defence": 0,
+    "ranged": 0,
+    "magic": 0,
+    //Aggressive Stats
+    "stab_attack": 0,
+    "slash_attack": 0,
+    "crush_attack": 0,
+    "magic_attack": 0,
+    "ranged_attack": 0,
+    //Defensive Stats
+    "stab_defence": -21,
+    "slash_defence": -21,
+    "crush_defence": -21,
+    "magic_defence": -21,
+    "ranged_defence": -21,
+    //Immunites
+    "poison_immunity": true,
+    "venom_immunity": true,
+    //Speeds
+    "attack_ticks": 1,
+    "death_ticks": 5,
+    "respawn_ticks": 2,
+    //Animations
+    "spawn_animation": -1,
+    "attack_animation": 422,
+    "defend_animation": 425,
+    "death_animation": 836
+  }
+]

@@ -1,0 +1,35 @@
+// dm-net : RSProt-based networking layer for Dead-Men.
+//
+// This module replaces the legacy Kronos networking stack (kronos-api netty/protocol
+// + DMS io.dm.network.*) with RSProt (net.rsprot) targeting OSRS revision 236.
+// (236 is the newest OpenRS2 cache that ships XTEA keys; the 239 cache had 0 keys.)
+//
+// It is intentionally self-contained: it depends ONLY on RSProt + Netty and exposes
+// clean seams (interfaces / injected providers) that the game server (:DMS) implements.
+// That keeps the network layer independently compilable and testable, and lets the
+// legacy net code be deleted from :DMS without dragging the whole model in here.
+version = '1.0'
+project.ext {
+    type = "server"
+}
+
+apply plugin: 'kotlin'
+
+// RSProt revision-236 all-in-one API (pulls protocol/buffer/compression/crypto + netty).
+// Published on Maven Central (see root build.gradle repositories). To change target revision,
+// edit rsprotRev (RSProt supports 221–239; the 20260630 release publishes all of them).
+ext.rsprotVersion = '1.0.0-ALPHA-20260630'
+ext.rsprotRev = '228'
+
+dependencies {
+    api "net.rsprot:osrs-${rsprotRev}-api:${rsprotVersion}"
+    // The "-api" artifact only exposes desktop codec/encoder classes (e.g.
+    // DesktopUpdateZonePartialEnclosedEncoder, used to build UpdateZonePartialEnclosed zone-payload
+    // buffers) on its runtime classpath, not compile. DMS's PacketSender needs them at compile time
+    // too for Milestone 1 (zone-scoped payload port), so pull both in explicitly as "api" so they
+    // flow through to :DMS. We only ever allocate DESKTOP client sessions (see HANDOFF.txt), so
+    // depending on the desktop codec module directly is correct, not a workaround.
+    api "net.rsprot:osrs-${rsprotRev}-desktop:${rsprotVersion}"
+    api "net.rsprot:osrs-${rsprotRev}-internal:${rsprotVersion}"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.21"
+}

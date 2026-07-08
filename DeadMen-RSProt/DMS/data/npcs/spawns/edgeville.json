@@ -1,0 +1,15 @@
+[
+  {
+    "name": "Fairy Fixit",
+    "id": 7333,
+    "x": 3131,
+    "y": 3498,
+    "z": 0,
+    "direction": "S",
+    "walkRange": 2,
+    "world": "ECO",
+    "shopOptions": {
+      "trade": "Fairy Fixit's Fairy Enchantment"
+    }
+  }
+]

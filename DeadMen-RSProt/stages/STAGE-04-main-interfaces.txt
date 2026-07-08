@@ -1,0 +1,77 @@
+STAGE 04 — Main (modal) interfaces open
+STATUS: NOT STARTED
+DEPENDS ON: Stage 00. Stage 01's CACHE_INTERFACE_DUMP.txt extract helps.
+Follow the RULES in stages/README.txt.
+
+## GOAL
+Interfaces opened as InterfaceType.MAIN (bank, trade, scrolls, equipment-stats, ...) actually
+render in the central modal area of the rev-228 client, and their paired inventory-side overlays
+(InterfaceType.INVENTORY, e.g. the bank's deposit view) render too.
+
+## SYMPTOM (human-reported 2026-07-08)
+"Main interfaces don't seem to open at all." (Chatbox interfaces partially work — smelting fine,
+choose-option has a missing background; those are NOT this stage: chatbox routing evidently
+works, and the background cosmetic is Stage 11.)
+
+## VERIFIED PRIME SUSPECT — stale 184-era root-child slots
+DMS/src/main/java/io/dm/model/inter/InterfaceType.java maps every interface type to a
+(parent, child) component of the root frame. Fixed-mode values (parent 548) include:
+    MAIN              = 548:21
+    INVENTORY(+overlay)= 548:64
+    SOCIAL_TAB        = 548:75
+    WORLD_MAP         = 548:22
+    various overlays  = 548:14..18
+These are original 184-era values that were NEVER re-audited for 228. Meanwhile the login frame's
+pane table (RsProt.java ~line 98, FIXED_FRAME_PANES, sourced from AlterRSPS's
+InterfaceDestination "fixed" column — a genuine 228 reference) shows 548's REAL 228 layout puts
+the sidebar tabs at children 80-93, chatbox at 10, minimap at 24 — a completely different layout
+from what the 184-era numbers assume. So `Bank.open()` sends a perfectly well-formed IfOpenSub
+targeting 548:21 — a child that in the 228 cache is very likely not the modal layer — and the
+client renders nothing. This single mapping error would explain EVERY MAIN interface failing
+uniformly while server-side logs look flawless (exactly what three rounds of prior debugging
+observed — see HANDOFF.txt "Milestone 4 Fix — Live Testing Round 2/3" if you need that history).
+Note the server only ever opens the FIXED frame (548) today, so fixing the fixed column is what
+matters; correct 161/164 in the same pass if your source provides them, else leave visibly
+marked TODO.
+
+## STEPS
+1. Get the correct 228 child ids for 548 (modal/MAIN slot, inventory-overlay slot, and while
+   you're there: world map, wilderness/primary/secondary overlays). Sources, best first:
+   a. AlterRSPS's InterfaceDestination enum — the exact file FIXED_FRAME_PANES already came from.
+      Public repo (search GitHub for AlterRSPS / Alter rsps InterfaceDestination, rev 228 era).
+      If you have web access, fetch it; it directly names every destination slot.
+   b. CACHE_INTERFACE_DUMP.txt (project root, from Stage 01) / the repo's own FileStore reader
+      pointed at Cache228: interface 548's component list — modal-capable layers are
+      identifiable by component type; also 548's total count sanity-checks any candidate.
+   c. Empirical brute force (decisive, no external source needed): add a temporary admin command
+      (pattern: network/incoming/handlers/commands/InterfaceCommands.java) `::modaltest <child>`
+      that sends sendInterface(<a known-good simple MAIN interface, e.g. Bank 12 or scroll 119>,
+      548, <child>, 1). Human sweeps candidate children; the one that renders centered is the
+      modal slot. Remove the command when done.
+2. Update InterfaceType.java's fixed components with verified values. Do NOT touch CHATBOX
+   (works) or the interface GROUP ids like Interface.BANK=12 (three prior sessions warned
+   against changing those on a hunch; if the slot fix alone doesn't make the bank render, the
+   group id becomes suspect again — record that and stop rather than guessing).
+3. Check Player.setInterfaceUnderlay / closeInterfaces paths for the same stale-slot pattern
+   (anything hardcoding 548 children).
+4. Compile. Hand the human the TEST SCRIPT.
+
+## TEST SCRIPT (human)
+1. Open the bank (::bank command, or booth once Stage 07 works): bank window renders centered,
+   AND your inventory shows in the bank's deposit-side view.
+2. Close it with the X — game returns to normal (close path uses the same component).
+3. Open one more MAIN-type interface (equipment stats, a scroll, trade if testable): renders.
+4. Smelting chatbox dialogue still works (regression check).
+
+## SUCCESS CRITERIA
+All four confirmed. Bank rendering has been broken across three prior debugging rounds — it is
+the acid test.
+
+## NON-GOALS
+Bank FUNCTIONALITY (deposits/withdrawals click-through — that's Stage 05/08 territory).
+Choose-option background (Stage 11). Resizable-mode support (server always opens fixed 548).
+
+## WRAP-UP
+Per README RULES #7. If the slot fix does NOT fix the bank, write exactly what you verified into
+HANDOFF.txt and flag that the next step is an RSProx capture of a real 228 server's bank-open —
+do not guess at group ids.

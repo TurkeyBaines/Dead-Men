@@ -1,0 +1,69 @@
+STAGE 02 — Ground items spawn, render, and despawn
+STATUS: NOT STARTED
+DEPENDS ON: Stage 00. Stage 01's BASELINE-FINDINGS.txt helps but isn't required.
+Follow the RULES in stages/README.txt.
+
+## GOAL
+A ground item spawned (by command, by drop once Stage 05 lands, or by NPC death once Stage 03/09
+land) renders on the correct tile for a rev-228 client, and disappears when picked up or expired.
+
+## SYMPTOM (human-reported 2026-07-08)
+"Ground Items do not spawn/render/exist - something is completely broken here."
+
+## VERIFIED FACTS (checked against code, not folklore)
+1. PacketSender.java line ~92: queueZonePayload() wraps zone payloads in UpdateZonePartialEnclosed
+   with `x & ~0x7, y & ~0x7` (absolute zone corner). This is a 2026-07-08 fix (the old `x >> 3`
+   form silently targeted the wrong zone) that has NEVER been live-tested. It may be correct now,
+   or still wrong — do not assume either way.
+2. PacketSender.sendGroundItem (line ~736) has an RSProt path (ObjAdd). BUT
+   sendRemoveGroundItem (line ~754) has NO RSProt path at all — it goes straight to the legacy
+   sendMapPacket, which no-ops for RSProt players (null Netty channel). Ground item REMOVAL was
+   never ported. RSProt rev-228 has an ObjDel zone payload class for this — port it through
+   queueZonePayload exactly like ObjAdd (verify its constructor against the osrs-228-model
+   sources jar in the Gradle cache, same as every other payload was).
+   While there, note sendObjectAnimation (line ~791) also has no RSProt port (LocAnim) — same
+   pattern, cheap to add in passing since you're in the same file with the same sources open.
+3. STRONG UNVERIFIED HYPOTHESIS for "items never appear at all": zone-content (re)send timing.
+   Find every call site of sendGroundItem / GroundItem's own send logic (likely
+   DMS/src/main/java/io/dm/model/map/ground/GroundItem.java — check its sendAdd()/per-player
+   loop) and determine WHEN items get sent to a player: (a) the moment the item spawns, and
+   (b) when a player enters a region / rebuilds their map. Path (b) is suspect: legacy servers
+   typically resend zone contents when the client acknowledges a region load via an incoming
+   packet (see network/incoming/handlers/RegionUpdateHandler.java — a legacy-184 packet the
+   rev-228 client never sends), or hook lastRegion changes. If the resend hook never fires for
+   RSProt players, items spawned before you entered the area never appear, and items spawned in
+   front of you only appear if path (a) fires and the zone coords are right. Check what
+   RsProt.maybeRebuildRegion (RsProt.java ~line 831) does after a RebuildNormal — zone contents
+   are almost certainly NOT resent after a rebuild today.
+
+## STEPS
+1. Read sendGroundItem/sendRemoveGroundItem in PacketSender.java and GroundItem.java's send
+   lifecycle. Map out exactly when a ground item packet is sent to whom.
+2. Port ObjDel for sendRemoveGroundItem (mirror the ObjAdd pattern; constructor field order from
+   the sources jar, not guessed).
+3. Root-cause the spawn-visibility failure using the facts above. Likely fixes are one or both:
+   coordinate form still wrong in queueZonePayload; and/or region-load/rebuild resend never
+   firing for RSProt players (fix by resending zone contents for the new build area after
+   RebuildLogin/RebuildNormal, or hooking the existing resend logic into the RSProt path).
+4. Compile. Hand the human the TEST SCRIPT.
+
+## TEST SCRIPT (human)
+1. Log in, spawn a ground item at your feet via the GroundItemCommands admin command. It must
+   appear on YOUR EXACT TILE (not offset, not elsewhere).
+2. Pick it up — it must vanish from the ground and land in inventory (pickup routes through
+   GroundItemActionHandler which is confirmed wired; if inventory itself misbehaves that's
+   Stage 05's problem — for THIS stage only the ground model vanishing matters).
+3. Spawn another, walk two regions away (~2 map squares), walk back: item must still be visible.
+4. Have the item expire (if a timer exists) or spawn+remove via command: model must disappear.
+
+## SUCCESS CRITERIA
+All four test-script points confirmed by the human on a real rev-228 client.
+
+## NON-GOALS
+Drop-from-inventory (Stage 05 owns the click that triggers it). Projectiles/graphics/area sounds
+(Stage 10 verifies those — but note anything you learn about queueZonePayload correctness in
+their stage file, since all six sends share that helper).
+
+## WRAP-UP
+Per README RULES #7. If you changed queueZonePayload itself, say so loudly in the HANDOFF note —
+Stages 07 and 10 assume its behavior.

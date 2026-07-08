@@ -1,0 +1,51 @@
+STAGE 09 — NPC extended info (animations, hitsplats, transforms, overheads)
+STATUS: NOT STARTED
+DEPENDS ON: Stage 03 DONE (NPC avatars must exist before extended info can be pushed to them).
+Follow the RULES in stages/README.txt.
+
+## GOAL
+NPCs play animations (attack/death/emotes), show hitsplats + hp bars in combat, show overhead
+text, transform (TransformUpdate — e.g. shapeshifting NPCs), and face their targets.
+
+## CONTEXT
+The PLAYER-side equivalent already exists and is the template: RsProt.pushMaskUpdates(Player)
+(RsProt.java ~line 715) bridges the legacy per-tick mask objects (model/entity/shared/masks/)
+onto PlayerAvatarExtendedInfo, marking each consumed mask setSent(true) so Entity.resetUpdates()
+clears it (CRITICAL — without setSent the same anim replays every tick forever; this bug was
+caught once already on the player side, don't reintroduce it on the NPC side).
+NPCs use the same legacy mask classes (NPC extends the same Entity base — verify in
+model/entity/npc/NPC.java which masks its init() instantiates, including TransformUpdate which
+is NPC-ONLY and was explicitly excluded from the player bridge).
+The RSProt target type is NpcAvatarExtendedInfo (obtained from the NpcAvatar Stage 03 stored on
+each NPC) — its setter surface parallels the player one but is NOT identical: verify each setter
+signature against the osrs-228-model sources jar; do not copy player calls blindly.
+
+## STEPS
+1. List which masks NPC.init() actually creates. For each, find the NpcAvatarExtendedInfo
+   equivalent setter (sequence, spotanim, hits/headbar, say, face-coord/face-entity, transform,
+   + any NPC-specific ones like body-recolor if used).
+2. Write pushNpcMaskUpdates(NPC) mirroring the player version: same setSent(true) discipline,
+   same index-space care for face-entity (players = +0x10000 in RSProt vs +32768 legacy — the
+   player bridge has a converter, RsProt.toRsProtEntityIndex; reuse it).
+3. Call it once per NPC per tick from driveUpdate() step 0's area, BEFORE npcInfoProtocol
+   .update(). Iterate the world NPC list, not per-player (extended info is per-avatar/global,
+   unlike per-player NpcInfo — this differs from the player loop; confirm against how the
+   protocol gathers it).
+4. Compile. TEST SCRIPT.
+
+## TEST SCRIPT (human)
+1. Attack an NPC: it plays a block/attack animation, hitsplats + hp bar appear on it.
+2. Kill it: death animation before despawn.
+3. Any NPC with idle emotes/overhead text shows them (Lumbridge has talkative NPCs).
+4. NPC faces you when you engage it.
+5. If a transforming NPC is reachable (or force one via command), it transforms.
+
+## SUCCESS CRITERIA
+Points 1, 2, 4 confirmed minimum; 3/5 where content permits. No per-tick replay (watch an NPC
+after one animation — it must NOT loop it every 600ms).
+
+## NON-GOALS
+Combat formula correctness. Player-side extended info (already done). NPC pathfinding.
+
+## WRAP-UP
+Per README RULES #7.

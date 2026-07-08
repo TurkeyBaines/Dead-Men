@@ -1,0 +1,58 @@
+STAGE 01 — Baseline live capture & triage
+STATUS: NOT STARTED
+DEPENDS ON: Stage 00 (git checkpoint).
+Follow the RULES in stages/README.txt.
+
+## GOAL
+Produce the first-ever PROTOCOL_DUMP.txt and CACHE_INTERFACE_DUMP.txt (the permanent diagnostic
+loggers were added but the server has not been booted since), run one scripted click-through with
+the human, and write a triage table that tells every later stage whether its packets arrive at
+the server or not. This stage writes NO fixes — it's pure data collection.
+
+## CONTEXT
+- io/dm/network/logging/NetworkLogger.java logs every incoming interaction packet (clicks,
+  buttons, item-on-X, drags) to PROTOCOL_DUMP.txt in the project root.
+- io/dm/cache/CacheInterfaceDumper.java dumps every interface group's real Cache228 component
+  count + scripts to CACHE_INTERFACE_DUMP.txt at boot.
+- Neither file exists yet. Console output also matters: [TICK]/[IFACE]/[VARP]/[BUTTON] resolved/
+  [DRAG] resolved prints are still live in the code.
+
+## STEPS
+1. Verify the build compiles (`./gradlew :DMS:compileJava`).
+2. Ask the human to boot the server + RSProx + client (see README "How to boot") and perform this
+   script, in order, telling you when done (ask them to note anything visibly weird as they go):
+   a. Log in fresh. Note whether the "set a display name" overlay appears (it should NOT).
+   b. Walk around. Type a public chat message. Run a ::command (e.g. ::commands or any known one).
+   c. Spawn an item into inventory (::item <id> style admin command). Left-click it (Wield/Eat/
+      whatever option 1 is). Try Drop. Try drag-reordering two inventory items.
+   d. Click a worn-equipment slot to unequip (force-equip something first via command if needed).
+   e. Spawn a ground item (GroundItemCommands admin command) and look at the target tile.
+   f. Click a nearby object: a door, a ladder, a tree with an axe. Watch whether the character
+      walks there and whether ANYTHING happens on arrival.
+   g. Open the bank (booth click if objects work at all; otherwise an ::bank style command).
+   h. Look around for NPCs (Lumbridge should be full of them). Note if any are visible at all.
+   i. Trigger a chatbox dialogue that works (smelting was reported working) and one "choose
+      option" dialogue.
+   j. Log out via the logout tab.
+3. Collect: PROTOCOL_DUMP.txt, CACHE_INTERFACE_DUMP.txt, and whatever console output the human
+   can paste.
+4. Write stages/BASELINE-FINDINGS.txt: a table with one row per action above — columns:
+   action | packet seen in PROTOCOL_DUMP (yes/no, which type, key fields) | server console
+   reaction | client-visible result (from the human) | which stage owns it (02-10).
+   Quote the exact PROTOCOL_DUMP lines for inventory clicks (If3Button fields: iface/comp/slot/
+   obj/op) and equipment clicks — stages 05/06 need those verbatim.
+5. From CACHE_INTERFACE_DUMP.txt, extract and record in BASELINE-FINDINGS.txt: the component
+   counts for interfaces 548, 161, 164, 162, 12, 15, 149, 387 (later stages reference these).
+
+## SUCCESS CRITERIA
+- PROTOCOL_DUMP.txt and CACHE_INTERFACE_DUMP.txt exist in the project root with real content.
+- stages/BASELINE-FINDINGS.txt exists, covers every scripted action, and states packet-arrival
+  yes/no for each symptom with quoted evidence lines.
+
+## NON-GOALS
+No fixes. No code changes (unless the server won't boot at all — in that case fix ONLY what
+blocks boot, document it, and continue).
+
+## WRAP-UP
+Per README RULES #7. Additionally: add a `NOTES FROM OTHER STAGES` line to any stage file whose
+assumptions your findings contradict.

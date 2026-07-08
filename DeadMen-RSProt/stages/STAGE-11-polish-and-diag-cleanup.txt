@@ -1,0 +1,48 @@
+STAGE 11 — Dialog polish & diagnostic cleanup
+STATUS: NOT STARTED
+DEPENDS ON: Stages 04, 05, 07 DONE (this stage removes the instrumentation they rely on).
+Follow the RULES in stages/README.txt.
+
+## GOAL
+1. Fix the choose-option dialogue's missing background.
+2. Strip the temporary console diagnostics now that the bugs they were hunting are fixed.
+
+## PART 1 — choose-option background
+Symptom (human, 2026-07-08): "choose option interface background is missing, buttons seem to
+work fine." Smelting and text-input chatbox dialogs work, so CHATBOX routing (InterfaceType
+.CHATBOX = 162:561) is broadly right. The choose-option dialogue is its own interface opened
+into the chatbox — find it via the dialogue system (model/inter/dialogue/, an OptionDialogue or
+similar class), identify which interface id it opens and what background/CS2 setup the 228
+client expects. Likely causes, in order: a missing clientscript call that sizes/draws the
+dialogue frame (compare with how the WORKING smelting dialogue opens — diff the two call
+sequences); a stale dialogue interface id; a child-count/stale-component issue (check the
+interface in CACHE_INTERFACE_DUMP.txt). The buttons working means events/access are fine —
+suspect the setup script, not the mask.
+
+## PART 2 — diagnostic strip
+Remove these ONLY after confirming with the human that their subsystems now work:
+- PacketSender.logIfaceTarget's [IFACE] print + its TEMP comment block (~line 102).
+- PacketSender.sendVarp's [VARP] print (if still present — grep).
+- ActionButtonHandler's "[BUTTON] resolved ..." print and InterfaceDragHandler's
+  "[DRAG] resolved ..." print (the last survivors of the Milestone-4 temp pair).
+- Any temp prints left behind by Stages 02-08 (grep for "[" + all-caps tags: INV-CLICK, TICK is
+  NOT temp — [TICK] catch-blocks in RsProt.driveUpdate are permanent error guards, keep them).
+KEEP: NetworkLogger/PROTOCOL_DUMP.txt and CacheInterfaceDumper/CACHE_INTERFACE_DUMP.txt — these
+are permanent infrastructure by design.
+
+## TEST SCRIPT (human)
+1. Trigger a choose-option dialogue: background frame renders, options readable, clicking works.
+2. Smelting + text-input dialogs still fine (regression).
+3. One quick sweep: click an item, an object, open bank — everything from earlier stages still
+   works with the prints gone (i.e. nothing was accidentally load-bearing).
+
+## SUCCESS CRITERIA
+Choose-option renders complete; grep shows no leftover temp diagnostic prints; regression sweep
+clean; compile clean.
+
+## NON-GOALS
+New dialogue content. Removing NetworkLogger/CacheInterfaceDumper. Milestone-5 legacy deletion
+(Stage 12).
+
+## WRAP-UP
+Per README RULES #7.

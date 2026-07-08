@@ -1,0 +1,68 @@
+STAGE 05 — Inventory item actions execute
+STATUS: NOT STARTED
+DEPENDS ON: Stage 00; Stage 01's BASELINE-FINDINGS.txt (quoted If3Button lines) strongly
+recommended — run Stage 01 first if it hasn't been.
+Follow the RULES in stages/README.txt.
+
+## GOAL
+Clicking an inventory item's options actually does the thing: Wield equips, Drop drops, Eat eats,
+Bury buries.
+
+## SYMPTOM (human-reported 2026-07-08)
+"Inventory Items do register actions now, but none of the actions actually work/do anything."
+
+## WHERE THREE PRIOR ROUNDS ALREADY GOT TO (do not re-litigate)
+- The client DOES now send If3Button for inventory clicks (an access-mask fix landed:
+  RsProt.openFrame sends mask 1181694 for interface 149 comp 0 slots 0-27). Events dispatch.
+- The dispatch chain is verified correct end-to-end in code: RsProt.onButton →
+  ActionButtonHandler.handleAction → InterfaceHandler.getAction(149, 0) → TabInventory.click
+  (DMS/src/main/java/io/dm/model/inter/handlers/TabInventory.java).
+- If3Button's op is 1-10 exactly as the server expects (verified from RSProt's own sources —
+  there is NO rev-offset; a prior session disproved that hypothesis, don't re-add an offset).
+- The two known silent-return branches inside TabInventory.click: player.isLocked() true, or
+  player.getInventory().get(slot, itemId) returning null (slot/id echo mismatch).
+
+## PRIME UNTESTED HYPOTHESIS — option-index vs cache mismatch
+TabInventory.click decides what to do by comparing the received op against the item's option list
+from the SERVER's item definitions — which load from the LEGACY 184 cache (Server.fileStore).
+The client builds its right-click menu from the 228 cache. If an item's inventory-option ordering
+differs between the two caches (option text moved slots between revisions, e.g. def.equipOption
+disagreeing), the server receives a valid op that maps to the wrong/absent server-side action and
+silently does nothing — matching the symptom exactly, uniformly, with zero errors. PROTOCOL_DUMP
+gives you the received op; dump the server ItemDef's option array for that item id and compare.
+
+## STEPS
+1. From BASELINE-FINDINGS.txt (or a fresh capture), take the exact If3Button lines for: a Wield
+   click on a weapon, a Drop click, an Eat click. Fields: iface(149)/comp(0)/slot/obj(itemId)/op.
+2. Reproduce the decision server-side: read TabInventory.click and, for that itemId, print/log
+   what the legacy ItemDef says (option list, equipOption index) vs the received op. Also verify
+   inventory.get(slot, itemId) matches (slot 0-based on both sides? itemId identical, no +1?).
+3. Root-cause from evidence. Likely fixes, depending on what the data shows:
+   - slot/id echo mismatch → correct the field mapping in RsProt.onButton (fields come from
+     msg.getSub()/getObj() — maybe sub is not slot for this component, check the sources jar).
+   - op↔option mapping mismatch → map ops through the item's real option list; if legacy-vs-228
+     item defs genuinely disagree, the durable fix is reading item defs the client actually sees
+     (Cache228) — flag scope creep to the human before building a Cache228 ItemDef reader; a
+     targeted correction may suffice for now.
+   - isLocked unexpectedly true → find who locks RSProt players (login sequence?) and fix there.
+4. Fix, compile, TEST SCRIPT. Iterate with PROTOCOL_DUMP on failures.
+
+## TEST SCRIPT (human)
+1. Spawn a sword/scimitar. Click Wield → appears on character + worn tab (unequip is Stage 06).
+2. Spawn food. Click Eat → hp/eat animation or at minimum item consumed.
+3. Spawn bones. Click Bury → item consumed (+prayer xp if visible).
+4. Drop any item → leaves inventory. (It rendering on the ground needs Stage 02 done; "left the
+   inventory + PROTOCOL/console shows the drop" passes THIS stage if 02 isn't done yet.)
+5. Check right-click menu: option TEXT on the menu matches what actually happens (catches
+   op-mapping bugs where op 2 performs option 3's action).
+
+## SUCCESS CRITERIA
+Points 1-4 confirmed; point 5 shows no action/label mismatch on at least 3 different item types.
+
+## NON-GOALS
+Unequip (Stage 06 — but your findings feed it directly). Drag-reorder & item-on-item (Stage 08).
+Ground-item rendering (Stage 02).
+
+## WRAP-UP
+Per README RULES #7. Your root cause almost certainly applies to Stages 06/07/08 — write what you
+found in their NOTES FROM OTHER STAGES sections.

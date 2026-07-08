@@ -1,0 +1,19 @@
+# RSProx custom-server target for Dead-Men (rev 228 — matches AlterRSPS's proven setup).
+#
+# Import this into RSProx: launch RSProx → click the "+" next to the target selector →
+# select this file (or copy its `config:` entry into ~/.rsprox/proxy-targets.yaml), then
+# restart RSProx and pick "Dead-Men (Local)" from the dropdown.
+#
+# The `modulus` below is the PUBLIC modulus of the server key in
+# DMS/server-data/rsa.properties — RSProx re-encrypts the login block with it, and the
+# server decrypts with the matching private key. If you regenerate the server key, update
+# this value (it's `MODULUS_HEX` printed by the key generator, = modulus.toString(16)).
+config:
+  - name: Dead-Men (Local)
+    # Blurite's hosted jav_config for local rev-228 RSProt servers (same one AlterRSPS uses) —
+    # no need to self-host jav_config/worldlist on :8080 anymore.
+    jav_config_url: https://client.blurite.io/jav_local_228.ws
+    revision: 228.2
+    game_server_port: 13302
+    modulus: a7031c30ac7253cd3229750bb55f83657f74ffa5f11c1085055fc1791d1bd4b3900fb96e74a9e3757d353961d0ac4d0e49b00194d49411d96332e33aaf1f046d6a701d1c0e3647755be8c67c2247beb037b8db4759236470bc9cc9d86cbc5081d69fd4eac936dd1ee2276b4cec110f0b3ccff2b4b28035cf8bd8ffc2b3a1c57d
+    # varp_count defaults to 5000; raise it here if the server uses a larger varp table.

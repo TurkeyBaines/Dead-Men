@@ -1,0 +1,51 @@
+---
+title: "Battle Runes"
+currency: "COINS"
+accessibleByIronMan: true
+canSellToStore: false
+restockRules:
+  restockTicks: 52
+  restockPerTick: 1
+defaultStock:
+- id: 554
+  amount: 1000
+  placeholderId: 554
+- id: 555
+  amount: 1000
+  placeholderId: 555
+- id: 556
+  amount: 1000
+  placeholderId: 556
+- id: 557
+  amount: 1000
+  placeholderId: 557
+- id: 558
+  amount: 1000
+  placeholderId: 558
+- id: 562
+  amount: 1000
+  placeholderId: 562
+- id: 560
+  amount: 1000
+  placeholderId: 560
+- id: 565
+  amount: 1000
+  placeholderId: 565
+- id: 12734
+  amount: 1000
+  placeholderId: 12734
+- id: 12730
+  amount: 1000
+  placeholderId: 12730
+- id: 12728
+  amount: 1000
+  placeholderId: 12728
+- id: 12732
+  amount: 1000
+  placeholderId: 12732
+- id: 12736
+  amount: 1000
+  placeholderId: 12736
+- id: 12738
+  amount: 1000
+  placeholderId: 12738

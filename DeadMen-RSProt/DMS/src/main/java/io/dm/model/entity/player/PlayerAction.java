@@ -1,0 +1,51 @@
+package io.dm.model.entity.player;
+
+import io.dm.deadman.Deadman;
+import io.dm.model.activities.raids.xeric.party.RecruitingBoard;
+import io.dm.model.map.route.routes.TargetRoute;
+
+import java.util.function.BiConsumer;
+
+public enum PlayerAction {
+
+    ATTACK("Attack", true, (p1, p2) -> {
+        p1.face(p2);
+        p1.getCombat().setTarget(p2);
+    }),
+    FOLLOW("Follow", false, (p1, p2) -> {
+        p1.face(p2);
+        p1.getMovement().following = p2;
+    }),
+    TRADE("Trade with", false, (p1, p2) -> {
+        p1.face(p2);
+        TargetRoute.set(p1, p2, () -> {
+            p1.getTrade().request(p2);
+            p1.faceNone(true);
+        });
+    }),
+    FIGHT("Fight", true, (p1, p2) -> {
+        p1.face(p2);
+        p1.getCombat().setTarget(p2);
+    }),
+    INVITE("Invite", false, (p1, p2) -> {
+        p1.face(p2);
+        TargetRoute.set(p1, p2, () -> {
+            //RecruitingBoard.invite(p1, p2);
+            Deadman.getGroups().Invite(p1, p2);
+            p1.faceNone(true);
+        });
+    });
+
+    public final String name;
+
+    public final boolean top;
+
+    public final BiConsumer<Player, Player> consumer;
+
+    PlayerAction(String name, boolean top, BiConsumer<Player, Player> consumer) {
+        this.name = name;
+        this.top = top;
+        this.consumer = consumer;
+    }
+
+}

@@ -1,0 +1,27 @@
+package io.dm.model.item.actions.impl;
+
+import io.dm.model.World;
+import io.dm.model.item.actions.ItemAction;
+import io.dm.model.map.Position;
+import io.dm.model.skills.magic.spells.HomeTeleport;
+
+public class RoyalSeedPod {
+
+    static {
+        ItemAction.registerInventory(19564, "commune", (player, item) -> {
+            player.getMovement().startTeleport(30, event -> {
+                player.graphics(767);
+                player.animate(4544);
+                event.delay(3);
+                player.getAppearance().setNpcId(716);
+                event.delay(3);
+                player.getMovement().teleport(World.HOME);
+                event.delay(2);
+                player.graphics(769);
+                event.delay(2);
+                player.getAppearance().setNpcId(-1);
+            });
+        });
+    }
+
+}

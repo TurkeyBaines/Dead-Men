@@ -1,0 +1,10 @@
+---
+title: "Sir Sell A Bit's Emporium"
+currency: "BLOOD_MONEY"
+accessibleByIronMan: true
+canSellToStore: true
+generalStore: true
+restockRules:
+  restockTicks: 100
+  restockPerTick: 1
+defaultStock:

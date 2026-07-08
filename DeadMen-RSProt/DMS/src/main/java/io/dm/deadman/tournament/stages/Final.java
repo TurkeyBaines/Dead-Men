@@ -1,0 +1,53 @@
+package io.dm.deadman.tournament.stages;
+
+import io.dm.deadman.Deadman;
+import io.dm.deadman.tournament.FinalEvent;
+import io.dm.deadman.tournament.Stage;
+import io.dm.deadman.tournament.Tournament;
+
+public class Final extends Stage {
+
+    public FinalEvent event;
+
+    public Final() {
+        super.config = Deadman.getConfig();
+        event = FinalEvent.getRandom();
+    }
+    @Override
+    public void onLoad() {
+
+        System.out.println("onLoad FINAL Running!");
+        startTime = System.currentTimeMillis();
+        duration = config.GAME_LENGTH.finals;
+
+        event.init();
+
+    }
+
+    @Override
+    public void onUpdate() {
+        System.out.println("onUpdate FINAL Running!");
+        event.update();
+
+        if (event.finalFinished) {
+            onRemove();
+            progress(Tournament.StageName.LOBBY);
+        }
+    }
+
+    @Override
+    public void onRemove() {
+        System.out.println("onRemove FINAL Running!");
+        event = null;
+    }
+
+    @Override
+    public Tournament.StageName stageName() {
+        return Tournament.StageName.FINAL;
+    }
+
+    public FinalEvent getEvent() {
+        return event;
+    }
+
+}

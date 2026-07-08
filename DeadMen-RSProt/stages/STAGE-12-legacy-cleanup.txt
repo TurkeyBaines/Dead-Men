@@ -1,0 +1,52 @@
+STAGE 12 — Legacy transport cleanup (Milestone 5)
+STATUS: NOT STARTED — GATED: do not start until Stages 02-11 are ALL marked DONE.
+DEPENDS ON: everything. This is last on purpose.
+Follow the RULES in stages/README.txt.
+
+## GOAL
+Remove the dead legacy-184 wire-protocol code now that RSProt serves all real players — WITHOUT
+breaking AI bots, which still construct Player objects with null channels and run through parts
+of the legacy path.
+
+## THE CRITICAL CONSTRAINT — AI BOTS
+The dual-path design in PacketSender (queueRsprot returns false → legacy OutBuffer path) and
+CoreWorker (session==null → legacy PlayerUpdater) exists so AI bots keep working. Before deleting
+ANYTHING: map exactly which legacy code bots actually execute (their login path, whether legacy
+packet ENCODING is ever truly consumed for a null-channel player or just built-and-discarded,
+whether PlayerUpdater output goes anywhere for them). It's plausible bots only need the game
+logic and the legacy byte-encoding is 100% dead — but prove it, don't assume it.
+
+## SCOPE (delete/keep guide)
+DELETE candidates (after the bot audit):
+- Legacy outgoing wire encoding: OutBuffer usage in PacketSender's fallback branches (leave the
+  methods; strip the dead encoding), sendMapPacket's legacy body, packet-opcode constants.
+- Legacy incoming decode: network/incoming/IncomingDecoder.java, Incoming.java, LoginDecoder.java
+  and the opcode-table entry points in each handlers/*.java (KEEP the handler game logic —
+  handleAction methods are RSProt's dispatch targets; only the InBuffer-parsing entry points die).
+- kronos-api's Netty transport, IF the bot audit clears it (bots may use its LoginInfo/session
+  scaffolding — LoginInfo is used by RsProt.doLogin too; keep what's shared).
+KEEP:
+- All handler game logic under network/incoming/handlers/ (RSProt bridges call it).
+- PacketSender's RSProt branches, NetworkLogger, everything under network/rsprot/ and dm-net/.
+
+## STEPS
+1. Bot audit (above). Write findings in HANDOFF before deleting anything.
+2. Delete in small compiling increments — one package/area per commit, `./gradlew
+   :DMS:compileJava` green after each. Commit each increment separately so any bot breakage
+   bisects cleanly.
+3. After each increment the human runs a smoke test: login, click things, AND spawn/observe an
+   AI bot doing its script.
+4. Finally remove now-unused Gradle deps (kronos-api module if fully cleared) and the legacy-184
+   runelite/ vendored checkout reference warnings from docs.
+
+## SUCCESS CRITERIA
+Compile clean; full human smoke test passes (login, movement, chat, items, objects, NPCs, bank);
+AI bots verifiably still function; `grep -r "OutBuffer" DMS/src` returns only whatever the bot
+audit proved necessary (ideally nothing); each deletion increment is its own git commit.
+
+## NON-GOALS
+Refactoring RSProt code. Renaming packages. "While I'm here" improvements — deletion only.
+
+## WRAP-UP
+Per README RULES #7. Also update THE_PLAN.txt (Milestone 5 → DONE) and MIGRATION.txt. This stage
+closing means the migration is COMPLETE.
