@@ -285,6 +285,40 @@
 .table-view .table-row-cell:selected .table-cell { -fx-text-fill: white; }
 .table-view .placeholder .label { -fx-text-fill: -panel-muted; }
 
+/* ---------------------------------------------------------------- list / scroll */
+
+/* Generic dark ListView (item picker, etc.). The more specific .console-list rules
+ * below are declared later and keep precedence for the console. */
+.list-view {
+    -fx-background-color: #10121a;
+    -fx-background-insets: 0;
+    -fx-border-color: -panel-border;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
+.list-view .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -panel-text;
+    -fx-padding: 4 8 4 8;
+}
+.list-view .list-cell:odd { -fx-background-color: #161922; }
+.list-view .list-cell:filled:hover { -fx-background-color: #1e2330; }
+.list-view .list-cell:filled:selected { -fx-background-color: -panel-accent; }
+.list-view .list-cell:filled:selected .label { -fx-text-fill: white; }
+.list-view .list-cell .label { -fx-text-fill: -panel-text; }
+
+/* ScrollPane viewports default to white in Modena — make them transparent so the
+ * dark parent shows through (bank grid, editor content, etc.). */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+.scroll-pane:focused { -fx-background-color: transparent; }
+
 /* ---------------------------------------------------------------- console */
 
 .console-list {
@@ -320,6 +354,40 @@
 .scroll-bar .increment-button, .scroll-bar .decrement-button,
 .scroll-bar .increment-arrow, .scroll-bar .decrement-arrow {
     -fx-background-color: transparent; -fx-padding: 0;
+}
+
+/* ---------------------------------------------------------------- item cells */
+
+.item-grid {
+    -fx-padding: 6;
+    -fx-background-color: #0d0f14;
+    -fx-background-radius: 8;
+    -fx-border-color: -panel-border;
+    -fx-border-radius: 8;
+}
+
+.item-cell {
+    -fx-background-color: #14171f;
+    -fx-background-radius: 5;
+    -fx-border-color: #262b38;
+    -fx-border-radius: 5;
+}
+.item-cell:hover { -fx-border-color: -panel-accent; }
+
+.item-fallback {
+    -fx-background-color: #191d27;
+    -fx-background-radius: 5;
+    -fx-text-fill: -panel-muted;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+}
+
+.item-qty {
+    -fx-text-fill: #ffe066;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 0 0 2;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.9), 2, 0.6, 1, 1);
 }
 
 /* ---------------------------------------------------------------- dialogs */

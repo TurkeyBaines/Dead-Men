@@ -145,6 +145,142 @@ public final class ActionDispatcher {
         });
     }
 
+    // ------------------------------------------------------------------ player editing
+
+    /** Set a single skill's level (1-99), mirroring the proven ::stat set logic. */
+    public static void setStat(String targetName, int statOrdinal, int level) {
+        onGameThread(() -> withPlayer(targetName, p -> {
+            applyStat(p, io.dm.model.stat.StatType.values()[statOrdinal], level);
+            audit("Set " + p.getName() + "'s " + io.dm.model.stat.StatType.values()[statOrdinal].name() + " to " + level + ".");
+        }));
+    }
+
+    public static void maxStats(String targetName) {
+        onGameThread(() -> withPlayer(targetName, p -> {
+            for (io.dm.model.stat.StatType t : io.dm.model.stat.StatType.values()) applyStat(p, t, 99);
+            audit("Maxed all stats for " + p.getName() + ".");
+        }));
+    }
+
+    public static void resetStats(String targetName) {
+        onGameThread(() -> withPlayer(targetName, p -> { p.getStats().reset(); audit("Reset all stats for " + p.getName() + "."); }));
+    }
+
+    /** Un-boost / un-drain: restore each skill's current level to its base level. */
+    public static void restoreStats(String targetName) {
+        onGameThread(() -> withPlayer(targetName, p -> {
+            for (io.dm.model.stat.StatType t : io.dm.model.stat.StatType.values()) {
+                io.dm.model.stat.Stat st = p.getStats().get(t);
+                st.currentLevel = st.fixedLevel;
+                st.updated = true;
+            }
+            audit("Restored levels for " + p.getName() + ".");
+        }));
+    }
+
+    public static void giveItem(String targetName, int itemId, int amount) {
+        onGameThread(() -> withPlayer(targetName, p -> {
+            p.getInventory().add(itemId, amount);
+            audit("Gave " + amount + " x " + ItemIconService.nameOf(itemId) + " to " + p.getName() + ".");
+        }));
+    }
+
+    public static void addToBank(String targetName, int itemId, int amount) {
+        onGameThread(() -> withPlayer(targetName, p -> {
+            p.getBank().add(itemId, amount);
+            audit("Banked " + amount + " x " + ItemIconService.nameOf(itemId) + " for " + p.getName() + ".");
+        }));
+    }
+
+    public static void removeItem(String targetName, int itemId, int amount, boolean fromBank) {
+        onGameThread(() -> withPlayer(targetName, p -> {
+            if (fromBank) {
+                p.getBank().remove(itemId, amount);
+            } else {
+                p.getInventory().remove(itemId, amount);
+            }
+            audit("Removed " + amount + " x " + ItemIconService.nameOf(itemId)
+                    + " from " + p.getName() + "'s " + (fromBank ? "bank." : "inventory."));
+        }));
+    }
+
+    /** Read a player's inventory and bank contents on the game thread. */
+    public static void readContainers(String targetName,
+                                      java.util.function.BiConsumer<java.util.List<ItemStack>, java.util.List<ItemStack>> callback) {
+        onGameThread(() -> {
+            java.util.List<ItemStack> inv = new java.util.ArrayList<>();
+            java.util.List<ItemStack> bank = new java.util.ArrayList<>();
+            Player p = World.getPlayer(targetName);
+            if (p != null) {
+                collectItems(safeItems(() -> p.getInventory().getItems()), inv);
+                collectItems(safeItems(() -> p.getBank().getItems()), bank);
+            }
+            javafx.application.Platform.runLater(() -> callback.accept(inv, bank));
+        });
+    }
+
+    private static void collectItems(io.dm.model.item.Item[] items, java.util.List<ItemStack> out) {
+        if (items == null) return;
+        for (io.dm.model.item.Item item : items) {
+            if (item != null && item.getId() > 0) {
+                out.add(new ItemStack(item.getId(), item.getAmount()));
+            }
+        }
+    }
+
+    public static void teleport(String targetName, int x, int y, int z) {
+        onGameThread(() -> withPlayer(targetName, p -> {
+            p.getMovement().teleport(x, y, z);
+            audit("Teleported " + p.getName() + " to " + x + ", " + y + ", " + z + ".");
+        }));
+    }
+
+    public static void setOverworldPoints(String targetName, int value) {
+        onGameThread(() -> withPlayer(targetName, p -> { p.overworldPoints = value; audit("Set " + p.getName() + " Overworld Points = " + value); }));
+    }
+
+    public static void setVaultPoints(String targetName, int value) {
+        onGameThread(() -> withPlayer(targetName, p -> { p.overworldPointsVault = value; audit("Set " + p.getName() + " Vault Points = " + value); }));
+    }
+
+    public static void setPvmPoints(String targetName, int value) {
+        onGameThread(() -> withPlayer(targetName, p -> { p.PvmPoints = value; audit("Set " + p.getName() + " PvM Points = " + value); }));
+    }
+
+    public static void setAppreciationPoints(String targetName, int value) {
+        onGameThread(() -> withPlayer(targetName, p -> { p.appreciationPoints = value; audit("Set " + p.getName() + " Appreciation Points = " + value); }));
+    }
+
+    /** Read current skill levels (indexed by StatType ordinal) for pre-filling the editor. */
+    public static void readPlayerLevels(String targetName, java.util.function.Consumer<int[]> callback) {
+        onGameThread(() -> {
+            Player p = World.getPlayer(targetName);
+            int[] levels = null;
+            if (p != null) {
+                try {
+                    io.dm.model.stat.StatType[] types = io.dm.model.stat.StatType.values();
+                    levels = new int[types.length];
+                    for (int i = 0; i < types.length; i++) levels[i] = p.getStats().get(types[i]).currentLevel;
+                } catch (Throwable ignored) { levels = null; }
+            }
+            int[] result = levels;
+            javafx.application.Platform.runLater(() -> callback.accept(result));
+        });
+    }
+
+    private static void applyStat(Player p, io.dm.model.stat.StatType type, int level) {
+        io.dm.model.stat.Stat st = p.getStats().get(type);
+        st.currentLevel = level;
+        st.experience = io.dm.model.stat.Stat.xpForLevel(level);
+        st.updated = true;
+    }
+
+    private static void withPlayer(String name, java.util.function.Consumer<Player> action) {
+        Player p = World.getPlayer(name);
+        if (p == null) { audit("Action failed: '" + name + "' is not online."); return; }
+        action.accept(p);
+    }
+
     // ------------------------------------------------------------------ world / misc
 
     public static void broadcast(String message) {
