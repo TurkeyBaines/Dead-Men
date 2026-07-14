@@ -1,5 +1,5 @@
 STAGE 01 — Baseline live capture & triage
-STATUS: NOT STARTED
+STATUS: DONE 2026-07-08
 DEPENDS ON: Stage 00 (git checkpoint).
 Follow the RULES in stages/README.txt.
 

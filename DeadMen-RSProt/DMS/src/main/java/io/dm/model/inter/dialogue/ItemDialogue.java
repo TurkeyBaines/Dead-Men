@@ -54,6 +54,10 @@ public class ItemDialogue implements Dialogue {
             player.getPacketSender().sendItem(Interface.ONE_ITEM_DIALOGUE, 1, itemId1, 10000);
             player.getPacketSender().sendString(Interface.ONE_ITEM_DIALOGUE, 2, message);
             player.getPacketSender().setTextStyle(Interface.ONE_ITEM_DIALOGUE, 2, 1, 1, lineHeight);
+            // Stage 11 Round 2: script 2868 (objbox_setbuttons) creates the buttons as dynamic
+            // children of 193:0 — they need the pause-events mask on those slots (Alter
+            // itemMessageBox(): events on 193:0 slots 0-1) for the 228 client to send the click.
+            player.getPacketSender().sendAccessMask(Interface.ONE_ITEM_DIALOGUE, 0, 0, 1, 1);
             if(!hideContinue) {
                 player.getPacketSender().sendClientScript(2868, "s", "Click here to continue");
             }
@@ -63,6 +67,9 @@ public class ItemDialogue implements Dialogue {
             player.getPacketSender().sendItem(Interface.TWO_ITEM_DIALOGUE, 3, itemId2, 10000);
             player.getPacketSender().sendString(Interface.TWO_ITEM_DIALOGUE, 2, message);
             player.getPacketSender().setTextStyle(Interface.TWO_ITEM_DIALOGUE, 2, 1, 1, lineHeight);
+            // Stage 11 Round 2: children already match rev 228 (Alter doubleItemMessageBox():
+            // item1=1, text=2, item2=3, continue=4) — only the events mask was missing.
+            player.getPacketSender().sendAccessMask(Interface.TWO_ITEM_DIALOGUE, 4, -1, -1, 1);
             if(hideContinue)
                 player.getPacketSender().setHidden(Interface.TWO_ITEM_DIALOGUE, 4, true);
             else

@@ -40,6 +40,10 @@ public class MessageDialogue implements Dialogue {
         player.openInterface(InterfaceType.CHATBOX, Interface.MESSAGE_DIALOGUE);
         player.getPacketSender().sendString(Interface.MESSAGE_DIALOGUE, 1, message);
         player.getPacketSender().setTextStyle(Interface.MESSAGE_DIALOGUE, 1, 1, 1, lineHeight);
+        // Stage 11 Round 2: 229's children (message=1, continue=2) already match rev 228 (Alter
+        // messageBox()), but the continue needs its pause-events mask or the 228 client never sends
+        // the ResumePauseButton for it.
+        player.getPacketSender().sendAccessMask(Interface.MESSAGE_DIALOGUE, 2, -1, -1, 1);
         if(hideContinue)
             player.getPacketSender().setHidden(Interface.MESSAGE_DIALOGUE, 2, true);
         else

@@ -1,0 +1,214 @@
+BASELINE-FINDINGS — Stage 01 live-test results (2026-07-08)
+Produced by: Stage 01 (baseline-capture). Pure data collection, no fixes applied.
+Server booted via IntelliJ run config for io.dm.Server (working directory = DMS/, confirmed by
+where CACHE_INTERFACE_DUMP.txt and PROTOCOL_DUMP.txt actually landed — NOT the repo root).
+Tester: human ("unix" character), 2026-07-08 ~18:13-18:24.
+
+## HOW TO FIND THE RAW DATA
+- PROTOCOL_DUMP.txt and CACHE_INTERFACE_DUMP.txt are written to DMS/, not the repo root, despite
+  README.txt's "project root" wording — the run config's working directory is the DMS/ module
+  dir. Look there first if a later stage can't find them.
+- Both files were regenerated fresh in this session (CACHE_INTERFACE_DUMP.txt rewrites every boot;
+  PROTOCOL_DUMP.txt appends — it was empty/nonexistent before this session, confirming the
+  diagnostic infra had genuinely never fired before today).
+
+## SCRIPTED ACTION TABLE
+
+a. Login / display-name overlay
+   packet: n/a (outbound burst, not inbound)
+   console: full [IFACE]/[VARP] burst fires correctly, including IfSetEvents for 149 and 387 (see
+     Section "ACCESS MASKS AT LOGIN" below)
+   client result: NO overlay appeared — correct, matches Milestone 3's fix
+   owning stage: none, confirmed working, no action needed
+
+b. Movement / public chat / ::commands
+   packet: not captured in this session's PROTOCOL_DUMP excerpt (MoveGameClick/MessagePublic/
+     ClientCheat aren't logged by NetworkLogger — only the 11 Milestone-4 interaction listeners
+     are), but human confirms all three worked exactly as expected
+   console: n/a
+   client result: works
+   owning stage: none, confirmed working
+
+c. Inventory item click (spawned Abyssal whip, item 4151, wield/other-option/examine)
+   packet (PROTOCOL_DUMP.txt, DMS/ dir):
+     [2026-07-08 18:19:56.387] player=unix packet=If3Button interface=149 component=0 option=3 slot=0 item=4151
+     [2026-07-08 18:19:58.787] player=unix packet=If3Button interface=149 component=0 option=7 slot=0 item=4151
+     [2026-07-08 18:20:02.987] player=unix packet=If3Button interface=149 component=0 option=10 slot=0 item=4151
+   console: [BUTTON] resolved inter=149 child=0 visible=true actionFound=true (x2, for the first
+     two clicks) — dispatch succeeds, a handler IS found, but no game-visible effect follows except
+     option 10 (examine), which correctly printed "A weapon from the abyss." in the chatbox.
+   client result: examine (option 10) works. The other options (3, 7 — exact wield/drop mapping for
+     this item unconfirmed) dispatch and resolve a handler but do nothing.
+   owning stage: 05 (inventory-actions) — this is the primary reproduction case; TabInventory.click
+     is being reached (actionFound=true) but its actual item-mutation logic isn't taking effect.
+
+d. Inventory drag-reorder
+   packet: not captured (IfButtonD not exercised again this session, but confirmed working live
+     earlier in the session per human report)
+   console: n/a
+   client result: WORKS — human explicitly confirmed dragging items to reorder inventory slots
+     functions correctly. This CONTRADICTS THE_PLAN.txt/HANDOFF.txt's "Milestone 4 ... Drag-reorder
+     within inventory ... same symptom class" claim, which is now stale.
+   owning stage: 08 — flagged as a correction, see NOTES FROM OTHER STAGES below.
+
+e. Unequip (force-equipped several slots via command, then clicked each to unequip)
+   packet (PROTOCOL_DUMP.txt):
+     [2026-07-08 18:22:57.596] player=unix packet=If3Button interface=387 component=15 option=1 slot=-1 item=-1
+     [2026-07-08 18:22:58.186] player=unix packet=If3Button interface=387 component=15 option=1 slot=-1 item=-1
+     [2026-07-08 18:22:58.790] player=unix packet=If3Button interface=387 component=17 option=1 slot=-1 item=-1
+     [2026-07-08 18:22:59.394] player=unix packet=If3Button interface=387 component=17 option=1 slot=-1 item=-1
+     [2026-07-08 18:22:59.997] player=unix packet=If3Button interface=387 component=16 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:00.588] player=unix packet=If3Button interface=387 component=16 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:00.588] player=unix packet=If3Button interface=387 component=18 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:00.589] player=unix packet=If3Button interface=387 component=18 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:01.190] player=unix packet=If3Button interface=387 component=18 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:01.792] player=unix packet=If3Button interface=387 component=20 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:01.794] player=unix packet=If3Button interface=387 component=20 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:01.794] player=unix packet=If3Button interface=387 component=19 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:02.398] player=unix packet=If3Button interface=387 component=19 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:02.398] player=unix packet=If3Button interface=387 component=21 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:02.988] player=unix packet=If3Button interface=387 component=21 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:02.989] player=unix packet=If3Button interface=387 component=22 option=1 slot=-1 item=-1
+     [2026-07-08 18:23:02.990] player=unix packet=If3Button interface=387 component=22 option=1 slot=-1 item=-1
+   NOTE: every equipment slot click arrived TWICE within ~0.6s of each other (component=15 x2,
+     16 x2, 17 x2, 18 x3, 19 x2, 20 x2, 21 x2, 22 x2) — worth Stage 06 checking whether this is a
+     client double-send quirk, a double-registered listener, or the human double-clicking; slot=-1
+     item=-1 on every line (equipment components address a single fixed item, not a slot array, so
+     this is expected per the mask 2046/start=-1/end=-1 note in HANDOFF's Milestone 4 Round 2).
+   console: not captured for this segment (human didn't paste it)
+   client result: unequip does not work for any slot
+   owning stage: 06 — packets clearly arrive with correct interface/component/option, so the bug is
+     downstream in TabEquipment.itemAction, not in dispatch/access-mask wiring.
+
+f. Object click (several different objects clicked in sequence, per OpLoc ids below)
+   packet (PROTOCOL_DUMP.txt):
+     [2026-07-08 18:23:12.594] player=unix packet=OpLoc interface=-1 component=-1 option=1 slot=-1 item=24057 | x=2973 z=3348
+     [2026-07-08 18:23:15.593] player=unix packet=OpLoc interface=-1 component=-1 option=1 slot=-1 item=24067 | x=2968 z=3347
+     [2026-07-08 18:23:16.790] player=unix packet=OpLoc interface=-1 component=-1 option=1 slot=-1 item=24067 | x=2968 z=3347
+     [2026-07-08 18:23:19.797] player=unix packet=OpLoc interface=-1 component=-1 option=1 slot=-1 item=24064 | x=2965 z=3339
+     [2026-07-08 18:23:39.000] player=unix packet=OpLoc interface=-1 component=-1 option=1 slot=-1 item=24079 | x=2971 z=3370
+     [2026-07-08 18:23:58.189] player=unix packet=OpLoc interface=-1 component=-1 option=2 slot=-1 item=24101 | x=2947 z=3367
+     [2026-07-08 18:24:02.998] player=unix packet=OpLoc interface=-1 component=-1 option=1 slot=-1 item=10529 | x=2943 z=3368
+     [2026-07-08 18:24:04.798] player=unix packet=OpLoc interface=-1 component=-1 option=1 slot=-1 item=8720 | x=2944 z=3373
+   ("item" column here is the object/loc id per NetworkLogger's field naming, not a real item.)
+   console: a boot-time crash was flagged (see BOOT-TIME ISSUE below) but the human explicitly
+     confirmed it's unrelated pre-existing breakage from their own earlier work, not part of this
+     migration's scope — do not treat it as the root cause here without separate confirmation.
+   client result: character walks to the object every time (movement/pathing correct); no
+     interaction ever fires on arrival
+   owning stage: 07 — packets arrive correctly with real object ids/coords, dispatch reaches
+     ObjectActionHandler (per HANDOFF's wiring), but nothing happens after arrival. Worth checking
+     whether ObjectActionHandler's arrival-callback (whatever fires the action once pathing
+     completes, since OpLoc fires once on click, not on arrival) is actually being invoked.
+
+g. Bank open
+   packet: no If3Button on interface 12/15, and no obviously-identifiable OpLoc for a bank booth
+     appear in this session's dump — the human did not confirm which of the OpLoc lines above (if
+     any) was the bank-booth click. Re-test recommended for whoever picks up Stage 04.
+   console: not captured
+   client result: bank does not open (consistent with all prior live-testing rounds in HANDOFF.txt)
+   owning stage: 04
+
+h. Ground items (both admin-spawn and drop)
+   packet: n/a — spawning is a server-side admin command, not a client packet; drop is covered
+     under item interactions (action c above) since it's one of interface 149's options
+   console: not captured
+   client result: ground items never render, neither spawned nor dropped
+   owning stage: 02
+
+i. NPCs
+   packet: n/a
+   console: n/a
+   client result: none visible — human confirms this is expected/out of scope right now, NOT a new
+     bug: "npcs haven't been wired in yet, so they're not meant to work right now."
+   owning stage: 03 (as already scoped in THE_PLAN.txt/README.txt — NpcAvatar allocation was never
+     implemented, this is a from-scratch build, not a regression to chase)
+
+j. Chatbox dialogues (smelting + a choose-option dialogue)
+   packet: n/a (dialogues are server-initiated, not click-driven in the tested direction)
+   console: not captured
+   client result: mixed — matches THE_PLAN.txt Section 6's pre-existing note (smelting-style
+     dialogues OK, choose-option background missing). Not re-verified in more detail this session.
+   owning stage: 11
+
+k. Logout
+   packet: n/a
+   console: n/a
+   client result: works correctly via the logout tab button
+   owning stage: none, confirmed working
+
+## ACCESS MASKS AT LOGIN (from console, for reference)
+IfSetEvents fired for interface=149 comp=0 (inventory) and interface=387 comp=6 through comp=16
+(equipment slots) — matches HANDOFF's Milestone 4 Round 2 fix description. Note this range is
+6-16 inclusive per the login burst, but the unequip clicks in action (e) above hit components 15
+through 22 — components 17-22 are OUTSIDE the access-mask range that was granted at login
+(6-16). Worth Stage 06 checking whether components 17-22 correspond to real worn-equipment slots
+that need their own access mask added, since a component with no access mask should mean the
+client never sends the click at all per the documented rev-228 IF3 rule — but these DID arrive,
+so either the range comment in RsProt.java is stale/wrong, or 387's real slot-to-component mapping
+extends further than components 6-16 and the mask was already broad enough by coincidence. Flagged,
+not resolved — Stage 06's job.
+
+## CACHE228 REAL COMPONENT COUNTS (from DMS/CACHE_INTERFACE_DUMP.txt, this boot)
+  Interface 548 (game frame):      Components: 80   Scripts: 1050 902 903 489 914 904 901
+  Interface 161:                   Components: 82   Scripts: 1050 902 834 903 489 914 904 901
+  Interface 164:                   Components: 82   Scripts: 1050 902 712 903 489 914 904 901
+  Interface 162:                   Components: 562  Scripts: 663 2520 2521 664 924 173 2251 175 174 216 101 925
+  Interface 12  (Bank):            Components: 68   Scripts: 504 1312 2211 2577 292 517 2838 274 286 1430 293 276 2212 1428 2209 1271 45 2210 1270 2208 1429 2837 929 1321 2207 85 522 289 281 273 1322
+  Interface 15  (Bank inventory):  Components: 11   Scripts: 294 489 492 490 44 273 1191 295 | Configs: none
+  Interface 149 (Inventory):       Components: 1    Scripts: none
+  Interface 387 (Equipment):       Components: 25   Scripts: 2642 545 92 2641 2643 94 544
+
+  Note: 548's real Cache228 count (80) matches the LEGACY cache's InterfaceDef.COUNTS value
+  (also 80, per HANDOFF Round 1 Bug 2) — i.e. for interface 548 specifically the two caches agree,
+  even though HANDOFF describes needing pane slots up to 93. That 93 figure refers to
+  FIXED_FRAME_PANES' own child-slot table (AlterRSPS-sourced), not to Cache228's component count —
+  these are two different numbers describing two different things; don't conflate them in later
+  stages.
+
+## BOOT-TIME ISSUE (flagged, explicitly OUT OF SCOPE per the human)
+Every boot logs:
+  [main] ERROR rollingErrorFileLogger - Package Failure: MovementFixes.class
+  java.lang.ExceptionInInitializerError
+  Caused by: java.lang.NullPointerException: Cannot invoke "io.dm.model.map.object.GameObject.getDef()"
+    because "obj" is null
+    at io.dm.model.map.object.actions.ObjectAction.register(ObjectAction.java:92)
+    at io.dm.utility.MovementFixes.<clinit>(MovementFixes.java:17)
+PackageLoader catches this and skips the whole class, so nothing MovementFixes.java registers ever
+loads. The human explicitly confirmed this is pre-existing breakage from unrelated prior work
+("making some ladders work in the old server") and NOT part of the RSProt migration's scope — do
+not attempt to fix it as part of Stage 07 unless separately asked to.
+
+## OUTPUT LOCATION CORRECTION FOR README.txt / stage files
+PROTOCOL_DUMP.txt and CACHE_INTERFACE_DUMP.txt are written relative to the JVM's working
+directory, which for both the Gradle `:DMS:run` task and this session's IntelliJ run config is
+DMS/, not the repo root DeadMen-RSProt/. README.txt's "project root" wording (twice) and
+STAGE-01's own "project root" wording are both slightly wrong — added a NOTES FROM OTHER STAGES
+line to README.txt-consuming stages below.
+
+## NOTES FROM OTHER STAGES
+- Stage 02 (ground-items): confirmed still fully broken (spawn command AND drop both produce
+  nothing visible). No new packet-level evidence beyond what THE_PLAN.txt Section 6a already
+  states (coordinate fix applied 2026-07-07, never live-verified until now — now live-verified AS
+  STILL BROKEN, so the zone-coordinate fix alone did not resolve it. Needs its own fresh
+  investigation, don't assume the x&~0x7 fix was sufficient).
+- Stage 04 (main-interfaces): bank-booth OpLoc line not positively identified in this session's
+  dump — re-click the bank booth and grep PROTOCOL_DUMP.txt for the OpLoc line right before
+  attempting to correlate with a real interface id.
+- Stage 05 (inventory-actions): dispatch confirmed reaching TabInventory.click (actionFound=true)
+  for options 3, 7, 10 on item 4151; only option 10 (examine) has any visible effect. The bug is
+  downstream of dispatch, inside the per-option action logic itself.
+- Stage 06 (unequip): see "ACCESS MASKS AT LOGIN" above — components 17-22 clicked successfully
+  despite the login burst only explicitly sending IfSetEvents for components 6-16. Also note the
+  double-fire pattern on every component (see action e above).
+- Stage 07 (object-interactions): OpLoc packets confirmed arriving with correct object id/x/z on
+  every test; walk-to-object always succeeds; zero post-arrival interaction ever observed. The
+  MovementFixes crash logged at boot is a red herring per the human — don't chase it.
+- Stage 08 (item-on-x-and-drag): drag-reorder is CONFIRMED WORKING now (see action d above),
+  contradicting THE_PLAN.txt/HANDOFF.txt's stale "drag-reorder ... same symptom class" claim from
+  2026-07-08 Round 1. Item-on-X (OpLocT/OpObjT/OpNpcT/OpPlayerT/IfButtonT) was not tested this
+  session — still genuinely untested, not confirmed broken or working.
+- Stage 11 (polish-and-diag-cleanup): the temporary [BUTTON]/[DRAG]/[IFACE]/[VARP] console prints
+  referenced throughout HANDOFF.txt are all still present and were all observed firing correctly
+  this session — safe to strip once Stages 05-07 close out, per the standing rule in
+  HANDOFF/MIGRATION not to remove them before root-causing is confirmed.

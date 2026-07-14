@@ -537,6 +537,15 @@ public class Config {
      * Chatbox interface setting
      */
     public static final Config CHATBOX_INTERFACE_USE_FULL_FRAME = varpbit(5983, false);
+    /**
+     * Sizes the chatbox dialogue child (162:566) to the full chatbox instead of the small 479x96
+     * pane while a sub is attached to it — consumed by the client's own chatbox layout proc
+     * (cs2 script113: {@code if (varbit10670 = 1 & if_hassub(...))}). The rev-228 choose-option
+     * dialogue (219) needs it set to 1 while open (AlterRSPS options() sends it as a temp varbit);
+     * make-x (270) keeps using {@link #CHATBOX_INTERFACE_USE_FULL_FRAME} exactly as AlterRSPS's
+     * produceItemBox() still does — the two varbits are separate on 228, not old/new names for one.
+     */
+    public static final Config CHATBOX_DIALOGUE_FULL_SIZE = varpbit(10670, false);
 
     /**
      * Pets

@@ -60,7 +60,6 @@ public class PacketSender {
     private boolean queueRsprot(net.rsprot.protocol.message.OutgoingGameMessage msg) {
         var s = player.getSession();
         if (s == null) return false;
-        logIfaceTarget(msg); // TEMP diagnostic: catch out-of-range interface component sends
         s.queue(msg);
         return true;
     }
@@ -88,37 +87,33 @@ public class PacketSender {
      * since that zone wasn't the one the player is actually standing in, matching exactly the reported
      * symptom ("no server errors, but nothing appears on the client"). Fixed by masking off the
      * in-zone bits ({@code x & ~0x7}) instead of shifting them out.
+     *
+     * <p><b>Second coordinate-bug fix (Stage 02, 2026-07-08):</b> the fix above was necessary but not
+     * sufficient — it was still one step short. {@code UpdateZonePartialEnclosed._zoneX}/{@code _zoneZ}
+     * are declared {@code UByte} in the sources jar (range 0-255), and the KDoc's own worked example
+     * ("player at absolute coordinate of 50, 40 <i>within the build area (104x104)</i>") makes clear
+     * that "absolute, not shifted" means relative to the 104x104 <i>build area's own origin</i>, NOT
+     * the world's absolute tile grid — "absolute" there only disambiguates from the divided-by-8 zone-
+     * index form, exactly like {@link #queueRsprot} vs the coordinate math already proven correct
+     * elsewhere in this codebase for {@code SetNpcUpdateOrigin} ({@code x - (p.buildAreaZoneX << 3)},
+     * {@code RsProt.java}'s {@code driveUpdate()}). The prior fix passed {@code x & ~0x7} directly —
+     * still a raw world-tile value, typically in the low thousands — which silently truncates when
+     * narrowed to a {@code UByte} (e.g. world zone-corner 3216 truncates to 144, still outside the
+     * valid 0-104 build-area window), landing every zone-scoped packet on an essentially arbitrary
+     * wrong zone the client's local build-area grid doesn't recognise as adjacent to the player.
+     * Fixed by subtracting the player's own build-area origin (in tiles, {@code buildAreaZoneX << 3})
+     * to get a build-area-local coordinate in the 0-104 range the client actually expects.
      */
     private boolean queueZonePayload(int x, int y, int level, net.rsprot.protocol.message.ZoneProt payload) {
         var s = player.getSession();
         if (s == null) return false;
+        int zoneX = (x & ~0x7) - (player.buildAreaZoneX << 3);
+        int zoneZ = (y & ~0x7) - (player.buildAreaZoneZ << 3);
         var buf = net.rsprot.protocol.game.outgoing.codec.zone.header.DesktopUpdateZonePartialEnclosedEncoder.Companion
                 .buildCache(RSPROT_ZONE_ALLOC, java.util.List.of(payload));
         s.queue(new net.rsprot.protocol.game.outgoing.zone.header.UpdateZonePartialEnclosed(
-                x & ~0x7, y & ~0x7, level, buf));
+                zoneX, zoneZ, level, buf));
         return true;
-    }
-
-    /**
-     * TEMP diagnostic (2026-07-07): the stock 228 client crashes with "Index N out of bounds for
-     * length M" in its interface-component store (`nq.ay` = components[interfaceId][componentId])
-     * when we address a component id that doesn't exist in the 228 cache. Log the first occurrence
-     * of each (interfaceId, componentId) we send so the offending custom-interface send can be found.
-     */
-    private static final java.util.Set<String> LOGGED_IFACE = java.util.concurrent.ConcurrentHashMap.newKeySet();
-    private void logIfaceTarget(net.rsprot.protocol.message.OutgoingGameMessage msg) {
-        Integer combined = null;
-        String kind = null;
-        if (msg instanceof net.rsprot.protocol.game.outgoing.interfaces.IfSetText m) { combined = m.getCombinedId(); kind = "IfSetText"; }
-        else if (msg instanceof net.rsprot.protocol.game.outgoing.interfaces.IfSetHide m) { combined = m.getCombinedId(); kind = "IfSetHide"; }
-        else if (msg instanceof net.rsprot.protocol.game.outgoing.interfaces.IfSetEvents m) { combined = m.getCombinedId(); kind = "IfSetEvents"; }
-        else if (msg instanceof net.rsprot.protocol.game.outgoing.interfaces.IfSetObject m) { combined = m.getCombinedId(); kind = "IfSetObject"; }
-        else if (msg instanceof net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub m) { combined = m.getDestinationCombinedId(); kind = "IfOpenSub"; }
-        if (combined != null) {
-            int iface = (combined >> 16) & 0xFFFF, comp = combined & 0xFFFF;
-            if (LOGGED_IFACE.add(kind + ":" + iface + ":" + comp))
-                System.out.println("[IFACE] " + kind + " iface=" + iface + " comp=" + comp);
-        }
     }
 
     /**
@@ -475,8 +470,6 @@ public class PacketSender {
                 return;
             }
         }
-        if (player.getSession() != null && LOGGED_IFACE.add("VARP:" + id))
-            System.out.println("[VARP] id=" + id + " val=" + value); // TEMP diagnostic (first send of each varp)
         // RSProt: VarpSmall for byte-range values, VarpLarge otherwise (matches legacy pick).
         if (queueRsprot(value < Byte.MIN_VALUE || value > Byte.MAX_VALUE
                 ? new net.rsprot.protocol.game.outgoing.varp.VarpLarge(id, value)
@@ -734,12 +727,18 @@ public class PacketSender {
     }
 
     public void sendGroundItem(GroundItem groundItem) {
-        // RSProt: ObjAdd(id, quantity, xInZone, zInZone, ownershipType). Ownership visibility is
-        // already resolved by GroundItem.sendAdd()'s per-player loop before this is ever called, so
-        // ownershipType is always 0 (public) here — this send is inherently scoped to the right player.
+        // RSProt: ObjAdd(id, quantity, xInZone, zInZone, opFlags). Stage 02 fix (2026-07-08): the 5th
+        // param of this JVM-helper constructor is opFlags (which of the item's 5 cache-defined
+        // right-click options to SHOW), not ownershipType as a previous comment here claimed —
+        // ownershipType only exists on the 9-arg ctor and isn't reachable from this one at all. Passing
+        // (byte) 0 (OpFlags.NONE_SHOWN) hid every cache-defined option, including "Take" — the item
+        // rendered but its context menu fell back to client-only defaults (Walk here/Examine/Cancel).
+        // Ownership VISIBILITY (who this packet is even sent to) is unrelated and already correctly
+        // resolved by GroundItem.sendAdd()'s per-player loop before this is ever called.
         if (queueZonePayload(groundItem.x, groundItem.y, groundItem.z,
                 new net.rsprot.protocol.game.outgoing.zone.payload.ObjAdd(
-                        groundItem.id, groundItem.amount, groundItem.x & 0x7, groundItem.y & 0x7, (byte) 0))) {
+                        groundItem.id, groundItem.amount, groundItem.x & 0x7, groundItem.y & 0x7,
+                        net.rsprot.protocol.game.outgoing.util.OpFlags.ALL_SHOWN))) {
             return;
         }
         sendMapPacket(groundItem.x, groundItem.y, groundItem.z, offsetHash ->
@@ -752,6 +751,14 @@ public class PacketSender {
     }
 
     public void sendRemoveGroundItem(GroundItem groundItem) {
+        // RSProt: ObjDel(id, quantity, xInZone, zInZone) — never ported before Stage 02; ground-item
+        // removal silently no-op'd for RSProt players (null Netty channel, same as every other
+        // unported send). Field order verified against the osrs-228-model sources jar.
+        if (queueZonePayload(groundItem.x, groundItem.y, groundItem.z,
+                new net.rsprot.protocol.game.outgoing.zone.payload.ObjDel(
+                        groundItem.id, groundItem.amount, groundItem.x & 0x7, groundItem.y & 0x7))) {
+            return;
+        }
         sendMapPacket(groundItem.x, groundItem.y, groundItem.z, offsetHash ->
                 new OutBuffer(4).sendFixedPacket(30)
                         .addByteA(offsetHash)
@@ -789,6 +796,12 @@ public class PacketSender {
     }
 
     public void sendObjectAnimation(int x, int y, int z, int type, int dir, int animationId) {
+        // RSProt: LocAnim(id, xInZone, zInZone, shape, rotation) — same type/dir->shape/rotation
+        // mapping already used by sendCreateObject/sendRemoveObject above.
+        if (queueZonePayload(x, y, z, new net.rsprot.protocol.game.outgoing.zone.payload.LocAnim(
+                animationId, x & 0x7, y & 0x7, type, dir))) {
+            return;
+        }
         sendMapPacket(x, y, z, offsetHash ->
                 new OutBuffer(5).sendFixedPacket(54)
                         .addShortA(animationId)
@@ -802,14 +815,24 @@ public class PacketSender {
         // RSProt (rev 228): MapProjAnim(id, startHeight, endHeight, startTime, endTime, angle,
         // progress, sourceIndex, targetIndex, xInZone, zInZone, deltaX, deltaZ) — a 1:1 rename of the
         // legacy wire fields (delay->startTime, duration->endTime, (destX-startX)->deltaX,
-        // (destY-startY)->deltaZ), so no arithmetic recombination needed. No source-entity concept in
-        // the legacy signature, so sourceIndex = -1 (none). curve/something map onto RSProt's
-        // angle/progress bytes — both are extra tuning fields with no direct legacy equivalent name;
-        // verify projectile visuals live once compiled.
+        // (destY-startY)->deltaZ), so no arithmetic recombination needed.
+        //
+        // Stage 10 (2026-07-13), verified against MapProjAnim.kt's KDoc in the osrs-228-model
+        // sources jar:
+        // - sourceIndex/targetIndex use the convention 0 = no lock, -(index+1) = player,
+        //   (index+1) = NPC. Projectile.java already passes targetIndex in exactly that encoding
+        //   (0 for tile targets, ±(index+1) for entities), so it passes through unchanged. The
+        //   legacy signature has no source-entity concept, so sourceIndex = 0 (none) — the previous
+        //   -1 here was wrong: in this encoding -1 means "locked to the player at index 0", which
+        //   would visually snap every projectile's origin to an arbitrary player.
+        // - curve->angle and something->progress are confirmed correct, not just positional guesses:
+        //   the legacy presets in Projectile.java (dumped from real RS per its own print() method)
+        //   carry curve=15/idk=11 for arrows — the canonical OSRS angle/progress values for that
+        //   projectile family.
         if (queueZonePayload(startX, startY, player.getHeight(),
                 new net.rsprot.protocol.game.outgoing.zone.payload.MapProjAnim(
                         projectileId, startHeight, endHeight, delay, duration, curve, something,
-                        -1, targetIndex, startX & 0x7, startY & 0x7, destX - startX, destY - startY))) {
+                        0, targetIndex, startX & 0x7, startY & 0x7, destX - startX, destY - startY))) {
             return;
         }
         sendMapPacket(startX, startY, player.getHeight(), offsetHash ->
@@ -846,11 +869,19 @@ public class PacketSender {
 
     public void sendAreaSound(int id, int type, int delay, int x, int y, int distance) {
         // RSProt: SoundArea(id, delay, loops, range, dropOffRange, xInZone, zInZone). Legacy packed
-        // `distance << 4 | type` into one byte; RSProt splits range/dropOffRange, so `distance` is
-        // reused for both and `type` becomes the loop count.
+        // `distance << 4 | type` into one byte — high nibble radius, low nibble loop count — so
+        // distance->range and type->loops map 1:1 (every caller goes through Entity.publicSound,
+        // which always passes type >= 1; SoundArea.kt's KDoc warns loops=0 means the sound never
+        // plays at all, so if a future caller passes type=0 expecting "one-shot", that's the bug).
+        //
+        // Stage 10 fix (2026-07-13): dropOffRange is NOT a second radius — per SoundArea.kt's KDoc
+        // it's the SIZE of the sound's origin ("in most cases, this should be a value of 1"; larger
+        // values exist for big NPCs so sound flows from their whole footprint). Passing `distance`
+        // (15) here made the client treat the coord as the SW corner of a 15x15 even-volume box,
+        // destroying the distance falloff. The legacy signature has no origin-size concept, so 1.
         if (queueZonePayload(x, y, player.getHeight(),
                 new net.rsprot.protocol.game.outgoing.zone.payload.SoundArea(
-                        id, delay, type, distance, distance, x & 0x7, y & 0x7))) {
+                        id, delay, type, distance, 1, x & 0x7, y & 0x7))) {
             return;
         }
         sendMapPacket(x, y, player.getHeight(), offsetHash ->
@@ -939,12 +970,20 @@ public class PacketSender {
     }
 
     public void sendPlayerHead(int parentId, int childId) {
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.interfaces.IfSetPlayerHead(
+                parentId, childId))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(5).sendFixedPacket(81)
                 .addLEInt(parentId << 16 | childId);
         write(out);
     }
 
     public void sendNpcHead(int parentId, int childId, int npcId) {
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.interfaces.IfSetNpcHead(
+                parentId, childId, npcId))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(7).sendFixedPacket(37)
                 .addInt2(parentId << 16 | childId)
                 .addShortA(npcId);
@@ -952,6 +991,10 @@ public class PacketSender {
     }
 
     public void animateInterface(int parentId, int childId, int animationId) {
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.interfaces.IfSetAnim(
+                parentId, childId, animationId))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(7).sendFixedPacket(39)
                 .addShortA(animationId)
                 .addInt2(parentId << 16 | childId);

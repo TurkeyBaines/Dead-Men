@@ -38,8 +38,19 @@ public class InterfaceHandler {
      * {@code InterfaceDef.COUNTS[id]} is 0.
      */
     protected InterfaceHandler(int id) {
+        this(id, 1);
+    }
+
+    /**
+     * Same as {@link #InterfaceHandler(int)}, but lets a registration explicitly request a minimum
+     * {@link #actions} capacity beyond what {@link InterfaceDef#COUNTS} reports. Needed when a real
+     * 228-client component id is known (e.g. via a live {@code PROTOCOL_DUMP.txt} capture) to exceed
+     * the legacy-cache-derived count for that interface — same undercounting class as interface 548's
+     * fixed-frame panes, just caught at registration time instead of via {@link #ensureHandlerCapacity}.
+     */
+    protected InterfaceHandler(int id, int minSize) {
         this.id = id;
-        this.actions = new InterfaceAction[Math.max(InterfaceDef.COUNTS[id], 1)];
+        this.actions = new InterfaceAction[Math.max(Math.max(InterfaceDef.COUNTS[id], 1), minSize)];
         ensureHandlerCapacity(id);
         HANDLERS[id] = this;
     }
@@ -54,9 +65,31 @@ public class InterfaceHandler {
     }
 
     public static void register(int interfaceId, Consumer<InterfaceHandler> consumer) {
-        InterfaceHandler handler = new InterfaceHandler(interfaceId);
-        consumer.accept(handler);
-        HANDLERS[interfaceId] = handler;
+        register(interfaceId, 1, consumer);
+    }
+
+    /**
+     * {@code InterfaceDef.COUNTS[interfaceId]} is now read straight from the stock cache (see
+     * {@link InterfaceDef#load}), so it's the real component count for whatever's actually
+     * loaded — but plenty of registrations here still hardcode childIds from whatever cache this
+     * codebase was originally written against, which don't always fit inside that real count
+     * (e.g. Cache228's interface 215 reports 12 children; {@code GameMode}'s registration writes
+     * up to index 13). Rather than hand-tune a {@code minSize} per call site, retry with a bigger
+     * backing array whenever the consumer overruns it — every registration seen so far just
+     * assigns {@code h.actions[n] = ...} with no other observable side effect, so re-running the
+     * same consumer against a fresh, larger handler is safe.
+     */
+    public static void register(int interfaceId, int minSize, Consumer<InterfaceHandler> consumer) {
+        for (;;) {
+            InterfaceHandler handler = new InterfaceHandler(interfaceId, minSize);
+            try {
+                consumer.accept(handler);
+                HANDLERS[interfaceId] = handler;
+                return;
+            } catch (ArrayIndexOutOfBoundsException e) {
+                minSize = handler.actions.length * 2;
+            }
+        }
     }
 
     public static InterfaceAction getAction(Player player, int interfaceHash) {

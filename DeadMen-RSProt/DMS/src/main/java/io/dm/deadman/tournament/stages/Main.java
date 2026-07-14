@@ -2,15 +2,8 @@ package io.dm.deadman.tournament.stages;
 
 import io.dm.deadman.Deadman;
 import io.dm.deadman.tournament.events.DMMEvent;
-import io.dm.deadman.content.sigils.Sigil;
-import io.dm.deadman.content.sigils.Sigils;
 import io.dm.deadman.tournament.Stage;
 import io.dm.deadman.tournament.Tournament;
-import io.dm.model.inter.dialogue.OptionsDialogue;
-import io.dm.model.inter.utils.Option;
-
-import java.security.SecureRandom;
-import java.util.stream.Collectors;
 
 public class Main extends Stage {
     public long nextEvent;
@@ -23,12 +16,6 @@ public class Main extends Stage {
     public void onLoad() {
         players().forEach(p -> {
             p.utc = Deadman.getUtc();
-            p.dialogue(new OptionsDialogue(
-                    "Please select an starting Sigil to unlock",
-                    new Option("Sigil of the Ruthless Ranger", () -> { Sigil.unlock(p, Sigils.Ruthless_Ranger); }),
-                    new Option("Sigil of the Formidable Fighter", () -> { Sigil.unlock(p, Sigils.Formidable_Fighter); }),
-                    new Option("Sigil of the Menacing Mage", () -> { Sigil.unlock(p, Sigils.Menacing_Mage); })
-            ));
         });
         startTime = System.currentTimeMillis();
         duration = Deadman.getConfig().GAME_LENGTH.runtime;

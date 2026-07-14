@@ -29,6 +29,7 @@ public class SkillDialogue implements Dialogue {
             }
             h.closedAction = (player, integer) -> {
                 Config.CHATBOX_INTERFACE_USE_FULL_FRAME.set(player, 0);
+                Config.CHATBOX_DIALOGUE_FULL_SIZE.set(player, 0);
                 player.skillDialogue = null;
             };
         });
@@ -126,6 +127,11 @@ public class SkillDialogue implements Dialogue {
             player.getPacketSender().sendAccessMask(Interface.MAKE_DIALOGUE, 14 + i, 1, 8, 1);
         }
         Config.CHATBOX_INTERFACE_USE_FULL_FRAME.set(player, 1);
+        // Stage 11 Round 2 (clipping fix): on rev 228 the chatbox sizes its dialogue child (162:566)
+        // to the FULL chatbox only while varbit 10670 is 1 (cs2 script113) — otherwise it's a small
+        // 479x96 pane and this full-width dialogue clips. Varbit 5983 above turned out to be an
+        // unrelated client settings toggle at 228 (cs2 settings_get_toggle), kept for legacy parity.
+        Config.CHATBOX_DIALOGUE_FULL_SIZE.set(player, 1);
     }
 
     public SkillDialogue setAction(BiConsumer<Player, Item> selectedAction) {

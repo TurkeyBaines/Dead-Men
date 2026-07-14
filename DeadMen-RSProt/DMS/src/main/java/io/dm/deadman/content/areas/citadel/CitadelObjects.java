@@ -1,11 +1,7 @@
 package io.dm.deadman.content.areas.citadel;
 
 import io.dm.cache.Color;
-import io.dm.cache.ItemID;
-import io.dm.cache.ObjectDef;
 import io.dm.deadman.Deadman;
-import io.dm.deadman.content.areas.overworld.OverworldHelper;
-import io.dm.deadman.content.items.TournamentTicket;
 import io.dm.deadman.tournament.stages.Final;
 import io.dm.deadman.tournament.stages.Lobby;
 import io.dm.deadman.tournament.stages.Main;
@@ -65,19 +61,6 @@ public class CitadelObjects {
     }
 
     private static void registerPortals() {
-        ObjectAction.register(10251, 1, ((player, obj) -> {
-            player.startEvent(e -> {
-                player.lock(LockType.FULL);
-                player.face(Direction.EAST);
-                OverworldHelper.process(player);
-                if (!player.getPosition().isWithinDistance(new Position(2963, 3346, 0)))
-                    player.getMovement().teleport(2963, 3346, 0);
-                else
-                    player.getMovement().teleport(2540, 3872, 0);
-                player.unlock();
-            });
-        }));
-
         ObjectAction.register(33181, "Menu", (p, o) -> sendTeleportMenu(p, 0));
     }
 

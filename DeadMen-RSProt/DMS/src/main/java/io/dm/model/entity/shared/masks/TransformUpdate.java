@@ -11,6 +11,11 @@ public class TransformUpdate extends UpdateMask {
         this.id = id;
     }
 
+    /** The pending transform-target npc id, or -1 when no transform is queued this cycle. */
+    public int getId() {
+        return id;
+    }
+
     @Override
     public void reset() {
         id = -1;

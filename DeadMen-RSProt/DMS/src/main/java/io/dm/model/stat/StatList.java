@@ -152,10 +152,7 @@ public class StatList {
         }
 
         if(useMultiplier) {
-            if (Deadman.getOverworld().contains(player))
-                amount += baseAmount * (World.OVERWORLD_XP_MULT - 1);
-            else
-                amount += baseAmount * (Deadman.getConfig().XP_RATE - 1);
+            amount += baseAmount * (Deadman.getConfig().XP_RATE - 1);
         }
 
         double newXp = stat.experience + amount;

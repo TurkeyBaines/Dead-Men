@@ -54,10 +54,6 @@ public class TournamentTicket {
             p.sendMessage("Nice try... this has been recorded.");
             return;
         }
-        if (!Deadman.getCitadel().contains(p) && !Deadman.getOverworld().contains(p)) {
-            p.sendMessage("You must be in the Overworld or the Citadel to start this process");
-            return;
-        }
 
 
         p.lock();

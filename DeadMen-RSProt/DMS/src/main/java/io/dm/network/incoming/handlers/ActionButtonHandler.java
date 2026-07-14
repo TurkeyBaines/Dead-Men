@@ -132,9 +132,6 @@ public class ActionButtonHandler {
             return;
         }
         InterfaceAction action = InterfaceHandler.getAction(player, interfaceId, childId);
-        // TEMP diagnostic (2026-07-08): see RsProt.onButton's note — remove once root-caused.
-        System.out.println("[BUTTON] resolved inter=" + interfaceId + " child=" + childId
-                + " visible=" + player.isVisibleInterface(interfaceId) + " actionFound=" + (action != null));
         if(action != null)
             action.handleClick(player, option, slot, itemId);
     }

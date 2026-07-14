@@ -1,7 +1,129 @@
 STAGE 11 — Dialog polish & diagnostic cleanup
-STATUS: NOT STARTED
+STATUS: ROUND 3 DONE 2026-07-13 (code-complete, compiles clean), pending human live-test via the
+TEST SCRIPT below. Round 1 shipped the Resume* packet family + chatbox child 566 + options
+background recipe + diagnostic strip; the human live-tested SAME DAY and reported: make-x works
+but clips, npc/player dialogs lost heads/name/continue, options never fire, inventory pane
+vanishes after closing a side-panel interface. Round 2 fixed the 231/217 child remap (head=2/
+name=4/continue=5/message=6) plus make-x sizing and inventory-pane restore; options remained
+un-root-caused. The human then live-tested Round 2 and reported the chat heads STILL weren't
+appearing correctly even with the right child ids — see ROUND 3 FINDINGS below for the real cause
+(a completely unported packet trio, unrelated to the child-id remap). NOTE: Stage 07 was NOT done
+at the time this stage ran, so its [OBJACTION] diagnostics were deliberately KEPT.
+Full detail: HANDOFF.txt "STAGE 11 — Dialog polish & diagnostic cleanup (2026-07-13)" + the
+Round 2 and Round 3 entries after it.
 DEPENDS ON: Stages 04, 05, 07 DONE (this stage removes the instrumentation they rely on).
 Follow the RULES in stages/README.txt.
+
+## ROUND 3 FINDINGS (2026-07-13) — chat heads still broken after the Round 2 child remap
+Human report: "NPC Chat Head and Player Chat Head aren't appearing correctly on the Player/Npc
+Dialogues." Round 2's 231/217 child remap (head=2/name=4/continue=5/message=6) was real and
+correct, but it only fixes WHERE the head/name/continue/message land — it does nothing if the
+packets that actually populate those components never reach the client in the first place, and
+that turned out to be the deeper bug: **`PacketSender.sendPlayerHead`, `.sendNpcHead`, and
+`.animateInterface` were never ported to RSProt at all.** Every other ported send method in this
+file has an `if (queueRsprot(...)) return;` branch before falling through to the legacy 184
+`OutBuffer` path (grep any of `sendString`/`setHidden`/`sendItem`/`sendAccessMask` for the
+pattern) — these three skipped straight to `write(out)`, and `PacketSender.write()`'s own comment
+says exactly what happens next: `if (player instanceof AIPlayer || player.getChannel() == null)
+return;` — RSProt-bound real players have a null legacy channel by design (Stage-3 bind note at
+the top of the file), so the call silently no-ops. NPCDialogue/PlayerDialogue's `open()` was
+calling `sendNpcHead`/`sendPlayerHead`/`animateInterface` exactly like Round 2 intended (targeting
+child 2, the now-correct head slot) — the child id was right, the packet just never left the
+server. `sendString`/`setTextStyle`(->`sendClientScript`)/`sendAccessMask` (name/message/continue
+button) were already properly ported, which is why those three DID render — matching the human's
+"chat head" (not "everything")-scoped report precisely.
+- **Fix**: added the missing RSProt branches, mirroring the existing pattern exactly. RSProt's
+  `osrs-228-model` sources jar (`net.rsprot.protocol.game.outgoing.interfaces`) has exact
+  equivalents for all three, confirmed by reading the .kt sources directly (not guessed): `IfSetPlayerHead(interfaceId, componentId)`,
+  `IfSetNpcHead(interfaceId, componentId, npc)`, `IfSetAnim(interfaceId, componentId, anim)` — all
+  three take the same `(parentId, childId[, extra])` shape the legacy methods already use, so no
+  parameter remapping was needed, only the missing branch.
+- Files touched: `PacketSender.java` (`sendPlayerHead`/`sendNpcHead`/`animateInterface`).
+  NPCDialogue.java/PlayerDialogue.java were NOT touched this round — Round 2's child-id remap in
+  those files was already correct; this was purely a missing-packet-port bug one layer down.
+- Verified: `./gradlew :DMS:compileJava` BUILD SUCCESSFUL. No other call sites of these three
+  methods exist in the repo (grepped) — NPCDialogue/PlayerDialogue are the only two, both dialogue
+  chat-head paths, so this fix is fully scoped to the reported symptom.
+- Options ("not firing at all") is still un-root-caused from Round 2 — the TEMP "SERVER-OUT
+  OptionsDialogue.open" diagnostic line is still in place; not touched this round.
+
+## ROUND 2 FINDINGS (2026-07-13, same day) — after the first human live-test
+The Round-1 Resume* wiring WORKS (PROTOCOL_DUMP.txt now shows ResumePauseButton lines from
+231/217/270, including make-x quantity riding in the slot field — smithing confirmed making 5).
+Four follow-on problems, three root-caused with primary sources, all fixed:
+1. NPC/PLAYER DIALOGUE CHILDREN WERE 184-ERA: we wrote head=1, name=2, continue=3, message=6...
+   no — message=4. Rev 228's 231/217 are head=2, name=4, continue=5, message=6 (Alter chatNpc/
+   chatPlayer; independently proven by our own dump — the client natively sends ResumePauseButton
+   on 231:5/217:5, and the human's screenshot shows the message rendering red in the NAME slot).
+   That's "heads missing / continue missing / works sometimes" in one: clicks on our masked child
+   3 fired (we listened there), native clicks on the real continue (5) were unhandled. Fixed both
+   classes to 2/4/5/6 with actions+mask on 5. MessageDialogue (229) children were already right
+   but had NO events mask — the 228 client never sends pause clicks without one; added. Same for
+   ItemDialogue (193 buttons are dynamic children of component 0, mask slots 0-1 per Alter;
+   two-item 11 continue=4, mask added). YesNoDialogue/584: rev 228's confirmdestroy_init (script
+   814) takes (obj, int, INT, string, string) — the old 4-arg "oiss" form desyncs the strings;
+   now sends "oiiss" with the extra 0 per Alter destroyItem().
+2. MAKE-X CLIPPING: varbit 5983 turned out to be an unrelated client SETTINGS toggle at 228 (cs2
+   settings_get_toggle/script133) — the actual "size the dialogue child to the full chatbox" flag
+   is varbit 10670 (cs2 script113), which Round 1 only set for options. SkillDialogue and
+   LinkDialogue now also set 10670=1 while open (5983 kept untouched for legacy parity), reset in
+   their closedActions.
+3. INVENTORY PANE VANISHING: world switcher/looting bag/bank-side/etc open through
+   INVENTORY/INVENTORY_OVERLAY, which REPLACE interface 149 in the frame slot (548:83). On IF3
+   nothing client-side restores a closed child (the 184 client did) — Player.closeInterface now
+   re-opens 149 (InterfaceType.openTab, same overlay=1 setting as RsProt.openFrame) and re-sends
+   its Stage-05 access mask (3407870) whenever either type closes.
+4. OPTIONS "NOT FIRING AT ALL": still un-root-caused — zero 219 lines in the dump means the
+   client sent nothing, but nothing server-side proves open() even ran (the Man-NPC chain the
+   human tested has NO options step; NPCActionHandler's default is just npc+player lines). Two
+   changes: the 10670 set now happens AFTER openInterface (the replaced handler's closedAction
+   could zero it), and open() writes a TEMP "SERVER-OUT OptionsDialogue.open" line to
+   PROTOCOL_DUMP.txt — next live test, trigger an options dialogue (e.g. ::vote's confirmation via
+   the poll booth LinkDialogue options, or any NPC with a choice) and check whether that line
+   appears and whether ResumePauseButton interface=219 follows it. Remove the temp line once
+   options are confirmed live.
+
+## FINDINGS (2026-07-13) — read before re-testing
+The "background missing" symptom was only the visible corner of a two-part problem; BOTH parts
+are now fixed in code:
+
+1. THE ENTIRE DIALOGUE-RESUME PACKET FAMILY WAS BEING DROPPED. The rev-228 client does not send
+   If3Button for "Click here to continue", choose-option selections, make-x item buttons, or
+   chatbox int/string/name entries — it sends ResumePauseButton / ResumePCountDialog /
+   ResumePStringDialog / ResumePNameDialog (+ ResumePObjDialog for item search), all of which sat
+   in RsProt.java's accept-and-drop no-op set. PROTOCOL_DUMP.txt confirms it: across every live
+   session ever logged, zero packets arrived from interfaces 219/270/231/229. This is what the
+   post-Stage-04 report ("clicking an option doesn't close the box, Make-X buttons do nothing,
+   most chatbox windows need an unrelated interaction to dismiss") actually was. All five are now
+   wired in RsProt.java: ResumePauseButton mirrors the legacy DialogueHandler (opcode 1 —
+   GameEventProcessor.resumeWith first, then ActionButtonHandler op=1/dialogue=true, so
+   OptionsDialogue's 219:1 SlotAction, every "continue" child, AND SkillDialogue's 270:14+i
+   DefaultAction all fire unchanged); the input dialogs mirror InputHandler opcodes 8/54/100/39
+   (consumerInt/consumerString with the retry dance). Make-x quantity semantics confirmed against
+   AlterRSPS produceItemBox(): ResumePauseButton.sub IS the quantity for 270:14+i, exactly the
+   slot value the legacy handler already expects.
+
+2. Choose-option background: three coordinated fixes, all verified against AlterRSPS's rev-228
+   options() (QueueTaskExt.kt) + the deobbed cs2 (Joshua-F/cs2-scripts):
+   - InterfaceType.CHATBOX child 561 -> 566 (Alter's CHATBOX_CHILD = 566; the client's
+     chat_onsubchange/script113 only watch the LAST two 162 children — a sub on 561 renders but
+     never triggers the chatbox relayout/background draw. This is why the symptom looked
+     cosmetic-only: interfaces hosted on 561 still drew, only 162's own background reaction was
+     missing).
+   - OptionsDialogue.open() now sends clientscript 2379 (toplevel_chatbox_resetbackground — zeroes
+     the varc that suppresses the parchment) and sets NEW Config.CHATBOX_DIALOGUE_FULL_SIZE
+     (varbit 10670, save=false) to 1, reset to 0 via h.closedAction. cs2 script113 sizes the
+     dialogue child full-chatbox only when varbit10670=1 AND a sub is attached; script 58 draws
+     title/options/sword decor only, never the background.
+   - Make-x (270) KEEPS varbit 5983 (CHATBOX_INTERFACE_USE_FULL_FRAME) — Alter's produceItemBox()
+     still uses 5983 on rev 228; 5983 and 10670 are two different live varbits, not old/new names.
+
+3. Diagnostics stripped (subsystems human-confirmed): PacketSender [IFACE] (logIfaceTarget +
+   LOGGED_IFACE set) and [VARP]; ActionButtonHandler "[BUTTON] resolved"; InterfaceDragHandler
+   "[DRAG] resolved". KEPT: [OBJACTION] everywhere (Stage 07 still open), [TICK] guards,
+   [MLM_RAW] in Region.java (its Motherlode content gap is unresolved and it isn't a Stage-02-08
+   leftover), [IN] first-unhandled-packet log (permanent detector), NetworkLogger +
+   CacheInterfaceDumper (permanent by design).
 
 ## GOAL
 1. Fix the choose-option dialogue's missing background.
@@ -30,11 +152,28 @@ Remove these ONLY after confirming with the human that their subsystems now work
 KEEP: NetworkLogger/PROTOCOL_DUMP.txt and CacheInterfaceDumper/CACHE_INTERFACE_DUMP.txt — these
 are permanent infrastructure by design.
 
-## TEST SCRIPT (human)
-1. Trigger a choose-option dialogue: background frame renders, options readable, clicking works.
-2. Smelting + text-input dialogs still fine (regression).
-3. One quick sweep: click an item, an object, open bank — everything from earlier stages still
-   works with the prints gone (i.e. nothing was accidentally load-bearing).
+## TEST SCRIPT (human) — updated 2026-07-13 for ROUND 3
+1. Talk to any NPC (e.g. a Lumbridge Man): NPC head model (actually rendering a face now, not
+   blank/default) + name render, "Click here to continue" text renders, and clicking it (or the
+   text area) advances EVERY time — then the player line shows YOUR head + name the same way. If
+   the head is still missing/blank, capture PROTOCOL_DUMP.txt and note whether it's NPC head,
+   player head, or both that fail — that'll separate a further IfSetNpcHead/IfSetPlayerHead
+   problem from an IfSetAnim (chat animation) one.
+2. Trigger a choose-option dialogue and report what happens either way — then check
+   PROTOCOL_DUMP.txt for the "SERVER-OUT OptionsDialogue.open" line (did the server open one?)
+   and a following ResumePauseButton interface=219 line (did your click send?). Paste both back
+   if options still misbehave; that pair pins the remaining failure to server/client side.
+3. Make-X (e.g. smelting): renders FULL chatbox size with no clipped title now; item buttons
+   still work with the selected quantity.
+4. Destroy an untradeable item (or anything using the Yes/No confirm, 584): title/note text
+   render correctly and both buttons work (this used a stale script signature until Round 2).
+5. Item dialogue ("Click here to continue" over an item icon, e.g. clue step/reward message):
+   continue works.
+6. Enter-amount input (bank Withdraw-X): typed amount actually withdraws.
+7. Open the world switcher (logout tab) or a bank/shop, then close it: the inventory tab pane
+   AND its icon come back, and inventory items are still clickable afterwards.
+8. Regression sweep: click an item, an object, open bank — console shows no
+   [IFACE]/[VARP]/[BUTTON]/[DRAG] lines ([OBJACTION] still appears, kept for Stage 07).
 
 ## SUCCESS CRITERIA
 Choose-option renders complete; grep shows no leftover temp diagnostic prints; regression sweep
@@ -46,3 +185,10 @@ New dialogue content. Removing NetworkLogger/CacheInterfaceDumper. Milestone-5 l
 
 ## WRAP-UP
 Per README RULES #7.
+
+## NOTES FROM OTHER STAGES
+- Stage 01 (2026-07-08): confirmed all the temp diagnostics listed in PART 2 above are still
+  present and firing correctly ([IFACE], [VARP], [BUTTON] resolved, PROTOCOL_DUMP.txt via
+  NetworkLogger, CACHE_INTERFACE_DUMP.txt via CacheInterfaceDumper) — nothing to add, just a
+  confirmation this list is still accurate as of this stage's dependencies (04/05/07) not yet
+  being done.

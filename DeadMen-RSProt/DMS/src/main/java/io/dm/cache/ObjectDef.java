@@ -8,9 +8,15 @@ import io.dm.api.utils.StringUtils;
 import io.dm.model.item.actions.ItemObjectAction;
 import io.dm.model.map.object.actions.ObjectAction;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 
 import static io.dm.cache.ObjectID.PORTAL_OF_CHAMPIONS;
@@ -27,6 +33,8 @@ public class ObjectDef {
     public static void load() {
         IndexFile index = Server.fileStore.get(2);
         int size = index.getLastFileId(6) + 1;
+        Map<Integer, int[]> unknownOpcodeCounts = new TreeMap<>();
+        Map<Integer, Integer> unknownOpcodeExample = new TreeMap<>();
         for (int id = 0; id < size; id++) {
             byte[] data = index.getFile(6, id);
             if (data != null) {
@@ -42,7 +50,88 @@ public class ObjectDef {
                 else
                     def.descriptiveName = "a " + def.name;
                 LOADED.put(id, def);
+
+                // Diagnostic (Stage 07 Round 2, 2026-07-13): reuse the exact bytes just decoded to
+                // check whether decode(InBuffer,int) hit an opcode it doesn't recognize for THIS
+                // object. Same bug class already confirmed real and fixed for ItemDef (see
+                // stages/STAGE-05-inventory-actions.txt's "Opcode desync" section) - an unrecognized
+                // opcode here silently consumes zero payload bytes and desyncs every field read
+                // afterward for that object (xLength/yLength/clipType/someDirection/options/etc,
+                // several of which RouteFinder.routeObject() reads directly). Costs one extra
+                // InBuffer pass over bytes already in memory, no extra cache I/O.
+                Integer unknown = findFirstUnknownOpcode(data);
+                if (unknown != null && unknown != -1) {
+                    unknownOpcodeCounts.computeIfAbsent(unknown, k -> new int[1])[0]++;
+                    unknownOpcodeExample.putIfAbsent(unknown, id);
+                }
             }
+        }
+        dumpOpcodeAudit(unknownOpcodeCounts, unknownOpcodeExample);
+    }
+
+    /**
+     * Diagnostic: walks {@code data}'s opcode stream the same way {@link #decode(InBuffer)} does,
+     * but stops at the FIRST opcode not in this decoder's known set instead of silently reading
+     * nothing for it (which is what {@link #decode(InBuffer, int)} does today - no {@code else}
+     * branch - desyncing every field read afterward for that object). Mirrors {@code
+     * ItemDef.findFirstUnknownOpcode}; see that method's doc for the full rationale.
+     *
+     * @return the first unrecognized opcode, or null if the stream was consumed cleanly through to
+     * the terminating 0 byte (or -1 if the buffer ran out while consuming a KNOWN opcode's payload,
+     * which would indicate a length bug in {@link #decode(InBuffer, int)} itself).
+     */
+    public static Integer findFirstUnknownOpcode(byte[] data) {
+        InBuffer buffer = new InBuffer(data);
+        try {
+            for (;;) {
+                int opcode = buffer.readUnsignedByte();
+                if (opcode == 0)
+                    return null;
+                if (!isKnownOpcode(opcode))
+                    return opcode;
+                SKIP.decode(buffer, opcode);
+            }
+        } catch (Throwable t) {
+            return -1;
+        }
+    }
+
+    private static final ObjectDef SKIP = new ObjectDef();
+
+    private static boolean isKnownOpcode(int opcode) {
+        if (opcode == 1 || opcode == 2 || opcode == 5 || opcode == 14 || opcode == 15 || opcode == 17
+                || opcode == 18 || opcode == 19 || opcode == 21 || opcode == 22 || opcode == 23
+                || opcode == 24 || opcode == 27 || opcode == 28 || opcode == 29 || opcode == 39
+                || opcode == 40 || opcode == 41 || opcode == 60 || opcode == 61 || opcode == 62
+                || opcode == 64 || opcode == 65 || opcode == 66 || opcode == 67 || opcode == 68
+                || opcode == 69 || opcode == 70 || opcode == 71 || opcode == 72 || opcode == 73
+                || opcode == 74 || opcode == 75 || opcode == 77 || opcode == 78 || opcode == 79
+                || opcode == 81 || opcode == 82 || opcode == 89 || opcode == 90 || opcode == 92
+                || opcode == 249)
+            return true;
+        return opcode >= 30 && opcode < 35;
+    }
+
+    private static void dumpOpcodeAudit(Map<Integer, int[]> unknownOpcodeCounts, Map<Integer, Integer> unknownOpcodeExample) {
+        try (PrintWriter out = new PrintWriter(new FileWriter("OBJECT_DEF_OPCODE_DUMP.txt", false))) {
+            out.println("ObjectDef opcode audit (against real Server.fileStore / Cache228 as of the 2026-07-12 "
+                    + "cache switch) - generated " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            out.println("Stage 07 Round 2 diagnostic - see stages/STAGE-07-object-interactions.txt.");
+            out.println();
+            if (unknownOpcodeCounts.isEmpty()) {
+                out.println("(none - every loaded object's bytes parsed using only known opcodes; "
+                        + "ObjectDef.decode is exhaustive against this cache snapshot)");
+            } else {
+                out.println("==== Unknown opcodes hit while parsing object bytes (decode(InBuffer,int) has no case for these) ====");
+                for (Map.Entry<Integer, int[]> e : unknownOpcodeCounts.entrySet()) {
+                    out.println("opcode " + e.getKey() + ": hit first on " + e.getValue()[0]
+                            + " object(s), e.g. id=" + unknownOpcodeExample.get(e.getKey()));
+                }
+            }
+            System.out.println("[ObjectDef] opcode audit: " + unknownOpcodeCounts.size()
+                    + " distinct unknown opcodes across loaded objects - see OBJECT_DEF_OPCODE_DUMP.txt");
+        } catch (IOException e) {
+            System.out.println("[ObjectDef] failed to write OBJECT_DEF_OPCODE_DUMP.txt: " + e);
         }
     }
 
@@ -136,6 +225,13 @@ public class ObjectDef {
     public int varpId = -1;
 
     public int someDirection;
+
+    // Opcodes 61/89/249 confirmed real via AlterRSPS's ObjectDecoder.kt (Stage 07 Round 2,
+    // 2026-07-13) - see decode(InBuffer,int)'s comments at those opcodes for the evidence trail.
+    public int category = -1;
+    public boolean randomizeAnimStart = false;
+    public boolean delayAnimationUpdate = false;
+    public HashMap<Integer, Object> attributes;
 
 
     /* SEARCH: OBJ DEF SERVER */
@@ -314,8 +410,23 @@ public class ObjectDef {
                 aShortArray1596[i_14_] = (short) in.readUnsignedShort();
                 aShortArray1563[i_14_] = (short) in.readUnsignedShort();
             }
-        } else if (i == 60) //this was removed
+        } else if (i == 60 || i == 82) // 82 is Cache228's alias for the same field - AlterRSPS
+            // ObjectDecoder.kt: "60,82 -> mapAreaId". Confirmed real (Stage 07 Round 2, 2026-07-13):
+            // opcode 82 alone hit 357 objects as an unrecognized/desyncing opcode before this fix.
             mapMarkerId = in.readUnsignedShort();
+        else if (i == 61)
+            // Confirmed real via AlterRSPS ObjectDecoder.kt ("category = readUnsignedShort()").
+            // By far the highest-impact fix this round: hit 6501 objects as the FIRST unrecognized
+            // opcode (i.e. desyncing every field decoded afterward for each of them) before this fix.
+            category = in.readUnsignedShort();
+        else if (i == 89)
+            // Confirmed real via AlterRSPS ObjectDecoder.kt ("randomizeAnimStart = true", 0 bytes).
+            // 163 objects hit this as an unrecognized opcode before this fix.
+            randomizeAnimStart = true;
+        else if (i == 90)
+            // Confirmed real via AlterRSPS ObjectDecoder.kt ("delayAnimationUpdate = true", 0 bytes).
+            // 8 objects hit this as an unrecognized opcode before this fix.
+            delayAnimationUpdate = true;
         else if (i == 62)
             verticalFlip = true;
         else if (i == 64)
@@ -366,16 +477,39 @@ public class ObjectDef {
         } else if (i == 78) {
             unknownOpcode78 = in.readUnsignedShort();
             unknownOpcode_78_79 = in.readUnsignedByte();
+            // Cache228 (rev>=220) appends a "soundRetain" byte here that this decoder never read -
+            // AlterRSPS ObjectDecoder.kt: "if (revisionIsOrAfter(220)) soundRetain = readUnsignedByte()".
+            // This deployment's cache is always rev228, so read it unconditionally. Discarded (no
+            // current use), but consuming it is required to keep the byte stream in sync - Stage 07
+            // Round 2, 2026-07-13.
+            in.readUnsignedByte();
         } else if (i == 79) {
             anInt1548 = in.readUnsignedShort();
             anInt1571 = in.readUnsignedShort();
             unknownOpcode_78_79 = in.readUnsignedByte();
+            in.readUnsignedByte(); // soundRetain, same rev>=220 field as opcode 78 above - discarded.
             int i_15_ = in.readUnsignedByte();
             anIntArray1597 = new int[i_15_];
             for (int i_16_ = 0; i_16_ < i_15_; i_16_++)
                 anIntArray1597[i_16_] = in.readUnsignedShort();
         } else if (i == 81)
             anInt1569 = in.readUnsignedByte() * 256;
+        else if (i == 249) {
+            // Confirmed real via AlterRSPS ObjectDecoder.kt ("249 -> readParameters(buffer)"), same
+            // wire format as ItemDef's opcode 249 (see ItemDef.decode(InBuffer,int)). 21 objects hit
+            // this as an unrecognized opcode before this fix - Stage 07 Round 2, 2026-07-13.
+            int size = in.readUnsignedByte();
+            if (attributes == null)
+                attributes = new HashMap<>();
+            for (int k = 0; k < size; k++) {
+                boolean stringType = in.readUnsignedByte() == 1;
+                int key = in.readMedium();
+                if (stringType)
+                    attributes.put(key, in.readString());
+                else
+                    attributes.put(key, in.readInt());
+            }
+        }
     }
 
     public boolean isClippedDecoration() {

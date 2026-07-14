@@ -100,7 +100,7 @@ public class ClueObjects {
 		ObjectAction.register(18992, 2966, 3215, 1, "climb-down", (player, obj) -> player.getMovement().teleport(2964, player.getAbsY(), 0));
 		ObjectAction.register(18991, 2965, 3215, 0, "climb-up", (player, obj) -> player.getMovement().teleport(2968, player.getAbsY(), 1));
 		ObjectAction.register(24076, 3035, 3363, 1, "climb-down", (player, obj) -> player.getMovement().teleport(3036, 3363, 0));
-		ObjectAction.register(24075, 3034, 3363, 0, "climb-up", (player, obj) -> player.getMovement().teleport(3036, 3363, 1));
+		ObjectAction.register(24075, 3034, 3362, 0, "climb-up", (player, obj) -> player.getMovement().teleport(3036, 3363, 1));
 
 		/*
 		 * West Ardougne door

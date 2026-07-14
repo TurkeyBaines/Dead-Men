@@ -1,5 +1,5 @@
 STAGE 08 — Item-on-X combinations and inventory drag
-STATUS: NOT STARTED
+STATUS: DONE
 DEPENDS ON: Stage 05 DONE (same subsystem; do not start before it). Stage 07 helpful for the
 item-on-object case.
 Follow the RULES in stages/README.txt.
@@ -59,3 +59,12 @@ if you can't test). Content correctness of every recipe.
 ## WRAP-UP
 Per README RULES #7. Record the final verified inventory mask value (if changed) in HANDOFF.txt —
 it's the template every other item container copies.
+
+## NOTES FROM OTHER STAGES
+- Stage 01 (2026-07-08): CORRECTS this stage file's own SYMPTOM section — drag-reorder is now
+  CONFIRMED WORKING live, not broken. The human explicitly reported "moving [items] around works"
+  and separately that item interactions are broken "except dragging them to move" — i.e. drag is
+  the one thing in this stage that already works. Do not spend time on STEPS #2's drag
+  investigation unless a regression shows up; focus this stage on item-on-item/object/npc/player
+  (still genuinely untested, not confirmed broken or working either way). Full context in
+  stages/BASELINE-FINDINGS.txt.

@@ -1,5 +1,11 @@
 STAGE 04 — Main (modal) interfaces open
-STATUS: NOT STARTED
+STATUS: DONE 2026-07-08 — LIVE-CONFIRMED. Bank opens, renders centered, inventory-side view
+populates, and now stores/withdraws items "to a reasonable level" per human live-test. Bank
+FUNCTIONALITY bugs found during that same live-test (see below) were fixed opportunistically even
+though they're technically Stage 05/08 territory per this stage's own NON-GOALS — logged here
+because they surfaced mid-verification of this stage's own acid test. Remaining bank/chatbox
+issues are handed off to the next agent (see NOTES FROM OTHER STAGES) — do not re-open this stage,
+start a fresh one or continue directly in Bank.java / chatbox dialogue code.
 DEPENDS ON: Stage 00. Stage 01's CACHE_INTERFACE_DUMP.txt extract helps.
 Follow the RULES in stages/README.txt.
 
@@ -75,3 +81,62 @@ Choose-option background (Stage 11). Resizable-mode support (server always opens
 Per README RULES #7. If the slot fix does NOT fix the bank, write exactly what you verified into
 HANDOFF.txt and flag that the next step is an RSProx capture of a real 228 server's bank-open —
 do not guess at group ids.
+
+## NOTES FROM OTHER STAGES
+- Stage 01 (2026-07-08): bank still confirmed not opening. The specific OpLoc line for the
+  bank-booth click was NOT positively identified in this session's PROTOCOL_DUMP.txt capture (the
+  human clicked several objects in sequence and didn't confirm which was the booth) — re-click and
+  isolate it early in this stage rather than assuming. Fresh Cache228 component counts for
+  interfaces 548/161/164/12/15 (from a real boot, not stale data) are recorded in
+  stages/BASELINE-FINDINGS.txt — notably interface 548's real Cache228 count (80) matches the
+  legacy cache's count exactly, which is a DIFFERENT number from the 93-slot FIXED_FRAME_PANES
+  table this stage's own STEP 1 references — don't conflate the two when using CACHE_INTERFACE_DUMP
+  to sanity-check a candidate modal slot.
+  CORRECTION 2026-07-12: that "80" was never actually Cache228 data — `CacheInterfaceDumper`/
+  `InterfaceDef.load()` both read `Server.fileStore`, which at the time this note was written still
+  pointed at the legacy cache (`cache_path` has since been switched to stock Cache228 for real —
+  see HANDOFF.txt's "Stock Cache228 Migration" entry). Re-ran the dumper against the now-genuinely-
+  stock cache: interface 548's real child count is **95**, not 80. Doesn't change this stage's DONE
+  status or any conclusion it reached (95 still comfortably covers the 93-slot table), but don't
+  trust "80" as a real Cache228 number if you see it cited anywhere else in this repo predating
+  2026-07-12 — it was legacy data mislabeled the entire time.
+- Stage 07 (object-interactions): the human still needs to confirm which OpLoc click is the actual
+  bank-booth interaction before re-testing this stage's TEST SCRIPT step 1 (::bank command is the
+  reliable way to open it without depending on Stage 07's object-click fix).
+- Stage 06 (unequip)/Stage 11 (polish): found but did NOT touch three sidebar tab handlers that
+  hardcode interface-548 child ids directly, bypassing InterfaceType entirely —
+  io/dm/model/inter/handlers/TabPrayer.java (`sendInterface(77, 548, 71, 1)` /
+  `sendAccessMask(548, 52, -1, -1, 2)` for the quick-prayer selector), TabCombat.java
+  (`childId = parentId == 548 ? 66 : 68` for the attack-style bar), and TabJournal.java
+  (`sendInterface(interfaceId, 548, 68, 1)`). These are internal components of already-open sidebar
+  tabs (not modal-swap destinations), so they're out of THIS stage's MAIN-interface scope and were
+  left untouched per README rule 6 — but if quick-prayers, attack-style switching, or the
+  quest/journal tab misbehave on the next live test, check these three hardcodes first before
+  assuming a new bug.
+- Stage 05/08 (bank functionality — worked on ad hoc during this stage's own live-test, see
+  HANDOFF.txt "Bank settings-button child-id offset" and "Bank rearrange-mode Insert child-id fix",
+  both 2026-07-08): `Bank.java`'s withdraw-as-note/quantity settings row and rearrange-mode toggle
+  both had 184-era child ids that didn't match the real 228 client — same root-cause class as this
+  stage's own InterfaceType fix, just on interface 12 (Bank) instead of 548. Live-confirmed fixed
+  for Swap/Insert (children 19/21) and the quantity+note row (24/26/30/32/34, confirmed for
+  1/5/10/Note; Item/X/All/placeholders at 24/36/38/40 extrapolated from the same +2 pattern but NOT
+  individually click-tested — verify those four next). Human reports the bank is now "working to a
+  reasonable level" as of this note but has NOT explicitly re-tested X/All/placeholders or done a
+  full pass on tab-related actions (h.actions[11]/[13]'s tab select/drag, incinerate, deposit
+  inventory/equipment, fill/release placeholders) — worth a dedicated sweep before calling Bank
+  fully done.
+- Stage 11 (polish) / new pass needed: chatbox "choose option" dialogues render their options but
+  clicking one doesn't close the box or remove the options; Make-X's on-screen buttons do nothing
+  (though the numeric keypad/text-entry itself works); most chatbox windows require an unrelated
+  interaction (walking, teleporting) to dismiss. This is broader than Stage 11's original "missing
+  background" cosmetic note — non-responsive options/buttons suggest the same class of access-mask-
+  or-child-id bug this stage and the Bank fixes above both hit, but applied to interface 162
+  (chatbox) or whatever per-dialogue interfaces it opens. NOT started — next agent's likely
+  starting point after Bank settles.
+- Stage 11 (2026-07-13): two facts that touch this stage's territory. (1) InterfaceType.CHATBOX's
+  child moved 561 -> 566 (Alter's rev-228 CHATBOX_CHILD; the client's chatbox scripts only watch
+  162's last two children) — re-check the smelting-chatbox regression item from this stage's TEST
+  SCRIPT when live-testing Stage 11. (2) The bank quantity "X" numeric popup's typed amount now
+  actually reaches the server (ResumePCountDialog was in the no-op set until Stage 11 wired it to
+  Player.consumerInt) — earlier "entered an amount, nothing happened" reports were THIS, not a
+  child-id problem.

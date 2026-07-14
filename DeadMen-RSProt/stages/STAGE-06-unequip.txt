@@ -1,5 +1,6 @@
 STAGE 06 — Unequip from the worn-equipment tab
-STATUS: NOT STARTED
+STATUS: DONE 2026-07-11, code-complete (RING/AMMO childId collision fixed, access-mask range
+corrected), pending human live-test — see HANDOFF.txt's "STAGE 06" entry for full detail.
 DEPENDS ON: Stage 05 (same subsystem; its root cause likely applies here — read its HANDOFF note
 and any NOTES FROM OTHER STAGES below before starting).
 Follow the RULES in stages/README.txt.
@@ -13,35 +14,51 @@ place, but I'm unable to unequip things from the player."
 (The "appear in the correct place" part means the equipment container, appearance sync, and the
 387 pane rendering are all fine — ONLY the click→unequip path is broken.)
 
-## KNOWN STATE
-- Access mask for 387 was added best-effort and NEVER validated: RsProt.openFrame (RsProt.java
-  ~line 879) sends mask 2046 to components 6..16 with start/end = -1/-1. Flagged at the time as
-  lower-confidence than the inventory mask (which is a proven value and now demonstrably works).
+## KNOWN STATE (resolved this round — see HANDOFF.txt's "STAGE 06" entry for full detail)
+- RESOLVED: the access-mask loop's documented range (was 6..16) never matched TabEquipment.java's
+  real registrations (childIds 1, 5, 7, 15-24) — corrected to 15-25. Live evidence (PROTOCOL_DUMP.txt
+  clicks landing on childIds outside 6..16 and still dispatching) shows this single-component mask's
+  start=-1/end=-1 form doesn't actually gate individual childIds, so this was a documentation fix,
+  not a functional unblock.
+- RESOLVED: TabEquipment.java's static block assigned `h.actions[24]` twice (RING then AMMO
+  overwrote it) — RING never had a working handler, and the real 11th slot (AMMO) belongs at childId
+  25, one past interface 387's cache-reported component count (25 total, i.e. valid indices 0-24 —
+  confirmed empirically against the real legacy Cache/ folder). Split into actions[24]=RING,
+  actions[25]=AMMO, and widened InterfaceHandler's capacity for interface 387 to 26 via a new
+  `InterfaceHandler.register(int, int, Consumer)` overload (otherwise registering childId 25 would
+  throw ArrayIndexOutOfBoundsException and silently kill TabEquipment's entire static initializer).
 - Expected server path when the packet arrives: If3Button → ActionButtonHandler →
-  InterfaceHandler.getAction(387, childId 6-16) → TabEquipment.itemAction → option 1 →
-  player.getEquipment().unequip(item).
+  InterfaceHandler.getAction(387, childId 15-25) → TabEquipment.itemAction → option 1 →
+  player.getEquipment().unequip(item). Read closely this round and looks structurally correct for
+  the 10 slots (15-23) that were already registered before this fix — genuinely unverified live,
+  though, since no session ever captured the `[BUTTON] resolved ...` console line for an equipment
+  click (only the raw packet). If those still don't unequip after this fix, get that console line
+  before guessing further — see the updated TEST SCRIPT below.
 
-## STEPS — first fork on one binary question
+## STEPS — first fork on one binary question (already answered — kept for history)
 Does PROTOCOL_DUMP.txt show an If3Button line when the human clicks a worn item?
-- NO → the client never sends it → the 387 access mask is wrong. Candidates: the -1/-1 slot
-  range (a single-obj component may still need 0..0 — check how RSProt's IfSetEvents encodes
-  ranges in the sources jar, and how the 228 client treats them); the mask VALUE (2046 was
-  derived, not copied from a proven analog); or components 6..16 being stale 184-era children
-  for 387 (Cache228 reports 387 has 31 components — CACHE_INTERFACE_DUMP.txt lists them; the
-  right slots may have moved). Fix the mask/components, retest.
-- YES → server-side swallow, same shape as Stage 05: compare received iface/comp/slot/obj/op
-  against what TabEquipment.itemAction expects (does it key off childId or slot? does it check
-  get(slot, itemId)?), apply the same class of fix Stage 05 landed.
+- YES → server-side swallow, same shape as Stage 05. Confirmed by Stage 01's baseline capture
+  (see NOTES FROM OTHER STAGES). This round found the actual bug — see KNOWN STATE above.
 
 ## TEST SCRIPT (human)
-1. Force-equip full gear via command (known working).
+1. Force-equip full gear via command (known working), specifically including a ring AND an ammo
+   item (e.g. arrows) — this pair was the confirmed broken slot before this round's fix (see
+   HANDOFF.txt's "STAGE 06" entry).
 2. Left-click each worn piece: item returns to inventory, character model updates, worn slot
-   empties. Test at least: weapon, body, legs, a ring/ammo slot (edge slots catch bad ranges).
-3. Right-click a worn item: menu options render and match behavior.
-4. Re-equip from inventory (Stage 05's fix) and unequip again — round trip works.
+   empties. Test ALL eleven slots this time (prior sessions never confirmed feet/ring/ammo
+   specifically): head, cape, amulet, weapon, body, shield, legs, hands, feet, ring, ammo.
+3. If ANY slot still doesn't unequip, paste the server console output for that click — specifically
+   the `[BUTTON] resolved inter=387 child=... visible=... actionFound=...` line from
+   `ActionButtonHandler`. This exact line has never been captured for an equipment click in any
+   session to date (only the raw packet, via PROTOCOL_DUMP.txt) and is the single piece of evidence
+   needed to tell whether the remaining issue is dispatch (`visible`/`actionFound` false) or deeper
+   in `TabEquipment.itemAction`/`Equipment.unequip` (dispatch succeeds but nothing happens).
+4. Right-click a worn item: menu options render and match behavior.
+5. Re-equip from inventory (Stage 05's fix) and unequip again — round trip works.
 
 ## SUCCESS CRITERIA
-All worn slots unequip correctly; round trip stable; no console exceptions.
+All ELEVEN worn slots (including ring and ammo separately) unequip correctly; round trip stable;
+no console exceptions.
 
 ## NON-GOALS
 Equipment stats interface rendering (Stage 04). Item stat bonuses/combat correctness.
@@ -50,3 +67,42 @@ Equipment stats interface rendering (Stage 04). Item stat bonuses/combat correct
 Per README RULES #7. Record the final verified 387 mask/components in HANDOFF.txt — it is the
 codebase's only example of a "single-slot components" access mask and future interfaces will
 copy it.
+
+## NOTES FROM OTHER STAGES
+- Stage 06 itself (2026-07-11, resolving this file): the two notes below (Stage 05's "actions[6]
+  through actions[16]" and Stage 01's "components 15 through 22") both describe an EARLIER state of
+  `TabEquipment.java` that had already changed by the time this round read the file (it registered
+  15-24, not 6-16, with a real collision at 24 between RING and AMMO — see HANDOFF.txt's "STAGE 06"
+  entry for the full fix). Re-grepping the FULL `PROTOCOL_DUMP.txt` (not just the excerpt in
+  BASELINE-FINDINGS.txt) turned up five sessions' worth of clicks through 2026-07-08 21:10, including
+  a repeated click on childId 25 that matches neither note below — that was the actual missing
+  handler (AMMO), now split out from RING's childId 24. Fixed in code; still needs a live retest per
+  the TEST SCRIPT above, specifically for slots this project has never actually confirmed (feet,
+  ring, ammo) since nobody tested them before this round found the childId-25 evidence.
+- Stage 05 (2026-07-08, incidental finding — not fixed, out of Stage 05's scope): read
+  `TabEquipment.java`'s static registration block (`DMS/src/main/java/io/dm/model/inter/handlers
+  /TabEquipment.java:16-26`) while investigating the sibling `TabInventory.click` bug. It registers
+  `h.actions[6]` through `h.actions[16]` ONLY (11 entries, one per real equipment slot). But
+  BASELINE-FINDINGS.txt's captured unequip clicks hit components **15 through 22** — meaning
+  components 17-22 have literally NO registered handler in this array at all, not just a
+  possibly-wrong one. So most of the human's unequip test clicks were dispatching to components
+  outside the registered range entirely (`InterfaceHandler.getAction` would find nothing for
+  17-22), which is a stronger/more specific version of this stage's own STEP's "components 6..16
+  being stale" candidate — confirm this first before touching the access mask, since a missing
+  handler explains total unequip failure on its own regardless of mask correctness. Also relevant:
+  Stage 05 found and fixed an analogous "early bounds-check discards a legitimate option before it
+  reaches the real comparison" bug in `TabInventory.click` — `TabEquipment.itemAction` (same file,
+  line ~39) is worth a similar read for the same bug shape, though not inspected in detail this
+  round (only the registration block was read).
+- Stage 01 (2026-07-08): answers the STEPS binary question — YES, PROTOCOL_DUMP.txt DOES show
+  If3Button lines when unequip is clicked, so this is server-side swallow (Stage 05's bug class),
+  not a client-side access-mask problem. Exact lines in stages/BASELINE-FINDINGS.txt: components
+  15 through 22 all fired successfully with option=1, slot=-1, item=-1. NOTABLE: components 17-22
+  arrived fine even though the login burst's console output only explicitly logged IfSetEvents for
+  components 6 through 16 — either that range comment is stale/incomplete, or 387's real access
+  mask already covers more than documented. Worth confirming exactly which components 387 actually
+  has masks on before concluding anything. ALSO NOTABLE: every single component's click arrived
+  TWICE within ~0.6 seconds (not once) — check whether this is expected client behavior, a
+  double-registered listener, or just the human double-clicking; if it's a genuine double-send it
+  could itself be masking or causing bugs in the eventual fix (e.g. unequip-then-immediately-
+  re-equip-with-stale-state).

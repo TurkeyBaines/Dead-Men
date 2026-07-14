@@ -30,7 +30,7 @@ public abstract class FinalEvent {
         players = new ArrayList<>();
         for (Player p : World.players) {
             if (p == null) continue;
-            if (!Deadman.getOverworld().contains(p)) {
+            if (!Deadman.getCitadel().contains(p)) {
                 players.add(p);
                 p.sendMessage("You have been added to the Finals! Please wait to be teleported...");
 

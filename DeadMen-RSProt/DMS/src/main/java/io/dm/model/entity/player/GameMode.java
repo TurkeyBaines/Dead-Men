@@ -80,6 +80,9 @@ public enum GameMode {
     }
 
     static {
+        // The stock cache's interface 215 reports only 12 real children, but this registration
+        // needs slots up to 13 (Normal/Ironman/Ultimate Ironman/Hardcore Ironman) -
+        // InterfaceHandler.register grows the backing array automatically when that happens.
         InterfaceHandler.register(215, h -> {
             h.actions[10] = (SimpleAction) p -> Config.IRONMAN_MODE.set(p, 0);
             h.actions[11] = (SimpleAction) p -> {

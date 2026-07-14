@@ -16,6 +16,7 @@ public class TabMagic {
 
     static {
         InterfaceHandler.register(Interface.MAGIC_BOOK, h -> {
+
             for(SpellBook book : SpellBook.values()) {
                 for(int i = 0; i < book.spells.length; i++)
                     h.actions[book.spellIdOffset + i] = createAction(book, book.spells[i]);

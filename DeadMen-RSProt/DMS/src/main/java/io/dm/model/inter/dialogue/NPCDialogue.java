@@ -59,23 +59,28 @@ public class NPCDialogue implements Dialogue {
 
     @Override
     public void open(Player player) {
+        // Rev-228 child layout (Stage 11 Round 2): head=2, name=4, continue=5, message=6 — per
+        // AlterRSPS chatNpc() (QueueTaskExt.kt, incl. its settextalign target 15138822 = 231:6) and
+        // this server's own PROTOCOL_DUMP.txt (the client natively sends ResumePauseButton on 231:5).
+        // The previous 1/2/3/4 were the 184-era children: the head/name landed on dead components
+        // and the message rendered in the NAME slot (red, top-centre).
         player.openInterface(InterfaceType.CHATBOX, Interface.NPC_DIALOGUE);
-        player.getPacketSender().sendNpcHead(Interface.NPC_DIALOGUE, 1, npcDef.id);
-        player.getPacketSender().animateInterface(Interface.NPC_DIALOGUE, 1, animationId);
-        player.getPacketSender().sendString(Interface.NPC_DIALOGUE, 2, npcDef.name);
-        player.getPacketSender().sendString(Interface.NPC_DIALOGUE, 4, message);
-        player.getPacketSender().setTextStyle(Interface.NPC_DIALOGUE, 4, 1, 1, lineHeight);
-        player.getPacketSender().sendAccessMask(Interface.NPC_DIALOGUE, 3, -1, -1, 1);
+        player.getPacketSender().sendNpcHead(Interface.NPC_DIALOGUE, 2, npcDef.id);
+        player.getPacketSender().animateInterface(Interface.NPC_DIALOGUE, 2, animationId);
+        player.getPacketSender().sendString(Interface.NPC_DIALOGUE, 4, npcDef.name);
+        player.getPacketSender().sendString(Interface.NPC_DIALOGUE, 6, message);
+        player.getPacketSender().setTextStyle(Interface.NPC_DIALOGUE, 6, 1, 1, lineHeight);
+        player.getPacketSender().sendAccessMask(Interface.NPC_DIALOGUE, 5, -1, -1, 1);
         if (hideContinue)
-            player.getPacketSender().setHidden(Interface.NPC_DIALOGUE, 3, true);
+            player.getPacketSender().setHidden(Interface.NPC_DIALOGUE, 5, true);
         else
-            player.getPacketSender().sendString(Interface.NPC_DIALOGUE, 3, "Click here to continue");
+            player.getPacketSender().sendString(Interface.NPC_DIALOGUE, 5, "Click here to continue");
         if (onDialogueOpened != null)
             onDialogueOpened.run();
     }
 
     static {
-        InterfaceHandler.register(Interface.NPC_DIALOGUE, h -> h.actions[3] = (SimpleAction) player -> {
+        InterfaceHandler.register(Interface.NPC_DIALOGUE, h -> h.actions[5] = (SimpleAction) player -> {
             player.continueDialogue();
             player.onDialogueContinued();
         });

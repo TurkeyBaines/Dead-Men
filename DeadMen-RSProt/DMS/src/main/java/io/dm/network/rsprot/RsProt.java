@@ -10,9 +10,11 @@ import io.dm.api.filestore.IndexFile;
 import io.dm.api.protocol.login.LoginInfo;
 import io.dm.api.utils.ListUtils;
 import io.dm.model.World;
+import io.dm.model.entity.npc.NPC;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerFile;
 import io.dm.model.entity.player.PlayerGroup;
+import io.dm.model.map.Region;
 import io.dm.net.DmCacheProvider;
 import io.dm.net.DmIncomingPackets;
 import io.dm.net.DmLogin;
@@ -44,6 +46,13 @@ import net.rsprot.protocol.game.incoming.objs.OpObj;
 import net.rsprot.protocol.game.incoming.objs.OpObjT;
 import net.rsprot.protocol.game.incoming.players.OpPlayer;
 import net.rsprot.protocol.game.incoming.players.OpPlayerT;
+import net.rsprot.protocol.game.incoming.resumed.ResumePCountDialog;
+import net.rsprot.protocol.game.incoming.resumed.ResumePNameDialog;
+import net.rsprot.protocol.game.incoming.resumed.ResumePObjDialog;
+import net.rsprot.protocol.game.incoming.resumed.ResumePStringDialog;
+import net.rsprot.protocol.game.incoming.resumed.ResumePauseButton;
+import net.rsprot.protocol.game.outgoing.info.npcinfo.NpcAvatar;
+import net.rsprot.protocol.game.outgoing.info.npcinfo.NpcAvatarFactory;
 import net.rsprot.protocol.game.outgoing.info.npcinfo.NpcInfoProtocol;
 import net.rsprot.protocol.game.outgoing.info.npcinfo.SetNpcUpdateOrigin;
 import net.rsprot.protocol.game.outgoing.info.playerinfo.PlayerInfo;
@@ -116,10 +125,20 @@ public final class RsProt {
             {160, 24}, // minimap
     };
 
+    /**
+     * The real rev-228 cache (js5_cache_path) as served to clients — distinct from
+     * {@code Server.fileStore}, which reads the LEGACY cache (cache_path). Exposed so other
+     * classes can read Cache228 data directly (e.g. {@link io.dm.cache.Cache228ItemDefs}) instead
+     * of relying on legacy-cache-derived fields that don't always match what the real 228 client
+     * sees. See stages/STAGE-05-inventory-actions.txt.
+     */
+    public static FileStore cache228;
+
     // RSProt runtime, set in start(); driven by CoreWorker on the Server.worker (game) thread.
     private static NetworkService<DmNetworkPlayer> service;
     private static PlayerInfoProtocol playerInfoProtocol;
     private static NpcInfoProtocol npcInfoProtocol;
+    private static NpcAvatarFactory npcAvatarFactory;
     private static WorldEntityProtocol worldEntityInfoProtocol;
     private static XteaProvider xtea;
 
@@ -128,6 +147,7 @@ public final class RsProt {
 
     public static NetworkService<DmNetworkPlayer> start(int gamePort, String js5CachePath) throws IOException {
         FileStore js5Cache = new FileStore(js5CachePath);
+        cache228 = js5Cache;
         RsaKeyPair rsa = RsaKeys.INSTANCE.loadOrGenerate(new File("server-data/rsa.properties"));
         DmCacheProvider cache = cacheProvider(js5Cache);
         xtea = loadXteas(js5CachePath);
@@ -192,20 +212,204 @@ public final class RsProt {
                     builder.addListener(IfButtonD.class,
                             (MessageConsumer<DmNetworkPlayer, IfButtonD>) (player, msg) ->
                                     onInterfaceDrag(player, msg));
+                    // Dialogue resume packets (Stage 11): the rev-228 client sends these — NOT
+                    // If3Button — for "Click here to continue", choose-option selections, make-x
+                    // item buttons, and the chatbox int/string/name inputs. Their legacy analogs are
+                    // ActionButtonHandler.DialogueHandler (opcode 1) and InputHandler (opcodes
+                    // 8/54/100/39); before this they fell into the no-op set, so every chatbox
+                    // dialogue click/entry was silently dropped (dialogs never closed, Make-X
+                    // buttons and bank enter-amount did nothing).
+                    builder.addListener(ResumePauseButton.class,
+                            (MessageConsumer<DmNetworkPlayer, ResumePauseButton>) (player, msg) ->
+                                    onResumePauseButton(player, msg));
+                    builder.addListener(ResumePCountDialog.class,
+                            (MessageConsumer<DmNetworkPlayer, ResumePCountDialog>) (player, msg) ->
+                                    onCountInput(player, msg));
+                    builder.addListener(ResumePStringDialog.class,
+                            (MessageConsumer<DmNetworkPlayer, ResumePStringDialog>) (player, msg) ->
+                                    onStringInput(player, "ResumePStringDialog", msg.getString()));
+                    builder.addListener(ResumePNameDialog.class,
+                            (MessageConsumer<DmNetworkPlayer, ResumePNameDialog>) (player, msg) ->
+                                    onStringInput(player, "ResumePNameDialog", msg.getName()));
+                    builder.addListener(ResumePObjDialog.class,
+                            (MessageConsumer<DmNetworkPlayer, ResumePObjDialog>) (player, msg) ->
+                                    onObjInput(player, msg));
                     // Everything else is accepted-and-dropped so processIncomingPackets never throws.
                     DmIncomingPackets.INSTANCE.registerNoOpsExcept(builder, java.util.Set.of(
                             MoveGameClick.class, MoveMinimapClick.class,
                             ClientCheat.class, MessagePublic.class,
                             OpLoc.class, OpNpc.class, OpObj.class, OpPlayer.class,
                             If3Button.class, OpLocT.class, OpObjT.class, OpNpcT.class, OpPlayerT.class,
-                            IfButtonT.class, IfButtonD.class));
+                            IfButtonT.class, IfButtonD.class,
+                            ResumePauseButton.class, ResumePCountDialog.class,
+                            ResumePStringDialog.class, ResumePNameDialog.class,
+                            ResumePObjDialog.class));
                     return Unit.INSTANCE;
                 });
         service = svc;
         playerInfoProtocol = svc.getPlayerInfoProtocol();
         npcInfoProtocol = svc.getNpcInfoProtocol();
+        npcAvatarFactory = svc.getNpcAvatarFactory();
         worldEntityInfoProtocol = svc.getWorldEntityInfoProtocol();
+        // Stage 03: NPC spawns loaded during boot (npc_spawns.java etc.) ran before RSProt started,
+        // so their spawn()-time allocNpcAvatar() call above was a no-op (npcAvatarFactory was still
+        // null). Catch them up now. Marshalled onto Server.worker for RSProt thread-affinity, same as
+        // every other avatar alloc/dealloc in this class.
+        Server.worker.execute(() -> {
+            for (NPC npc : World.npcs.entityList) {
+                if (npc != null) {
+                    allocNpcAvatar(npc);
+                }
+            }
+        });
         return svc;
+    }
+
+    /**
+     * Allocates this NPC's RSProt avatar (Stage 03), making it visible to rev-228 clients. Safe to
+     * call before RSProt has started (no-ops until {@link #npcAvatarFactory} exists) or more than
+     * once (no-ops if already allocated). Must run on the game thread ({@code Server.worker}).
+     */
+    public static void allocNpcAvatar(NPC npc) {
+        if (npcAvatarFactory == null || npc.rsprotAvatar != null || npc.isRemoved()) {
+            return;
+        }
+        try {
+            int level = Math.max(0, Math.min(3, npc.getHeight()));
+            int direction = npc.spawnDirection != null ? npc.spawnDirection.ordinal() : 6;
+            npc.rsprotAvatar = npcAvatarFactory.alloc(
+                    npc.getIndex(), npc.getId(), level, npc.getAbsX(), npc.getAbsY(), 0, direction);
+            if (npc.isHidden()) {
+                npc.rsprotAvatar.setInaccessible(true);
+            }
+        } catch (Throwable t) {
+            System.out.println("[NPC-AVATAR] alloc failed for npc " + npc.getId() + " idx=" + npc.getIndex() + ": " + t);
+        }
+    }
+
+    /** Releases this NPC's RSProt avatar back to the factory. Must run on the game thread. */
+    public static void deallocNpcAvatar(NPC npc) {
+        if (npcAvatarFactory == null || npc.rsprotAvatar == null) {
+            return;
+        }
+        try {
+            npcAvatarFactory.release(npc.rsprotAvatar);
+        } catch (Throwable ignore) {
+        }
+        npc.rsprotAvatar = null;
+    }
+
+    /**
+     * Pushes this NPC's current tile into its RSProt avatar for this cycle. Uses the walk-step API
+     * for ordinary single-tile movement (so it animates instead of gliding) and falls back to
+     * {@code teleport} for anything bigger (initial placement already matches on the first tick,
+     * multi-tile jumps, or a level change) — see Stage 03's brief for why teleport is an accepted
+     * fallback here.
+     */
+    private static void pushNpcMovement(NPC npc) {
+        NpcAvatar avatar = npc.rsprotAvatar;
+        int level = Math.max(0, Math.min(3, npc.getHeight()));
+        int x = npc.getAbsX();
+        int z = npc.getAbsY();
+        int deltaX = x - avatar.x();
+        int deltaZ = z - avatar.z();
+        if (deltaX == 0 && deltaZ == 0 && level == avatar.level()) {
+            return;
+        }
+        if (level != avatar.level() || Math.abs(deltaX) > 1 || Math.abs(deltaZ) > 1) {
+            avatar.teleport(level, x, z, true);
+        } else {
+            avatar.walk(deltaX, deltaZ);
+        }
+    }
+
+    /**
+     * Stage 09 (2026-07-13): bridges the 7 NPC legacy per-tick update masks — Animation, Hits,
+     * face-entity, Transform, face-coord, Graphics and force-text (the exact set {@code NPC.init()}
+     * instantiates) — onto this NPC's {@code NpcAvatarExtendedInfo}. The NPC-side mirror of
+     * {@link #pushMaskUpdates}; runs once per allocated NPC per cycle from {@code driveUpdate()}
+     * step 2b, before {@code npcInfoProtocol.update()} gathers this cycle's extended-info snapshot.
+     *
+     * <p>Same {@code setSent(true)} discipline as the player bridge: {@code Entity.resetUpdates()}
+     * (called for every NPC each cycle by {@code CoreWorker.update()}) only clears a mask via
+     * {@code reset()} once {@code isSent()} is true, and the only other writer of that flag is the
+     * legacy per-player NPC updater, which never runs for RSProt observers. Without marking each
+     * consumed mask sent here, the same animation/hitsplat/etc. would replay every tick forever.
+     *
+     * <p>NPC-specific differences from the player bridge, each verified against
+     * {@code NpcAvatarExtendedInfo.kt} in the osrs-228-model sources jar rather than assumed:
+     * <ul>
+     * <li><b>Face-coord instead of face-angle:</b> {@code NpcAvatarExtendedInfo} has no
+     * {@code setFaceAngle}; the legacy NPC-mode {@code MapDirectionUpdate} stores a "fine"
+     * half-tile coordinate pair ({@code absX*2 + xLength} — see {@code Entity.face(int,int,int,int)}),
+     * bridged onto {@code setFaceCoord(x, z)}'s absolute tile coordinates via {@code >> 1}. Exact
+     * for size-1 targets (fine {@code 2x+1} is the centre of tile {@code x}, which is precisely
+     * what setFaceCoord faces); at most half a tile off-centre for larger targets.</li>
+     * <li><b>Transform</b> (the one mask Milestone 2's player bridge explicitly skipped as
+     * NPC-only): {@code setTransmogrification(id)} is documented as transient — one cycle, current
+     * observers only — so {@code NpcAvatar.setId(id)} is also called, per that same KDoc, or new
+     * observers would keep seeing the old variant. {@code NPC.transform()} already updated the
+     * server-side id/size/combat def before this runs.</li>
+     * <li><b>Hit-source tinting:</b> same accepted gap as the player bridge — the legacy
+     * {@code Splat} never kept the attacker, so hitmarks/headbars push with
+     * {@code sourceIndex = -1} (untinted but correct for all observers).</li>
+     * </ul>
+     */
+    private static void pushNpcMaskUpdates(NPC npc) {
+        var ext = npc.rsprotAvatar.getExtendedInfo();
+
+        var anim = npc.getAnimationUpdate();
+        if (anim.hasUpdate(false)) {
+            ext.setSequence(anim.id, anim.delay);
+            anim.setSent(true);
+        }
+
+        var gfx = npc.getGraphicsUpdate();
+        if (gfx.hasUpdate(false)) {
+            ext.setSpotAnim(0, gfx.getId(), gfx.getDelay(), gfx.getHeight());
+            gfx.setSent(true);
+        }
+
+        var hits = npc.hitsUpdate;
+        if (hits.hasUpdate(false)) {
+            int splatCount = hits.splatCount();
+            for (int i = 0; i < splatCount; i++) {
+                int type = hits.splatType(i);
+                ext.addHitMark(-1, type, type, hits.splatDamage(i), hits.splatDelay(i));
+            }
+            int ratio = hits.getHpBarRatio();
+            ext.addHeadBar(-1, hits.hpBarType, hits.hpBarType, ratio, ratio, 0, 0);
+            hits.setSent(true);
+        }
+
+        // No setSent() here: consumeResolvedUpdate() self-clears, same as the player bridge.
+        var faceEntity = npc.getEntityDirectionUpdate();
+        if (faceEntity.consumeResolvedUpdate()) {
+            ext.setFacePathingEntity(toRsProtEntityIndex(faceEntity.getResolvedTarget()));
+        }
+
+        var faceCoord = npc.getMapDirectionUpdate();
+        if (faceCoord.hasUpdate(false)) {
+            int fineX = faceCoord.getFaceX(), fineY = faceCoord.getFaceY();
+            if (fineX >= 0 && fineY >= 0) {
+                ext.setFaceCoord(fineX >> 1, fineY >> 1, false);
+            }
+            faceCoord.setSent(true);
+        }
+
+        var forceText = npc.getForceTextUpdate();
+        if (forceText.hasUpdate(false)) {
+            ext.setSay(forceText.getForceText());
+            forceText.setSent(true);
+        }
+
+        var transform = npc.getTransformUpdate();
+        if (transform != null && transform.hasUpdate(false)) {
+            int id = transform.getId();
+            npc.rsprotAvatar.setId(id);
+            ext.setTransmogrification(id);
+            transform.setSent(true);
+        }
     }
 
     // ------------------------------------------------------------------ incoming
@@ -320,6 +524,92 @@ public final class RsProt {
                     msg.getOp(), msg.getSub(), msg.getObj());
             io.dm.network.incoming.handlers.ActionButtonHandler.handleAction(
                     p, msg.getOp(), msg.getCombinedId(), msg.getSub(), msg.getObj(), false);
+        }
+    }
+
+    /**
+     * Incoming dialogue-resume click ("Click here to continue", a choose-option selection, a make-x
+     * item button) → mirror of the legacy {@code ActionButtonHandler.DialogueHandler} (opcode 1):
+     * first offer the value to any suspended {@code GameEvent} awaiting a dialogue answer, then the
+     * normal {@code InterfaceHandler} dispatch with {@code option=1, dialogue=true}. {@code sub}
+     * carries what the legacy client sent in its slot field — the clicked dynamic child on the
+     * choose-option layer (1-based option index on 219:1, matching {@code OptionsDialogue.handle}'s
+     * {@code slot - 1}) or the chosen quantity for make-x (270:14+i) — confirmed against AlterRSPS's
+     * rev-228 {@code options()}/{@code produceItemBox()} (QueueTaskExt.kt), which consume
+     * {@code ResumePauseButton.sub} for exactly those two meanings.
+     */
+    private static void onResumePauseButton(DmNetworkPlayer player, ResumePauseButton msg) {
+        if (player instanceof Player p) {
+            NetworkLogger.log(p, "ResumePauseButton", msg.getInterfaceId(), msg.getComponentId(),
+                    1, msg.getSub(), -1);
+            if (io.dm.event.GameEventProcessor.resumeWith(p, msg.getSub())) {
+                return;
+            }
+            io.dm.network.incoming.handlers.ActionButtonHandler.handleAction(
+                    p, 1, msg.getCombinedId(), msg.getSub(), -1, true);
+        }
+    }
+
+    /**
+     * Incoming chatbox integer entry (bank withdraw-X, make-x keypad, ...) → the legacy
+     * {@code InputHandler} opcode-8/54 body: feed {@code Player.consumerInt}, preserving its
+     * retry-consumer dance (a consumer that sets {@code retryIntConsumer} stays armed for another
+     * entry, e.g. a rejected out-of-range amount re-prompting).
+     */
+    private static void onCountInput(DmNetworkPlayer player, ResumePCountDialog msg) {
+        if (player instanceof Player p) {
+            NetworkLogger.log(p, "ResumePCountDialog", -1, -1, -1, -1, -1, "count=" + msg.getCount());
+            java.util.function.Consumer<Integer> consumer = p.consumerInt;
+            if (consumer != null) {
+                p.consumerInt = null;
+                consumer.accept(msg.getCount());
+                if (p.retryIntConsumer) {
+                    p.consumerInt = consumer;
+                    p.retryIntConsumer = false;
+                }
+            }
+        }
+    }
+
+    /**
+     * Incoming chatbox string/name entry → the legacy {@code InputHandler} opcode-100/39 body
+     * (both legacy opcodes fed the same {@code Player.consumerString}, so the two RSProt message
+     * types share this bridge too).
+     */
+    private static void onStringInput(DmNetworkPlayer player, String packetName, String value) {
+        if (player instanceof Player p) {
+            NetworkLogger.log(p, packetName, -1, -1, -1, -1, -1, "text=" + value);
+            java.util.function.Consumer<String> consumer = p.consumerString;
+            if (consumer != null) {
+                p.consumerString = null;
+                consumer.accept(value);
+                if (p.retryStringConsumer) {
+                    p.consumerString = consumer;
+                    p.retryStringConsumer = false;
+                }
+            }
+        }
+    }
+
+    /**
+     * Incoming item-search selection (GE-style item search box) → {@code Player.consumerInt}, the
+     * same consumer the legacy short-input opcode 54 fed (an item id is the only int-shaped legacy
+     * input besides amounts, and nothing else in the legacy protocol carried a search result).
+     * Nothing in the current codebase prompts an item search yet, so this is plumbing-for-parity,
+     * not a live fix — logged so the first real use shows up in PROTOCOL_DUMP.txt.
+     */
+    private static void onObjInput(DmNetworkPlayer player, ResumePObjDialog msg) {
+        if (player instanceof Player p) {
+            NetworkLogger.log(p, "ResumePObjDialog", -1, -1, -1, -1, msg.getObj());
+            java.util.function.Consumer<Integer> consumer = p.consumerInt;
+            if (consumer != null) {
+                p.consumerInt = null;
+                consumer.accept(msg.getObj());
+                if (p.retryIntConsumer) {
+                    p.consumerInt = consumer;
+                    p.retryIntConsumer = false;
+                }
+            }
         }
     }
 
@@ -501,6 +791,9 @@ public final class RsProt {
             // RebuildLogin carries the GPI init block (built from playerInfo); sent before build areas.
             s.queue(new RebuildLogin(x >> 3, z >> 3, -1, xtea, player.playerInfo));
             setBuildAreas(player, (x >> 3) - 6, (z >> 3) - 6);
+            // Stage 02 fix: without this, the player is never added to any Region's players list
+            // (see syncRegionTracking's own doc), so no ground item ever gets sent to a fresh login.
+            syncRegionTracking(player, x >> 3, z >> 3);
             syncAppearance(player);
             openFrame(player);
 
@@ -630,6 +923,21 @@ public final class RsProt {
                 System.out.println("[TICK] masks " + p.getName() + ": " + t);
             }
         }
+        // 0b) Stage 03 follow-up: the legacy PlayerNPCUpdater.process() (which adds a player to each
+        // nearby NPC's local-player list — read by combat/AI scripts and isRandomWalkAllowed()) is
+        // only ever called for players with no RSProt session (see CoreWorker.update()), so RSProt
+        // players never got added to any NPC's local list and those NPCs never wandered/aggro'd.
+        // syncLocalNpcs() is the same membership bookkeeping with no legacy packet-writing.
+        for (Player p : World.players) {
+            if (notReady(p)) {
+                continue;
+            }
+            try {
+                p.getNpcUpdater().syncLocalNpcs();
+            } catch (Throwable t) {
+                System.out.println("[TICK] localNpcs " + p.getName() + ": " + t);
+            }
+        }
         // 1) push each player's current tile into all three info avatars; rebuild region if needed.
         for (Player p : World.players) {
             if (notReady(p)) {
@@ -653,6 +961,21 @@ public final class RsProt {
                 System.out.println("[TICK] we " + p.getName() + ": " + t);
             }
             p.playerInfo.updateRenderCoord(-1, p.getHeight(), p.getAbsX(), p.getAbsY());
+        }
+        // 2b) Stage 03: push every allocated NPC avatar's current tile — and (Stage 09) bridge its
+        // legacy update masks (animation/hits/face/transform/graphics/force-text) onto its
+        // NpcAvatarExtendedInfo — before npcInfoProtocol.update() gathers this cycle's
+        // movement/extended-info snapshot (mirrors step 0's player-mask timing).
+        for (NPC npc : World.npcs) {
+            if (npc.rsprotAvatar == null) {
+                continue;
+            }
+            try {
+                pushNpcMovement(npc);
+                pushNpcMaskUpdates(npc);
+            } catch (Throwable t) {
+                System.out.println("[TICK] npc " + npc.getId() + " idx=" + npc.getIndex() + ": " + t);
+            }
         }
         // 3) player + npc info, then flush the world-entity → player → npc sequence.
         playerInfoProtocol.update();
@@ -686,9 +1009,9 @@ public final class RsProt {
      * Animation, Graphics, Hits, Chat, face-entity, face-angle, force-text, forced movement,
      * movement mode, teleport mode, and Appearance — onto this player's {@code PlayerAvatarExtendedInfo}.
      * The 12th mask class, {@code TransformUpdate}, is NPC-only (never instantiated in {@code
-     * Player.init()}'s {@code masks[]} array) and belongs to a future NPC-info bridging pass, not
-     * this one — {@code NpcAvatarExtendedInfo} is a separate RSProt type from the player one bridged
-     * here.
+     * Player.init()}'s {@code masks[]} array) and is bridged by the NPC-side mirror of this method,
+     * {@link #pushNpcMaskUpdates} (Stage 09) — {@code NpcAvatarExtendedInfo} is a separate RSProt
+     * type from the player one bridged here.
      *
      * <p>Reads each mask's current tick state directly (the same fields {@code PlayerUpdater.process()}
      * would otherwise have packed for a legacy 184 client) and translates it into the equivalent
@@ -819,6 +1142,43 @@ public final class RsProt {
     }
 
     /**
+     * Stage 02 fix (2026-07-08): populates {@code player.getRegions()} (and, via {@code
+     * Player.addRegion}, each legacy {@code Region}'s {@code players} list) with every 64x64-tile
+     * {@code Region} overlapping the player's current 13x13-zone viewport, then resends ground
+     * items and custom objects for those regions' active tiles.
+     *
+     * <p>This is the actual root cause of ground items never rendering for RSProt players, deeper
+     * than the {@code queueZonePayload} coordinate bug fixed 2026-07-07: {@code GroundItem.sendAdd}/
+     * {@code sendRemove} (and {@code Tile.update}, the legacy resend-on-region-load path) loop over
+     * {@code tile.region.players} — a list only ever populated by {@code Player.addRegion}, which
+     * itself was only ever called from the LEGACY {@code PacketSender.sendRegion()} (packets 66/71,
+     * a wire format the rev-228 client doesn't speak and RSProt players never trigger). Without this,
+     * every RSProt player was permanently absent from every {@code Region.players} list, so
+     * {@code GroundItem.sendAdd}/{@code sendRemove}'s loops matched zero players and never even
+     * called {@code sendGroundItem}/{@code sendRemoveGroundItem} for them — independent of whether
+     * the packet itself was ported or the zone coordinates were correct. Same math as legacy {@code
+     * PacketSender.sendRegion()}'s region-grid loop (chunk/zone are both 8-tile units; {@code depth}
+     * mirrors its {@code CLIENT_SIZE >> 4}), just without building the legacy OutBuffer packet.
+     */
+    private static void syncRegionTracking(Player p, int zoneX, int zoneZ) {
+        p.removeFromRegions();
+        int depth = 6;
+        for (int xCalc = (zoneX - depth) / 8; xCalc <= (zoneX + depth) / 8; xCalc++) {
+            for (int yCalc = (zoneZ - depth) / 8; yCalc <= (zoneZ + depth) / 8; yCalc++) {
+                int regionId = yCalc + (xCalc << 8);
+                if (regionId < 0 || regionId >= Region.LOADED.length) {
+                    continue;
+                }
+                Region r = Region.get(regionId);
+                if (r != null) {
+                    p.addRegion(r);
+                }
+            }
+        }
+        Region.update(p);
+    }
+
+    /**
      * Re-centre the 13x13-zone build area + send {@link RebuildNormal} when the player nears the
      * edge (>=4 zones from centre, ~16-tile margin). Keeps the client's scene loaded as it roams.
      */
@@ -829,6 +1189,7 @@ public final class RsProt {
         }
         setBuildAreas(p, zoneX - 6, zoneZ - 6);
         p.getSession().queue(new RebuildNormal(zoneX, zoneZ, -1, xtea));
+        syncRegionTracking(p, zoneX, zoneZ);
     }
 
     /**
@@ -852,22 +1213,70 @@ public final class RsProt {
      * This codebase already sends access masks for every OTHER item-holding interface (bank, trade,
      * rune pouch, looting bag, item sets, barrows loot, ...) — grepping confirmed the standalone
      * inventory (149) and worn-equipment (387) panes were the only two that never got one.
+     * <p>Stage 05 Fix (2026-07-11): mask 1181694 (bits 1-10 + drag) only ever granted the ten
+     * {@code ClickOpN} bits — it never granted the six separate "targeting" capability bits
+     * ({@code UseOnGroundItem}/{@code UseOnNpc}/{@code UseOnObject}/{@code UseOnPlayer}/
+     * {@code UseOnInventory}/{@code UseOnComponent}) that gate whether the client is even willing to
+     * build an {@code OpLocT}/{@code OpObjT}/{@code OpNpcT}/{@code OpPlayerT}/{@code IfButtonT} packet
+     * at all once an item has been selected via "Use". Confirmed against the real bit-flag names (RSProt
+     * itself treats {@code IfSetEvents.events} as an opaque int — see {@code IfSetEvents.kt}'s own KDoc)
+     * via AlterRSPS's {@code InterfaceEvent} enum
+     * ({@code game-api/.../ext/InterfaceEvents.kt} on github.com/AlterRSPS/Alter, the same rev-228
+     * reference this file's other fixes already cite): {@code ClickOpN = 1 shl N} for N=1-10 (confirming
+     * bits 1-10 was already correct), then {@code UseOnGroundItem=1 shl 11}, {@code UseOnNpc=1 shl 12},
+     * {@code UseOnObject=1 shl 13}, {@code UseOnPlayer=1 shl 14}, {@code UseOnInventory=1 shl 15}
+     * (item-on-item), {@code UseOnComponent=1 shl 16} (cross-interface targeting — not granted here,
+     * out of this stage's scope). Without these, every "Use X on Y" interaction was wired server-side
+     * (Milestone 4's onItemOnObject/onItemOnGroundItem/onItemOnNpc/onItemOnPlayer/onItemOnItem
+     * listeners) but structurally unreachable — the client had no permission to ever send the packet.
      * <ul>
-     * <li>Inventory (149, component 0, slots 0-27): mask 1181694 reuses the exact value this codebase's
-     * own {@code Bank.java} already sends for {@code Interface.BANK_INVENTORY} component 3 — a
-     * proven-shape precedent for "the same 28-slot personal inventory, fully interactive" (bits 1-10 =
+     * <li>Inventory (149, component 0, slots 0-27): mask 3342334 = the previous 1181694 (bits 1-10 =
      * all ten click options, matching {@code TabInventory}'s own option-10-is-examine / options-1-5-
-     * are-item-actions handling, plus bits 17+20 = full drag-reorder).</li>
-     * <li>Equipment (387, components 6-16, one worn slot each): best-effort, not copied from an
-     * existing proven analog like the inventory fix above — equipment slots hold one item each rather
-     * than a 0-27 array, so they're addressed with RSProt's "no sub-range" convention ({@code start =
-     * end = -1}, the same form this codebase already uses for other single, non-list components like
-     * {@code NPCDialogue}/{@code YesNoDialogue}), and the mask (2046 = bits 1-10, no drag bits — real
-     * OSRS equipment slots aren't drag-reorderable) is derived from {@code TabEquipment.itemAction}'s
-     * own option range (1-6 custom actions + option 10 examine) rather than copied wholesale. Included
-     * because {@code TabEquipment}'s unequip path was reported broken alongside inventory in the same
-     * live-testing round and shares this exact root cause; flagged here as needing live-client
-     * confirmation rather than assumed correct.</li>
+     * are-item-actions handling, plus bits 17+20 = full drag-reorder — this part reused this codebase's
+     * own already-proven {@code Bank.java}/{@code Interface.BANK_INVENTORY} component-3 value) plus the
+     * four single-target bits (bits 11-14) and {@code UseOnInventory} (bit 15) added in Round 7, so
+     * "Use" on a ground item, NPC, object, player, or another inventory item can all actually reach the
+     * server now.
+     * <p>Stage 05 Round 10 fix (2026-07-11, PARTIALLY WRONG, see Round 11): tried adding just {@code
+     * ComponentTargetable} (bit 21, {@code 1 shl 21}) on the theory that another inventory slot is a
+     * "component" (unlike NPCs/objects/ground-items, whose own dedicated {@code UseOnX} bits are
+     * self-sufficient) and therefore needs the target-side flag {@code UseOnComponent}'s KDoc calls
+     * out ("Requires TARGET to be enabled on the components that are targetable" — fetched fresh from
+     * AlterRSPS's real {@code InterfaceEvent} enum). Human retested live: no change at all — mask
+     * confirmed transmitting correctly (checked the real RSProt encoder bytecode directly, no
+     * truncation), so the bit reached the client; it just isn't the (whole) answer.
+     * <p>Stage 05 Round 11 fix (2026-07-11): re-read the same KDoc more carefully. {@code
+     * UseOnComponent}'s own text — "target ANOTHER component" — plus {@code ComponentTargetable} being
+     * described as specifically ITS prerequisite (not {@code UseOnInventory}'s) suggests {@code
+     * UseOnInventory} (bit 15) is actually for a DIFFERENT scenario: something OUTSIDE the inventory
+     * (a spell in the spellbook, a bank slot, a shop slot) targeting an item that happens to sit in the
+     * player's inventory. Combining two items WITHIN the same inventory component is source-component
+     * targeting a sibling slot of ITSELF — i.e. genuine component-to-component targeting — which should
+     * be gated by {@code UseOnComponent} (bit 16), not {@code UseOnInventory}. Added bit 16 (65536) on
+     * top of Round 10's {@code ComponentTargetable}: 3342334 + 65536 = 3407870. This is the second
+     * attempt at this specific bug and is NOT confirmed correct — flagging explicitly rather than
+     * asserting confidence Round 10 already showed was unwarranted. If this also doesn't work, the
+     * next step is re-deriving from a source that actually exercises this exact interaction (AlterRSPS's
+     * own reference plugins don't implement item-on-item combining at all — checked, no
+     * {@code IfButtonT}/combine logic exists anywhere in their game-plugins tree), not another blind
+     * bit-guess.</li>
+     * <li>Equipment (387, components 15-25, one worn slot each — see {@code TabEquipment}'s static
+     * registration block): equipment slots hold one item each rather than a 0-27 array, so they're
+     * addressed with RSProt's "no sub-range" convention ({@code start = end = -1}, the same form this
+     * codebase already uses for other single, non-list components like {@code NPCDialogue}/
+     * {@code YesNoDialogue}), and the mask (2046 = bits 1-10, no drag bits — real OSRS equipment slots
+     * aren't drag-reorderable) is derived from {@code TabEquipment.itemAction}'s own option range (1-6
+     * custom actions + option 10 examine).
+     * <p>Stage 06 fix (2026-07-11): the range was originally 6-16, a guess that never matched
+     * {@code TabEquipment}'s real registrations (childIds 1, 5, 7, 15-24 at the time). Live-testing's
+     * {@code PROTOCOL_DUMP.txt} captured real clicks on childIds 1, 5, 7, 15-22, and — critically — a
+     * repeated (5x) click on childId 25 that matched no registered handler, proving the real client
+     * exposes 11 worn-slot components (childIds 15-25) where {@code TabEquipment} only ever wired 10
+     * (15-24, with RING and AMMO colliding on 24). This confirms components outside the nominal 6-16
+     * mask range were already reaching the server regardless — this single-component mask's start=-1/
+     * end=-1 form does not appear to gate individual childIds the way a ranged mask would — so the fix
+     * here is purely to make the loop's documented range match {@code TabEquipment}'s actual (now
+     * corrected, RING=24/AMMO=25) registrations, not a functional unblock.</li>
      * </ul>
      */
     private static void openFrame(Player player) {
@@ -875,8 +1284,13 @@ public final class RsProt {
         for (int[] pane : FIXED_FRAME_PANES) {
             player.getPacketSender().sendInterface(pane[0], FIXED_TOP_LEVEL_INTERFACE, pane[1], 1);
         }
-        player.getPacketSender().sendAccessMask(io.dm.model.inter.Interface.INVENTORY, 0, 0, 27, 1181694);
-        for (int childId = 6; childId <= 16; childId++) {
+        player.getPacketSender().sendAccessMask(io.dm.model.inter.Interface.INVENTORY, 0, 0, 27, 3407870);
+        // Stage 06 fix (2026-07-11): this loop's range was 6-16, but TabEquipment.java's real handlers
+        // are registered on childIds 1, 5, 7 (buttons) and 15-25 (the 11 worn-item slots) - live clicks on
+        // childIds outside 6-16 (1, 5, 7, 17-22, 25) arrived anyway per PROTOCOL_DUMP.txt, so this mask's
+        // start=-1/end=-1 form does not appear to gate individual childIds within an interface; corrected
+        // the range purely so it documents the real, verified component set for future interfaces to copy.
+        for (int childId = 15; childId <= 25; childId++) {
             player.getPacketSender().sendAccessMask(io.dm.model.inter.Interface.EQUIPMENT, childId, -1, -1, 2046);
         }
     }

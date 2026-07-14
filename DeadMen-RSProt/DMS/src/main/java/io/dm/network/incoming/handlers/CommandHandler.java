@@ -88,6 +88,10 @@ public class CommandHandler implements Incoming {
     private static boolean handleAdmin(Player player, String query, String command, String[] args) {
         switch(command) {
 
+            case "graphic":
+                new GraphicCommands().process(player, args);
+                return true;
+
             case "item": case "inventory":
                 new ItemCommands().process(player, args);
                 return true;

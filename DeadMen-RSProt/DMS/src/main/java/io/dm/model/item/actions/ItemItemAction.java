@@ -53,26 +53,37 @@ public interface ItemItemAction {
      */
 
     static void handleAction(Player player, Item from, Item to) {
+        if(!tryHandle(player, from, to))
+            player.sendMessage("Nothing interesting happens.");
+    }
+
+    /**
+     * Same lookup/dispatch as {@link #handleAction}, but reports whether a match was actually
+     * found instead of always falling back to "Nothing interesting happens." — used by
+     * {@code TabInventory.drag} (Stage 05), which needs to try combining two dragged items
+     * without spamming that message on every ordinary reorder-drag that isn't a combine attempt.
+     */
+    static boolean tryHandle(Player player, Item from, Item to) {
         ItemDef fromDef = from.getDef();
         ItemDef toDef = to.getDef();
         ItemItemAction action;
         if((action = match(fromDef.primaryItemItemActions, toDef.secondaryItemItemActions)) != null) {
             action.handle(player, from, to);
-            return;
+            return true;
         }
         if((action = match(toDef.primaryItemItemActions, fromDef.secondaryItemItemActions)) != null) {
             action.handle(player, to, from);
-            return;
+            return true;
         }
         if((action = fromDef.defaultPrimaryItemItemAction) != null) {
             action.handle(player, from, to);
-            return;
+            return true;
         }
         if((action = toDef.defaultPrimaryItemItemAction) != null) {
             action.handle(player, to, from);
-            return;
+            return true;
         }
-        player.sendMessage("Nothing interesting happens.");
+        return false;
     }
 
     static ItemItemAction match(ArrayList<ItemItemAction> primaryActions, ArrayList<ItemItemAction> secondaryActions) {

@@ -140,7 +140,7 @@ public final class ActionDispatcher {
         onGameThread(() -> {
             Player target = World.getPlayer(targetName);
             if (target == null) { audit("Grant failed: '" + targetName + "' is not online."); return; }
-            Currency.OVERWORLD_POINTS.getCurrencyHandler().addCurrency(target, delta);
+            Currency.COINS.getCurrencyHandler().addCurrency(target, delta);
             audit("Granted " + delta + " Overworld Points to " + target.getName() + ".");
         });
     }
@@ -236,11 +236,11 @@ public final class ActionDispatcher {
     }
 
     public static void setOverworldPoints(String targetName, int value) {
-        onGameThread(() -> withPlayer(targetName, p -> { p.overworldPoints = value; audit("Set " + p.getName() + " Overworld Points = " + value); }));
+        onGameThread(() -> withPlayer(targetName, p -> { p.appreciationPoints = value; audit("Set " + p.getName() + " Overworld Points = " + value); }));
     }
 
     public static void setVaultPoints(String targetName, int value) {
-        onGameThread(() -> withPlayer(targetName, p -> { p.overworldPointsVault = value; audit("Set " + p.getName() + " Vault Points = " + value); }));
+        onGameThread(() -> withPlayer(targetName, p -> { p.appreciationPoints = value; audit("Set " + p.getName() + " Vault Points = " + value); }));
     }
 
     public static void setPvmPoints(String targetName, int value) {
@@ -339,7 +339,7 @@ public final class ActionDispatcher {
             sb.append(p.getName()).append("  [").append(p.getPrimaryGroup()).append("]\n");
             sb.append("Position: ").append(p.getAbsX()).append(", ").append(p.getAbsY()).append(", ").append(p.getHeight()).append('\n');
             sb.append("IP: ").append(p.getIp()).append("   UUID: ").append(p.getUUID()).append('\n');
-            sb.append("Overworld: ").append(p.overworldPoints).append("  Vault: ").append(p.overworldPointsVault)
+            sb.append("Overworld: ").append(p.appreciationPoints).append("  Vault: ").append(p.appreciationPoints)
               .append("  PvM: ").append(p.PvmPoints).append("  Appreciation: ").append(p.appreciationPoints).append("\n\n");
         } catch (Throwable ignored) {}
         try {

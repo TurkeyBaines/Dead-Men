@@ -74,6 +74,41 @@ public class PlayerNPCUpdater {
     }
 
     /**
+     * RSProt bridge (Stage 03 follow-up): maintains {@link #localNpcs} / {@code NPC.localPlayers()}
+     * membership only — no legacy {@code OutBuffer} mask/position bytes are built (RSProt's own
+     * {@code NpcInfoProtocol} already handles what's visible to the client; this list is purely the
+     * "which NPCs consider this player local" bookkeeping that combat/AI scripts read via
+     * {@code npc.localPlayers()}/{@code isRandomWalkAllowed()}). {@link #process()} (the full legacy
+     * packet builder) is only ever called for players with no RSProt session, so without this,
+     * RSProt-connected players never got added to any NPC's local-player list, and NPCs whose random
+     * walk requires {@code localPlayers().size() != 0} never wandered.
+     */
+    public void syncLocalNpcs() {
+        for (Iterator<NPC> it = localNpcs.iterator(); it.hasNext(); ) {
+            NPC npc = it.next();
+            if (npc == null || npc.isHidden() || !npc.getPosition().isWithinDistance(player.getPosition(), maxDistance)) {
+                it.remove();
+                if (npc != null) {
+                    npc.removePlayer(player);
+                }
+            }
+        }
+        int toAdd = MAX_LOCAL - localNpcs.size();
+        if (toAdd > 0) {
+            toAdd = Math.min(MAX_ADD_PER_CYCLE, toAdd);
+            for (NPC npc : World.npcs) {
+                if (!npc.isHidden() && npc.getPosition().isWithinDistance(player.getPosition(), maxDistance) && !localNpcs.contains(npc)) {
+                    localNpcs.add(npc);
+                    npc.addPlayer(player);
+                    if (--toAdd == 0) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Local Updating
      */
 

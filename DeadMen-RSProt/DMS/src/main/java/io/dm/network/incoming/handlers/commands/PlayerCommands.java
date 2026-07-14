@@ -77,7 +77,6 @@ public class PlayerCommands {
                 break;
 
             case "points":
-                player.overworldPoints = 200000000;
                 player.pestPoints = 10000;
                 player.bossPoints = 200000000;
                 player.wintertodtPoints = 200000000;
@@ -128,7 +127,6 @@ public class PlayerCommands {
                         break;
 
                     case "points":
-                        p2.overworldPoints = 200000000;
                         p2.pestPoints = 10000;
                         p2.bossPoints = 200000000;
                         p2.wintertodtPoints = 200000000;

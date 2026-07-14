@@ -6,10 +6,6 @@ import io.dm.api.utils.Random;
 import io.dm.cache.Color;
 import io.dm.cache.ItemDef;
 import io.dm.deadman.content.guard.Skull;
-import io.dm.deadman.content.sigils.Sigil;
-import io.dm.deadman.content.sigils.Sigils;
-import io.dm.deadman.content.sigils.combat.FormidableFighter;
-import io.dm.deadman.content.sigils.combat.MenacingMage;
 import io.dm.model.activities.pvp.leaderboard.Leaderboard;
 import io.dm.model.activities.raids.xeric.ChambersOfXeric;
 import io.dm.model.activities.wilderness.BloodyChest;
@@ -349,21 +345,6 @@ public class PlayerCombat extends Combat {
         attackAnim();
 
         target.hit(new Hit(player, style, type).randDamage(maxDamage).setAttackWeapon(player.getEquipment().getDef(Equipment.SLOT_WEAPON)));
-
-        if (target != null) {
-            if (Sigil.sigilActive(player, Sigils.Formidable_Fighter)) {
-                FormidableFighter formidableFighter = (FormidableFighter) Sigil.get(Sigils.Formidable_Fighter);
-                if (formidableFighter.isActionSuccessful()) {
-                    if (target.player != null && target.player.getCombat().canCurse()) {
-                        target.player.getCombat().curse();
-                        formidableFighter.effect(player, target.player);
-                    } else if (target.npc != null && target.npc.getCombat().canCurse()) {
-                        target.npc.getCombat().curse();
-                        formidableFighter.effect(player, target.npc);
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -450,19 +431,6 @@ public class PlayerCombat extends Combat {
                 return;
 
             target.hit(hit);
-
-            if (player != null) {
-                if (Sigil.sigilActive(player, Sigils.Ruthless_Ranger)) {
-                    MenacingMage menacingMage = (MenacingMage) Sigil.get(Sigils.Ruthless_Ranger);
-                    if (target.player != null && target.player.getCombat().canCurse()) {
-                        target.player.getCombat().curse();
-                        menacingMage.effect(player, target.player);
-                    } else {
-                        target.npc.getCombat().curse();
-                        menacingMage.effect(player, target.npc);
-                    }
-                }
-            }
 
             if (chins) {
                 target.graphics(157, 100, delay);
@@ -554,18 +522,6 @@ public class PlayerCombat extends Combat {
             scalesAmount--;
         Blowpipe.update(blowpipe, dart, dartAmount, scalesAmount);
 
-        if (player != null) {
-            if (Sigil.sigilActive(player, Sigils.Ruthless_Ranger)) {
-                MenacingMage menacingMage = (MenacingMage) Sigil.get(Sigils.Ruthless_Ranger);
-                if (target.player != null && target.player.getCombat().canCurse()) {
-                    target.player.getCombat().curse();
-                    menacingMage.effect(player, target.player);
-                } else {
-                    target.npc.getCombat().curse();
-                    menacingMage.effect(player, target.npc);
-                }
-            }
-        }
     }
 
     public void removeAmmo(Item ammo, Hit... hits) {

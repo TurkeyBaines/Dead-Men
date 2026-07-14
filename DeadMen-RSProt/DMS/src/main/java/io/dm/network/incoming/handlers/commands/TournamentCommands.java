@@ -54,10 +54,6 @@ public class TournamentCommands {
                 p.sendMessage("Current Stage: " + Deadman.getStage().stageName().name());
                 break;
 
-            case "overworld": case "over": case "ow":
-                p.sendMessage("Players in Overworld: " + Deadman.getOverworld().count());
-                break;
-
             case "citadel": case "cit":
                 p.sendMessage("Players in Citadel: " + Deadman.getCitadel().count());
                 break;

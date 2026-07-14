@@ -313,7 +313,7 @@ public class Tile {
             entity.occupyingTiles = false;
         }
         if(!entity.isHidden()) {
-            if(entity.npc != null && !entity.npc.getDef().occupyTiles)
+            if(entity.npc != null && entity.npc.getDef() != null && !entity.npc.getDef().occupyTiles)
                 return;
             fill(entity, entity.getPosition(), 1);
             entity.occupyingTiles = true;

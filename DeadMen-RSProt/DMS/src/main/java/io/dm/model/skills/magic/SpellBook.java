@@ -220,7 +220,7 @@ public enum SpellBook {
     }
 
     static {
-        SpellBook.MODERN.spellIdOffset = 4;
+        SpellBook.MODERN.spellIdOffset = 1;
         SpellBook.ANCIENT.spellIdOffset = 74;
         SpellBook.LUNAR.spellIdOffset = 99;
         SpellBook.ARCEUUS.spellIdOffset = 143;

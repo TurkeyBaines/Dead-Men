@@ -16,68 +16,17 @@ public class Lobby extends Stage {
         Deadman.generateUTC();
 
         startTime = System.currentTimeMillis();
-        duration = 900000;
+        duration = 60000;
         for (Player p : players()) {
-            if (Deadman.getOverworld().contains(p)) {
-                //Reset None-Current Stats & Items!!!
-                p.skillHolder = new int[][] {
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {10, 1154},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0},
-                        {1, 0}
-                };
-                p.inventoryHolder = new ItemContainer();
-                p.equipmentHolder = new Item[]{
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-                };
-
-                p.sendMessage("A Tournament has just finished, we are now in the Lobby Phase.");
-                p.sendMessage("To take part in the next Tournament, please head back to the citadel.");
-                p.sendMessage("The next Tournament will begin in 30 minutes!");
-            } else {
-                p.getStats().reset();
-                p.getInventory().clear();
-                p.getInventory().sendUpdates();
-                p.getEquipment().clear();
-                p.getEquipment().sendUpdates();
-            }
+            p.getStats().reset();
+            p.getInventory().clear();
+            p.getInventory().sendUpdates();
+            p.getEquipment().clear();
+            p.getEquipment().sendUpdates();
             p.getBank().clear();
             p.getBank().sendUpdates();
             p.getCombat().updateCombatLevel();
 
-            Sigil.reset(p);
             p.utc = Deadman.getUtc();
 
             p.sendMessage("A Tournament has just finished, we are now in the Lobby Phase.");
@@ -122,5 +71,41 @@ public class Lobby extends Stage {
     @Override
     public Tournament.StageName stageName() {
         return Tournament.StageName.LOBBY;
+    }
+
+    public String formatTimeLeft(long startTime, long duration) {
+        long targetTime = startTime + duration;
+        long timeLeftMs = targetTime - System.currentTimeMillis();
+
+        // If the duration has already passed
+        if (timeLeftMs <= 0) {
+            return "Expired";
+        }
+
+        // Convert milliseconds to total units
+        long totalSeconds = timeLeftMs / 1000;
+        long totalMinutes = totalSeconds / 60;
+        long totalHours = totalMinutes / 60;
+        long days = totalHours / 24;
+
+        // Calculate remainder portions for display
+        long seconds = totalSeconds % 60;
+        long minutes = totalMinutes % 60;
+        long hours = totalHours % 24;
+
+        StringBuilder sb = new StringBuilder();
+
+        if (days > 0) {
+            sb.append(days).append("d ");
+        }
+        if (hours > 0 || days > 0) {
+            sb.append(hours).append("h ");
+        }
+        if (minutes > 0 || hours > 0 || days > 0) {
+            sb.append(minutes).append("m ");
+        }
+        sb.append(seconds).append("s");
+
+        return sb.toString().trim() + " left";
     }
 }

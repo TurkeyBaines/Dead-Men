@@ -48,6 +48,9 @@ public class LinkDialogue implements Dialogue {
         player.getPacketSender().sendString(Interface.LINK_DIALOGUE, 4, description);
         player.getPacketSender().setHidden(Interface.LINK_DIALOGUE, 9, true);
         Config.CHATBOX_INTERFACE_USE_FULL_FRAME.set(player, 1);
+        // Stage 11 Round 2: same full-size varbit the make-x dialogue needs on rev 228 — see
+        // SkillDialogue.open()'s note (cs2 script113 sizes 162:566 small unless varbit 10670 = 1).
+        Config.CHATBOX_DIALOGUE_FULL_SIZE.set(player, 1);
         if (action != null)
             action.run();
     }
@@ -72,7 +75,10 @@ public class LinkDialogue implements Dialogue {
                         )
                 );
             };
-            h.closedAction = (player, integer) -> Config.CHATBOX_INTERFACE_USE_FULL_FRAME.set(player, 0);
+            h.closedAction = (player, integer) -> {
+                Config.CHATBOX_INTERFACE_USE_FULL_FRAME.set(player, 0);
+                Config.CHATBOX_DIALOGUE_FULL_SIZE.set(player, 0);
+            };
         });
 
     }

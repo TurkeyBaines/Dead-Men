@@ -1,5 +1,6 @@
 STAGE 10 — Player FX & zone FX live verification (and fixes)
-STATUS: NOT STARTED
+STATUS: IN PROGRESS — code pre-audit complete + 2 real bugs fixed 2026-07-13; pending human
+        live-test (run the TEST SCRIPT below). Compiles clean.
 DEPENDS ON: Stage 00; ideally after 02/03/05 so there's enough working gameplay to trigger FX.
 Follow the RULES in stages/README.txt.
 
@@ -15,9 +16,75 @@ B. Zone FX (Milestone 1, PacketSender.queueZonePayload + the six sends): project
 ## KNOWN BEST-EFFORT MAPPINGS TO WATCH (documented guesses, most likely to be wrong)
 - sendProjectile: legacy curve/something were mapped positionally onto RSProt angle/progress
   (PacketSender.java ~line 801). If arcs look flat/wrong, this is why.
+  RESOLVED 2026-07-13 (pre-audit round below): mapping CONFIRMED correct by data, no longer a
+  guess — Projectile.java's own real-RS-dumped arrow presets carry curve=15/idk=11, the canonical
+  OSRS angle/progress pair for that projectile family.
 - sendAreaSound: legacy type/distance mapped onto loops/range+dropOffRange (~line 847).
+  PARTIALLY RESOLVED 2026-07-13: type->loops and distance->range confirmed correct against
+  SoundArea.kt's KDoc (legacy packed byte was `distance << 4 | type` = radius nibble + loop-count
+  nibble; every live caller passes type>=1, and loops=0 would mean "never plays"). dropOffRange
+  was a REAL BUG, fixed — see PRE-AUDIT FINDINGS below.
 - Hitsplats push sourceIndex=-1 (no attacker tint) — ACCEPTED limitation, do not fix, just
   confirm damage numbers + hp bar render.
+
+## PRE-AUDIT FINDINGS (2026-07-13, agent round 1 — no live client this session)
+Audited every transmit-side mapping this stage owns against the osrs-228-model sources jar
+(MapProjAnim.kt, SoundArea.kt, MapAnim.kt, PlayerAvatarExtendedInfo.kt) plus the legacy callers
+(Projectile.java, Entity.publicSound, PlayerMovement.force, MapDirectionUpdate, HitsUpdate,
+ForceMovementUpdate, Direction). Two real bugs found and fixed, both in PacketSender.java:
+
+1. FIXED — sendProjectile passed sourceIndex = -1 as "no source". MapProjAnim's KDoc: 0 = no
+   source lock; players are -(index+1), NPCs are (index+1). So -1 actually meant "origin-locked
+   to the player at index 0" — every projectile in the game would have visually snapped its start
+   position to whichever player happens to hold index 0. Changed to 0. (targetIndex needed no
+   change: Projectile.java already encodes 0 / ±(index+1) — exactly RSProt's convention.)
+
+2. FIXED — sendAreaSound passed dropOffRange = distance (15). Per SoundArea.kt's KDoc,
+   dropOffRange is the SIZE of the sound's origin ("in most cases, this should be a value of 1";
+   larger = big-NPC footprint). 15 made the client treat the tile as the SW corner of a 15x15
+   even-volume box, destroying distance falloff. Changed to 1.
+
+Audited and confirmed CORRECT (no change made — do not "fix" these on a hunch):
+- setFaceAngle: MapDirectionUpdate's player mode already stores a real 0-2047 angle
+  (atan2 * 325.949 & 0x7ff).
+- setExactMove: legacy 184 is OSRS-era; PlayerMovement.force's teleport-first + negated-delta
+  convention is the same block semantics rev 228 uses. Delays are client cycles in both.
+  Direction.clientValue is a real 0-2047 angle (S=0, SW=256, SE=1792), not a 0-3 code.
+- addHitMark/addHeadBar: 7-arg addHeadBar(sourceIndex, selfType, otherType, startFill, endFill,
+  startTime, endTime) matches the call; hpBarRatio is already in per-type pixel units (30/100/
+  120/160), which is exactly RSProt's "pixels per headbar config" fill scale. sourceIndex=-1 IS
+  the documented "none" for hitmarks/headbars (unlike MapProjAnim, where none = 0).
+- setSequence/setSpotAnim/setSay/setMoveSpeed/setTempMoveSpeed: verified against KDoc tables;
+  1=walk/2=run/127=teleport all match.
+- MapAnim (sendGraphics): direct 1:1, delay in client cycles both sides.
+
+## TEST SCRIPT (human, next live session — in this order)
+1. Emote from the emote tab -> animation plays once (NOT repeating every 0.6s — a per-tick
+   replay means a setSent() path broke; see step 3 of STEPS).
+2. Attack an NPC with melee -> your attack animation plays; hitsplat + hp bar appear on the NPC
+   (Stage 09's bridge); when it hits you back, YOUR overhead hp bar + hitsplat render (this
+   stage's addHitMark/addHeadBar — expect NO attacker tint, that's accepted).
+3. Public chat -> overhead chat BUBBLE above your head (the chatbox line already works; the
+   bubble is what tests setChat).
+4. Toggle run on/off and move -> gait visibly changes (setMoveSpeed 1<->2).
+5. Cast a targeted combat spell or use a bow/thrown weapon at an NPC:
+   - projectile flies FROM you TO the target with a sane arc (angle/progress now confirmed
+     mappings; if the arc still looks wrong, suspect the specific spell's preset values, not
+     the transport),
+   - projectile ORIGIN comes from you, not from some other player (this is the sourceIndex=0
+     fix — before it, origin could snap to whichever player has index 0; single-player tests
+     may never have shown it),
+   - impact graphic renders on the target.
+6. Teleport (home/spellbook) -> tile/self graphic renders (sendGraphics/MapAnim + setSpotAnim)
+   and the teleport SOUND plays, audibly fading as you stand further away when someone else
+   teleports (the dropOffRange=1 fix; with a second account or a nearby NPC-triggered sound,
+   walk 10+ tiles away and confirm it's quieter/gone past ~15 tiles).
+7. Special attack with an audible weapon (e.g. dragon dagger) -> sound + gfx + anim together.
+8. If reachable: anything with forced movement (agility pipe/shortcut) -> smooth slide, correct
+   facing, no teleport-blink (setExactMove).
+For any failure: note exactly which row, and whether it's wrong-looking vs completely absent —
+absent points at the send path, wrong-looking at field values. PROTOCOL_DUMP.txt won't help here
+(these are all OUTGOING); console exceptions + what you see on screen are the evidence.
 
 ## STEPS
 1. Build a checklist run with the human (one session, ordered):
@@ -48,3 +115,26 @@ NPC-side FX (Stage 09). Weapon-specific idle/walk animation overrides (known TOD
 ## WRAP-UP
 Per README RULES #7. This stage closing means Milestones 1+2 from MIGRATION.txt are finally DONE
 — update their checkboxes in MIGRATION.txt too.
+
+## NOTES FROM OTHER STAGES
+- Stage 02 (2026-07-08): found and fixed a SECOND zone-coordinate bug in
+  `PacketSender.queueZonePayload`, on top of the 2026-07-07 `x & ~0x7` fix — that earlier fix was
+  necessary but not sufficient. `UpdateZonePartialEnclosed`'s `zoneX`/`zoneZ` fields are `UByte`
+  (0-255) and, per its KDoc's own worked example, are expected to be coordinates *relative to the
+  player's 104x104 build area origin*, not raw world-absolute tile coordinates — the doc's
+  "absolute, not shifted" wording only disambiguates from the divided-by-8 zone-index form, it does
+  NOT mean world-space. The code was passing `x & ~0x7` directly (a world-tile value, typically in
+  the low thousands), which silently truncated when narrowed to `UByte` and pointed every zone
+  packet at an essentially random wrong zone. Fixed by subtracting the player's own build-area
+  origin in tiles: `(x & ~0x7) - (player.buildAreaZoneX << 3)` (mirrors the already-proven-correct
+  `x - (p.buildAreaZoneX << 3)` pattern `RsProt.java` already uses for `SetNpcUpdateOrigin`).
+  **This affects all six `queueZonePayload` callers, i.e. everything in this stage's "Zone FX"
+  checklist (B)** — projectiles, graphics/MapAnim, area sounds, and object add/remove/animate all
+  had the same wrong-zone bug ground items did. If you're picking up this stage after Stage 02 is
+  merged, you should be testing against the FIXED coordinate math already — if zone FX still lands
+  in the wrong place, don't re-derive this fix, look for something else. If you're picking up this
+  stage BEFORE Stage 02 is merged, expect every item in checklist B to fail identically to how
+  ground items failed, for the same underlying reason.
+- Also ported `ObjDel` (ground-item removal) and `LocAnim` (object animation) — both previously had
+  no RSProt path at all. Not directly this stage's checklist, but if you were about to port either
+  yourself, they're already done.

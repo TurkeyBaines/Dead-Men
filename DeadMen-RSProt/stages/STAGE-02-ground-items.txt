@@ -1,5 +1,8 @@
 STAGE 02 — Ground items spawn, render, and despawn
-STATUS: NOT STARTED
+STATUS: DONE 2026-07-08, round 3 (code-complete, compiles; pending human live-test). Round 1
+(region-tracking) and Round 2 (queueZonePayload build-area-relative coordinate math) got items
+rendering; Round 3 fixed a missing "Take" option (ObjAdd's opFlags param was hiding all
+cache-defined right-click options). See HANDOFF.txt "STAGE 02" → "Round 3" for the full writeup.
 DEPENDS ON: Stage 00. Stage 01's BASELINE-FINDINGS.txt helps but isn't required.
 Follow the RULES in stages/README.txt.
 
@@ -67,3 +70,14 @@ their stage file, since all six sends share that helper).
 ## WRAP-UP
 Per README RULES #7. If you changed queueZonePayload itself, say so loudly in the HANDOFF note —
 Stages 07 and 10 assume its behavior.
+
+## NOTES FROM OTHER STAGES
+- Stage 01 (2026-07-08): live-verified this is STILL fully broken post the `x & ~0x7` coordinate
+  fix — neither admin-command spawn nor inventory-drop produced a visible ground item. So the
+  coordinate fix in VERIFIED FACTS #1 above was NOT sufficient by itself; treat hypothesis #3
+  (zone-resend timing) as the more likely remaining cause, not a fallback. Full evidence in
+  stages/BASELINE-FINDINGS.txt.
+
+## HUMAN LIVE-TEST CONFIRMATION (2026-07-08)
+Human confirmed on a real rev-228 client, after Round 3's opFlags fix: the "Take" option now
+appears on ground items and picking them up works correctly. Stage 02 is CONFIRMED DONE.

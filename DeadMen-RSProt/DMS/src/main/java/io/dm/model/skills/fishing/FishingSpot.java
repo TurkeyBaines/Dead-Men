@@ -3,7 +3,6 @@ package io.dm.model.skills.fishing;
 import io.dm.api.utils.Random;
 import io.dm.cache.ItemDef;
 import io.dm.deadman.Deadman;
-import io.dm.deadman.content.areas.overworld.OverworldTools;
 import io.dm.model.World;
 import io.dm.model.entity.npc.NPC;
 import io.dm.model.entity.npc.NPCAction;
@@ -79,9 +78,7 @@ public class FishingSpot {
             tool = FishingTool.DRAGON_HARPOON;
         }
 
-        if(player.getInventory().contains(new Item(tool.id)) ||
-                (Deadman.getOverworld().contains(player) && OverworldTools.hasTool(player, OverworldTools.Tool.FISHING) && OverworldTools.Tier.hasFishingTier(player, OverworldTools.Tool.FISHING, npc)) ||
-                (tool == FishingTool.HARPOON && hasDragonHarpoon(player))) {
+        if(player.getInventory().contains(new Item(tool.id)) || (tool == FishingTool.HARPOON && hasDragonHarpoon(player))) {
 
             FishingCatch lowestCatch = regularCatches[0];
 
@@ -121,7 +118,7 @@ public class FishingSpot {
         }
 
         Item secondary;
-        if(barehand || tool.secondaryId == -1 || OverworldTools.hasTool(player, OverworldTools.Tool.FISHING) && OverworldTools.Tier.hasFishingTier(player, OverworldTools.Tool.FISHING, npc)) {
+        if(barehand || tool.secondaryId == -1) {
             secondary = null;
         } else if((secondary = player.getInventory().findItem(tool.secondaryId)) == null) {
             player.sendMessage("You need at least one " + tool.secondaryName + " to fish at this spot.");

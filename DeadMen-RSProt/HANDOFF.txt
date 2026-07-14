@@ -689,3 +689,1296 @@ s.queue(new RebuildLogin(x>>3, z>>3, -1, xtea, player.playerInfo));
   behaviour — it gives whoever picks up Milestone 4's still-open items (equip/drop root cause, bank
   rendering) a permanent, greppable record of every click plus the real cache's interface shapes to
   check hypotheses against, instead of re-deriving it by hand or relying on console scrollback.
+
+## STAGE 01 — Baseline Live Capture & Triage (2026-07-08)
+- Confirmed `./gradlew :DMS:compileJava` still BUILD SUCCESSFUL before touching anything live.
+- Booted the server (IntelliJ run config for `io.dm.Server`) + RSProx + a real rev-228 client with
+  the human, and ran a full scripted click-through for the first time since the permanent
+  `NetworkLogger`/`CacheInterfaceDumper` diagnostics were added. **Both dump files had genuinely
+  never fired before this session** — confirmed by their absence prior to boot.
+- **Correction to README.txt/STAGE files: the dump files land in `DMS/`, not the repo root.**
+  `DMS:run`'s (and this session's IDE run config's) working directory is the `DMS/` module dir, so
+  `PROTOCOL_DUMP.txt`/`CACHE_INTERFACE_DUMP.txt` both write there. Anyone looking in
+  `DeadMen-RSProt/` directly for these files will find nothing.
+- Full findings, quoted `PROTOCOL_DUMP.txt` lines, and Cache228 component counts for interfaces
+  548/161/164/162/12/15/149/387 are all in `stages/BASELINE-FINDINGS.txt` — not duplicated here.
+- Headline results: login/movement/chat/commands/logout all confirmed working. Inventory item
+  clicks dispatch and resolve a handler (`actionFound=true`) but only examine (option 10) has any
+  visible effect — the bug is downstream of dispatch, inside the per-option action logic. Unequip
+  clicks arrive correctly (including components 17-22, outside the 6-16 access-mask range granted
+  at login — flagged for Stage 06) but never take effect. Object clicks walk the player there every
+  time but never fire the arrival action. Bank still doesn't render. Ground items still don't
+  render (neither spawn command nor drop) — meaning the 2026-07-07 zone-coordinate fix
+  (`x & ~0x7`) did NOT fully resolve Milestone 1 as THE_PLAN.txt hoped; needs fresh investigation.
+  NPCs correctly show nothing (out of scope, not wired yet, confirmed expected by the human).
+  **New finding, corrects prior claims: inventory drag-reorder now works live** — contradicts the
+  "drag-reorder ... same symptom class as equip/drop" note in this file's own Round 1 section
+  above; that claim is now stale.
+- A `MovementFixes.class` static-initializer crash appears in every boot log
+  (`ObjectAction.register` NPE) — flagged to the human, who confirmed it's unrelated pre-existing
+  breakage from their own earlier work, not part of this migration. Do not chase it as part of
+  Stage 07.
+- No fixes applied this stage (by design — Stage 01 is pure data collection). Per-stage
+  `NOTES FROM OTHER STAGES` additions made to Stages 02, 04, 05, 06, 07, 08, and 11's own files —
+  see `stages/BASELINE-FINDINGS.txt`'s own "NOTES FROM OTHER STAGES" section for the full list;
+  not duplicating each one here.
+
+## STAGE 02 — Ground items spawn, render, and despawn (2026-07-08)
+- **Root cause found, deeper than the 2026-07-07 zone-coordinate fix: RSProt players were never
+  added to any `Region`'s `players` list at all.** `GroundItem.sendAdd()`/`sendRemove()` (and, it
+  turns out, several other systems — see below) loop over `tile.region.players` to decide who to
+  send a packet to. That list is populated ONLY by `Player.addRegion()`, which itself was ONLY ever
+  called from the legacy `PacketSender.sendRegion()` (packets 66/71, a wire format the rev-228
+  client doesn't speak and RSProt sessions never trigger). Net effect: for every RSProt player,
+  every `Region` they were ever "in" had zero entries for them, so `GroundItem.sendAdd()`'s loop
+  matched nobody and never even called `sendGroundItem()` — independent of whether the packet was
+  ported correctly or the zone coordinates were right. This fully explains Stage 01's live-tested
+  "still completely broken after the x&~0x7 fix" finding.
+- **Fix applied in `RsProt.java`:** added `syncRegionTracking(Player, zoneX, zoneZ)`, a private
+  static helper that mirrors the region-grid math from legacy `PacketSender.sendRegion()`'s
+  regular-map branch (chunk/zone are both 8-tile units; `depth=6` matches `CLIENT_SIZE>>4`) but
+  skips building the legacy OutBuffer packet — it just calls `player.removeFromRegions()` then
+  `player.addRegion(region)` for every 64x64-tile `Region` overlapping the player's current 13x13
+  zone viewport, then calls `Region.update(player)` (the existing legacy method that resends ground
+  items + custom objects for every active tile in the player's tracked regions — already correct,
+  just never reached because the region list was always empty). Called from two places: `doLogin()`
+  right after `setBuildAreas()` (so a fresh login picks up anything already on the ground nearby),
+  and `maybeRebuildRegion()` right after it sends `RebuildNormal` (so walking into a new area
+  resyncs ground items/objects for the newly-loaded zones — this is what makes the "walk away, walk
+  back, item still there" test-script point work, since the client's own scene gets rebuilt on
+  `RebuildNormal` and needs the resend to repopulate it).
+- **Ported `ObjDel` for `sendRemoveGroundItem`** (previously had NO RSProt path at all — silently
+  fell through to the legacy `sendMapPacket`, which no-ops for RSProt's null Netty channel).
+  Constructor `ObjDel(id, quantity, xInZone, zInZone)` verified directly against the
+  `osrs-228-model` sources jar, same pattern as every other zone payload. This also matters for the
+  new `syncRegionTracking`/`Region.update()` path above: `Tile.update()` sends a remove-then-add
+  pair to resync each ground item, so without `ObjDel` ported, every resync would have thrown an
+  extra silently-dropped removal instead of round-tripping cleanly.
+- **Ported `LocAnim` for `sendObjectAnimation`** while in the same file with the same sources jar
+  open (flagged as cheap-to-add-in-passing by the stage brief, not a Stage 02 requirement) —
+  `LocAnim(id, xInZone, zInZone, shape, rotation)`, same `type`/`dir` → `shape`/`rotation` mapping
+  already used by `sendCreateObject`/`sendRemoveObject`.
+- **Broader impact discovered, flagged to other stages, not fixed here (out of this stage's
+  scope):** `tile.region.players` is also the send-target list for `GameObject.spawn()`/`setId()`
+  (dynamic object add/remove — e.g. a chopped-down tree, an opened door's object swap),
+  `Door.java`'s direct object-update send, `WildernessObelisk.java`, and `MotherlodeMine.java`. All
+  of these were equally broken for RSProt players before this fix and should now work once
+  `syncRegionTracking` is populating `Region.players` correctly — added a note to
+  `stages/STAGE-07-object-interactions.txt` so whoever picks that stage up doesn't misattribute a
+  now-fixed rendering gap to their own in-progress work.
+
+### Round 2 (same day) — human reported "ground items still do not work in any capacity"
+- **Found and fixed a SECOND, independent root cause — the region-tracking fix above was necessary
+  but not sufficient.** Re-examined `PacketSender.queueZonePayload` (the shared helper behind all
+  six zone-scoped sends) against `UpdateZonePartialEnclosed`'s actual field types in the sources
+  jar, not just its KDoc prose: `_zoneX`/`_zoneZ` are declared `UByte` (0-255). The KDoc's worked
+  example — "player at absolute coordinate of 50, 40 *within the build area (104x104)*" — makes
+  clear that "absolute, not shifted" only disambiguates from the divided-by-8 zone-index form; the
+  coordinate itself is still relative to the player's 104x104 build-area origin, not the world's
+  absolute tile grid. The 2026-07-07 fix (`x & ~0x7`) removed the wrong shift but never subtracted
+  the build-area origin, so it was still passing a raw world-tile value (typically in the low
+  thousands) into a field that silently truncates mod 256 — e.g. world zone-corner 3216 truncates
+  to 144, still outside the valid 0-104 window. Every zone-scoped packet was landing on an
+  effectively arbitrary wrong zone, independent of the region-tracking bug above; both had to be
+  fixed for anything to render.
+- **Fix applied in `PacketSender.queueZonePayload`:** `x & ~0x7, y & ~0x7` →
+  `(x & ~0x7) - (player.buildAreaZoneX << 3), (y & ~0x7) - (player.buildAreaZoneZ << 3)`. This
+  mirrors a transform already proven correct elsewhere in this exact codebase —
+  `RsProt.driveUpdate()`'s `SetNpcUpdateOrigin(x - (p.buildAreaZoneX << 3), z - (p.buildAreaZoneZ
+  << 3))` — and, worked through by hand for a player near their build-area centre, reproduces the
+  KDoc's own example numbers (48) almost exactly, which is a strong sanity check that this reading
+  of the doc is the correct one.
+- **Because this is the same shared `queueZonePayload` helper, this fix applies to all six
+  zone-scoped sends at once** — ground items, object add/remove/animate, projectiles, graphics, and
+  area sounds. Flagged prominently in `stages/STAGE-10-player-fx-verification.txt` (which owns
+  live-verifying projectiles/graphics/area sounds) and added a follow-up note to
+  `stages/STAGE-07-object-interactions.txt` (dynamic object add/remove uses the same helper).
+
+### Round 3 (same day) — human confirmed items now render, but missing "Take" option
+- **Third bug, independent of the two above: `sendGroundItem`'s `ObjAdd` call passed the wrong
+  meaning for its 5th argument.** A pre-existing comment labelled it `ownershipType`, but the 5-arg
+  JVM-helper constructor `ObjAdd(id, quantity, xInZone, zInZone, opFlags: Byte)` has no
+  `ownershipType` parameter at all (that only exists on the full 9-arg constructor, where the 5-arg
+  one hardcodes it to 0 internally). The 5th slot is actually `opFlags` — per RSProt's own
+  `OpFlags` helper object (`osrs-228-model` sources jar), this is a per-option SHOW/HIDE bitmask for
+  the item's 5 cache-defined right-click options, and `(byte) 0` = `OpFlags.NONE_SHOWN` = hide all
+  of them. The item rendered fine (both Round 1 and Round 2 fixes were correct and necessary) but
+  its context menu fell back to client-only defaults (Walk here / Examine / Cancel) since every
+  cache-defined option — including "Take" — was explicitly told to stay hidden.
+- **Fix applied in `PacketSender.sendGroundItem`:** `(byte) 0` → `OpFlags.ALL_SHOWN` (`-1`, "show
+  all 5 op slots"). Corrected the misleading comment alongside it.
+- **Sibling bug NOT fixed, flagged for Stage 07 instead:** `sendCreateObject`'s `LocAddChangeV2`
+  call has the exact same `(byte) 0` opFlags bug with the same kind of stale comment. Left alone
+  because it's out of Stage 02's ground-items scope — it only affects dynamically-added/changed
+  objects (`GameObject.spawn()`, e.g. a door's swapped-in open-state object), not the static
+  cache-baked objects most of the world is made of. Full note in
+  `stages/STAGE-07-object-interactions.txt`.
+- **Status: code-complete, compiles clean (`./gradlew :DMS:compileJava`, 2026-07-08). NOT yet
+  live-client-tested** — no client/RSProx available in this session. Next step: run the TEST SCRIPT
+  in `stages/STAGE-02-ground-items.txt` (spawn at feet, pick up, spawn+walk-away+walk-back, spawn+
+  remove) against a real rev-228 client.
+## STAGE 03 — NPC spawning (2026-07-08)
+- **Goal:** NPCs (Lumbridge spawns etc.) never rendered to a rev-228 client at all. Root cause
+  (already diagnosed in `stages/STAGE-03-npc-spawning.txt` before this session started): per-player
+  `NpcInfoProtocol` was wired (alloc'd at login, driven every tick), but nothing ever allocated a
+  global `NpcAvatar` for any server-side `NPC` — `NpcInfoProtocol` can only report NPCs that have an
+  avatar; with none allocated, the outgoing NPC-info packet was permanently empty.
+- **API (from `osrs-228-model`'s sources jar + `javap` on `osrs-228-api`):**
+  `NetworkService.getNpcAvatarFactory()` → `NpcAvatarFactory`. `.alloc(index, id, level, x, z,
+  spawnCycle, direction, priority, specific)` → `NpcAvatar` (only index/id/level/x/z/direction are
+  passed here; spawnCycle=0, priority/specific left at their `@JvmOverloads` defaults). `.release
+  (avatar)` frees it back to the pool. `NpcAvatar.teleport(level,x,z,jump)` / `.walk(deltaX,deltaZ)`
+  (single-tile only, -1..1, not both 0) drive position; `.setInaccessible(boolean)` hides/shows
+  without deallocating. `Direction.ordinal()` (this codebase's own enum) already matches RSProt's
+  0-7 NPC direction table exactly — verified by reading both tables side by side, no translation
+  needed.
+- **Implementation:** `NPC.java` gained a public `NpcAvatar rsprotAvatar` field. `spawn()` calls the
+  new `RsProt.allocNpcAvatar(this)` right after indexing (keeps avatar index == server NPC index ==
+  the index `OpNpc` clicks already reference — required so clicking isn't broken). `remove()` calls
+  the new `RsProt.deallocNpcAvatar(this)` before freeing the world-list slot. A new `NPC.setHidden()`
+  override bridges to `rsprotAvatar.setInaccessible(hidden)` — important because this codebase's
+  actual death/respawn flow (`NPCCombat.java` lines ~294-319) toggles `setHidden(true)`/`setHidden
+  (false)` and repositions back to `spawnPosition`, it does NOT call `remove()`/`spawn()` again for a
+  respawn (only a truly permanent kill, `respawn_ticks < 0`, calls `remove()`). Without this override,
+  respawning NPCs would still count as "allocated" but the client would never learn they're visible
+  again.
+  `RsProt.java` gained a `npcAvatarFactory` field (set in `start()`, alongside the other protocol
+  getters), the `allocNpcAvatar`/`deallocNpcAvatar`/`pushNpcMovement` static methods, and a new step
+  2b in `driveUpdate()` (right before `npcInfoProtocol.update()`, mirroring where step 0's player-mask
+  bridge runs relative to `playerInfoProtocol.update()`) that calls `pushNpcMovement` for every NPC
+  with a non-null avatar.
+- **Bootstrap-ordering gotcha found and handled:** all of this codebase's NPC spawns
+  (`npc_spawns.java` etc.) run during data loading on the main thread, which happens BEFORE
+  `RsProt.start()` (`Server.java`: data load ~150-200, `RsProt.start()` at 214) — so every boot-time
+  NPC's own `spawn()`-time `allocNpcAvatar()` call is a guaranteed no-op (`npcAvatarFactory` is still
+  null at that point). Handled with a one-time catch-up pass at the end of `start()`, once
+  `npcAvatarFactory` is actually assigned: walks `World.npcs.entityList` directly (the raw backing
+  array, not the indexed/scrambled iterator — mirrors `SpawnListener.forEach`'s own "server hasn't
+  ticked yet" comment for the same reason) and allocs every already-spawned NPC. Marshalled onto
+  `Server.worker` via `Server.worker.execute(...)` for thread affinity, matching the existing
+  `onLogout`/`doLogin` precedent elsewhere in this file. Any NPC spawned dynamically after boot goes
+  through the normal `spawn()` path and gets its avatar immediately, since the factory already exists
+  by then.
+- **Movement:** teleport-by-default with a walk-step fast path, per the stage brief's own suggested
+  approach. `pushNpcMovement()` diffs the avatar's last-pushed tile (`avatar.x()/z()/level()`)
+  against the NPC's current tile every cycle: an ordinary single-tile step (the common case —
+  `NPCMovement.process()` moves at most 1 tile per axis per cycle for a plain random-walk NPC) calls
+  `avatar.walk(deltaX, deltaZ)` so it animates instead of blinking; anything bigger (a level change,
+  >1 tile in one cycle — e.g. a forced 2-tile run step, or the position reset on respawn) falls back
+  to `avatar.teleport(level, x, z, jump=true)`. The forced-run case could be upgraded later (two
+  same-cycle `.walk()` calls instead of a teleport, per `NpcAvatarDetails`' own auto-run-promotion
+  logic) if it looks bad in live testing — not attempted this round, out of scope per the stage's own
+  "NPC pathfinding quality" non-goal.
+- **Deliberately NOT done, left for Stage 09 (its explicit dependency):** no `NpcAvatarExtendedInfo`
+  bridging at all — no animations, graphics, hitsplats, transforms, or overhead icons for NPCs. The
+  existing per-NPC mask fields (`animationUpdate`, `hitsUpdate`, `transformUpdate`, etc., set up in
+  `NPC.init()`) are untouched; Stage 09 should mirror `RsProt.pushMaskUpdates(Player)` for NPCs,
+  reading those same masks and writing to `npc.rsprotAvatar.extendedInfo`'s setters.
+  `TransformUpdate` (NPC-only — the one mask class Milestone 2's player bridge explicitly skipped)
+  will actually get used there, likely via `NpcAvatar.setId(id)` plus whatever `NpcAvatarExtendedInfo`
+  exposes for transform blocks — not looked up this round, check the sources jar.
+- **Status: code-complete, compiles clean (`./gradlew :DMS:compileJava`, 2026-07-08). NOT yet
+  live-client-tested** — no client/RSProx available in this session. Next step: run the TEST SCRIPT in
+  `stages/STAGE-03-npc-spawning.txt` (NPCs visible at Lumbridge login, a wandering NPC visibly moves
+  over 30s, right-clicking one shows working options and logs an `OpNpc` line in
+  `PROTOCOL_DUMP.txt`, death/respawn and walking two regions away and back both look correct with no
+  ghosts/duplicates) against a real rev-228 client.
+
+## STAGE 03 follow-up — NPCs spawn but don't wander (2026-07-08)
+- Human live-tested Stage 03: NPCs now render and are visible at Lumbridge (the avatar-allocation fix
+  worked), but no NPC ever wandered.
+- **Root cause:** `NPC.isRandomWalkAllowed()` gates random walking on `localPlayers().size() != 0`.
+  That list is only ever populated by `PlayerNPCUpdater.process()` calling `npc.addPlayer(player)`,
+  and `CoreWorker.update()` only calls `player.getNpcUpdater().process()` for players with
+  `getSession() == null` — i.e. never for RSProt-connected players. So no RSProt player was ever
+  added to any NPC's local-player list, the wander gate never opened, and (as an unavoidable side
+  effect of the same gap) every other consumer of `npc.localPlayers()`/`localNpcs()` — combat
+  aggro/targeting, boss scripts, drop-message broadcasts — was equally starved for RSProt players.
+- **Fix:** new `PlayerNPCUpdater.syncLocalNpcs()` extracts just the local-list add/remove membership
+  logic (same distance/hidden checks as `process()`'s Local/Global sections) with none of the legacy
+  `OutBuffer` packet-building — RSProt's own `NpcInfoProtocol` already decides what the client
+  actually sees; this method only maintains the game-logic-side "who's local to whom" bookkeeping.
+  Wired into `RsProt.driveUpdate()` as a new step (right after the existing Milestone-2 mask bridge,
+  before position sync) that calls `p.getNpcUpdater().syncLocalNpcs()` for every online RSProt player.
+  `PlayerNPCUpdater.process()` (the legacy path, still used for AI bots) is untouched.
+- **Status: code-complete, compiles clean (`./gradlew :DMS:compileJava`, 2026-07-08).** Not yet
+  re-tested live. Next: confirm a wandering NPC actually moves now, and — as a bonus check outside
+  this stage's formal scope — that an aggressive NPC engages a nearby player (same root cause).
+
+## STAGE 04 — Main (modal) interfaces open (2026-07-08)
+- **Root cause confirmed: `InterfaceType.java`'s fixed-frame component slots were stale 184-era
+  values, never re-audited for 228 — exactly the prime suspect the stage brief already named.**
+  Got authoritative 228 ground truth by fetching AlterRSPS's real `InterfaceDestination.kt` directly
+  from `github.com/AlterRSPS/Alter` (`game-api/src/main/kotlin/org/alter/api/InterfaceDestination.kt`)
+  — the same source `RsProt.java`'s `FIXED_FRAME_PANES` table was already built from, so this is a
+  primary, rev-228-targeting reference, not a guess. Its `getDisplayComponentId()` confirms parent
+  ids 548 (fixed) / 161 (resizable) / 164 (resizable-list) match this codebase's own parent-id scheme
+  exactly, so every slot number below maps straight across with no translation needed.
+- **Fixed in `InterfaceType.java`** (old value -> new value, all fixed/resize/resizeList triples):
+  - `MAIN` (bank, smithing, scrolls, etc. — the acid-test type): 548:21/161:13/164:13 ->
+    548:9/161:16/164:16, per AlterRSPS's `MAIN_SCREEN` destination.
+  - `INVENTORY` / `INVENTORY_OVERLAY` (bank's own deposit-view, trade, shops, world switcher, etc.):
+    548:64/161:66/164:66 -> 548:83/161:79/164:75, per AlterRSPS's `INVENTORY` destination — this one
+    is independently corroborated by `RsProt.java`'s own `FIXED_FRAME_PANES` table, which already has
+    `{149, 83}` for the inventory tab itself; the two sources agree.
+  - `SOCIAL_TAB` (friends/ignore list): 548:75/161:77/164:77 -> 548:89/161:85/164:81, per AlterRSPS's
+    `SOCIAL` destination (also corroborated by `FIXED_FRAME_PANES`' own `{429, 89}` entry).
+  - `WORLD_MAP`: 548:22/161:14/164:14 -> 548:42/161:18/164:15, per AlterRSPS's `WORLD_MAP` destination
+    (a separate `WORLD_MAP_FULL` destination also exists at fixed=27, but it's marked
+    `clickThrough=false` + `@TODO` in AlterRSPS's own source and doesn't match how `MainFrame.java`
+    uses this type — `WORLD_MAP` is the correct pick).
+- **Deliberately NOT touched: the six legacy multi-overlay types** (`WILDERNESS_OVERLAY`,
+  `UNUSED_OVERLAY1/2`, `SECONDARY_OVERLAY`, `PRIMARY_OVERLAY`, `TARGET_OVERLAY`, `POH_LOADING`).
+  AlterRSPS's `InterfaceDestination` has no discrete per-slot equivalent for these — only one generic
+  `OVERLAY` destination (interfaceId=651, fixed=43). Reassigning six distinct slots to one shared
+  value on a hunch risks the same mistake this project has explicitly warned against twice already
+  for `Interface.BANK`/`BANK_INVENTORY` (see Milestone 4 Round 2's retraction). Left as-is, flagged
+  with a code comment pointing at the stage brief's `::modaltest` empirical-sweep approach if any of
+  these are ever reported broken live.
+- **Out-of-scope discovery, not fixed:** three sidebar tab handlers hardcode interface-548 child ids
+  directly, bypassing `InterfaceType` entirely — `TabPrayer.java` (`sendInterface(77, 548, 71, 1)` /
+  `sendAccessMask(548, 52, -1, -1, 2)` for the quick-prayer selector), `TabCombat.java`
+  (`childId = parentId == 548 ? 66 : 68` for the attack-style bar), and `TabJournal.java`
+  (`sendInterface(interfaceId, 548, 68, 1)`). These are internal components of already-open sidebar
+  tabs, not modal-swap destinations, so they're outside this stage's MAIN-interface scope — noted in
+  `stages/STAGE-04-main-interfaces.txt`'s NOTES FROM OTHER STAGES for whoever picks up quick-prayers/
+  attack-style/quest-journal bugs next.
+- **Status: code-complete, compiles clean (`./gradlew :DMS:compileJava`, 2026-07-08).** Not yet
+  live-client-tested this round — no client/RSProx available in this session. Next step: run this
+  stage's TEST SCRIPT (open bank via `::bank`, confirm it renders centered with the inventory-side
+  view populated, close it, open one more MAIN-type interface, confirm smelting chatbox still works).
+  If the bank still doesn't render after this slot fix, the next real step is either an RSProx
+  packet capture of a real 228 client's bank-open sequence, or building a proper Cache228
+  interface-config reader — do not guess at `Interface.BANK`/`BANK_INVENTORY` group ids further.
+
+## Bank settings-button child-id offset (2026-07-08, post-Stage-04 live test)
+- **Human live-tested the bank after Stage 04's fix — it opens and stores items correctly now, but
+  reported the withdraw-as-note toggle and quantity buttons (1/5/10/X/All) all behave one option
+  off from what's clicked** (e.g. clicking "Quantity: 1" visually swaps to "5"; clicking "10" opens
+  the numeric-input popup meant for "X"). Rearrange mode's Insert/Swap toggle was NOT affected.
+- **Root cause confirmed via the human's own PROTOCOL_DUMP-style capture of each button press**:
+  every settings-button child id in this row arrives exactly **+2 higher** than `Bank.java`'s
+  184-era numbering assumed — `Config.BANK_DEFAULT_QUANTITY`'s handlers were registered at children
+  28/30/32/34/36, but the real 228 client sends 30/32/34/36/38 for the same five buttons (confirmed
+  directly for 1/5/10 = children 30/32/34; X/All extrapolated by the same consistent +2, not
+  individually click-tested). Same story for withdraw-as-note: registered at 22/24, real children
+  are 24/26 (Note=26 confirmed live; Item=24 extrapolated). Rearrange mode's Insert/Swap (17/19) was
+  untouched because 19 already matched the live capture exactly — that pair was correct all along.
+- **Fix applied in `Bank.java`'s static `InterfaceHandler.register(Interface.BANK, ...)` block**:
+  shifted every settings-button handler up by 2 (22->24, 24->26, 28->30, 30->32, 32->34, 34->36,
+  36->38, 38->40 for the placeholders toggle, which had to move to stay clear of the now-relocated
+  "All" quantity handler at 38). Comment added in-code flagging that Item(24)/X(36)/All(38)/
+  placeholders(40) are extrapolated from the confirmed pattern, not individually live-tested —
+  re-verify all four on the next pass.
+- **Not investigated / left as-is**: the "Swap mode visually reverts to Insert" symptom. `Config
+  .BANK_INSERT_MODE` is varbit 3959 (looks like a genuine modern-OSRS id, not a 184 placeholder), so
+  this is more likely a side-effect of the human's testing sequence getting confused by the
+  now-fixed offset bug above than a separate root cause — re-test after this fix before chasing it
+  as its own bug.
+- **Status: code-complete, compiles clean (`./gradlew :DMS:compileJava`, 2026-07-08).** Not
+  re-tested live this round (no client/RSProx in this session). Next: re-test all five quantity
+  buttons, both withdraw-as-note options, and rearrange mode on a real client.
+- **Also reported the same live-test session, NOT yet investigated**: chatbox "choose option"
+  dialogues render their options but clicking one doesn't close the box, Make-X's on-screen buttons
+  do nothing (the numeric keypad/text-entry itself works), and most chatbox windows require an
+  unrelated interaction (walking/teleporting) to dismiss. This overlaps with Stage 11's existing
+  "choose-option background missing" note but is evidently broader than a cosmetic issue — options
+  not being clickable/closeable suggests the same access-mask-or-child-id class of bug as the bank
+  fix above, applied to the chatbox continue/options widget family (likely interface 162's own
+  children, or the per-dialogue interfaces it opens). Not started; flagging for whoever picks up
+  chatbox interfaces next (Stage 11, or a new dedicated pass).
+
+## Bank rearrange-mode Insert child-id fix (2026-07-08, follow-up)
+- Human re-tested after the settings-row offset fix above: Swap worked, but Insert still didn't
+  stick ("just swaps back to Swap"). Confirmed via live console capture that Insert and Swap are NOT
+  symmetric 2 apart as the 184-era code assumed (17/19) — Swap is genuinely child 19, but Insert is
+  child **21**, not 17. `Bank.java`'s `h.actions[17]` moved to `h.actions[21]`; `h.actions[19]`
+  (Swap) unchanged. Compiles clean. Not yet re-tested live this round.
+
+## STAGE 05 — Inventory item actions execute (2026-07-08)
+- **Real bug found and fixed in `TabInventory.click`** (`DMS/src/main/java/io/dm/model/inter
+  /handlers/TabInventory.java`): the option-index bounds check (`int i = option-1; if(i<0||i>=5)
+  return;`) fired and returned BEFORE the `option == def.dropOption` / `option == def.equipOption`
+  comparisons. Since `dropOption`/`equipOption` are computed by `ItemDef.getOption(...)` (`DMS/src
+  /main/java/io/dm/cache/ItemDef.java:500-511`), which can only ever return a value in `[1,5]` or
+  `-1`, this early return could never have actually protected a genuine drop/equip match — but it
+  DID unconditionally discard any received `If3Button` option outside `1-5` (e.g. the whip's
+  observed `option=7` from `stages/BASELINE-FINDINGS.txt`) before those comparisons ever ran. Fixed
+  by moving the `i<0||i>=5` bounds check to guard only the `actions[i]` custom-action lookup, so
+  `option==def.dropOption`/`option==def.equipOption` are now always reachable regardless of `i`'s
+  range. Compiles clean (`./gradlew :DMS:compileJava`).
+- **Root cause of the whip's specific symptom (op=3 dispatches, does nothing; op=7 dispatches, did
+  nothing pre-fix) is NOT conclusively identified** — no live client was available this session to
+  correlate real `def.dropOption`/`def.equipOption`/`def.inventoryOptions` values against the
+  received options. `def.dropOption`/`def.equipOption` are both derived from the LEGACY (184) cache
+  (`Server.fileStore`, via `ItemDef.load()` at `ItemDef.java:60`), not Cache228, so a mismatch
+  between the two caches' option string tables/positions remains the leading hypothesis per this
+  stage's own "PRIME UNTESTED HYPOTHESIS" section — not disproven, just not yet directly observed.
+- **New diagnostic added, not yet exercised live**: `NetworkLogger.logItemOptionMismatch(...)`
+  (`DMS/src/main/java/io/dm/network/logging/NetworkLogger.java`) appends a line to
+  `PROTOCOL_DUMP.txt` (`packet=ItemOptionMismatch`) whenever `TabInventory.click` can't resolve an
+  option — covers the `isLocked()` early-return (`reason=locked`), the `inventory.get(slot,itemId)`
+  null case (`reason=slot/id mismatch`), and the final unhandled-option fallthrough
+  (`reason=unhandled`, includes `dropOption`/`equipOption`/`inventoryOptions` for direct comparison
+  against the received `option`). This directly answers this stage's own STEP 2 without needing a
+  separate temp diagnostic pass — the next live test's `PROTOCOL_DUMP.txt` will show the real
+  dropOption/equipOption values for whatever item is clicked, settling the cache-mismatch hypothesis
+  one way or the other.
+- **Confirmed an existing Cache228-reading pattern already exists and could back a proper Cache228
+  ItemDef reader if the mismatch hypothesis is confirmed**: `RsProt.start()` already opens a
+  `FileStore` pointed at `Cache228/cache` for the JS5 loader, using the same `io.dm.api.filestore
+  .FileStore`/`IndexFile` API `ItemDef.load()` uses against the legacy store — reusing `ItemDef
+  .decode()` against that second `FileStore` instance (same archive 2 / group 10 convention) would
+  not be a from-scratch effort. Not built this round — flagged as the likely next step only if the
+  new diagnostic logging confirms a real cache-option mismatch, per this stage's own guidance not to
+  build a Cache228 reader speculatively.
+- **Test procedure for the next live session**: spawn a weapon (e.g. item 4151 again for direct
+  comparison), click each non-examine option, then check `PROTOCOL_DUMP.txt` for either a normal
+  dispatch (drop/equip fired, should now visibly work) or an `ItemOptionMismatch` line (gives exact
+  dropOption/equipOption/inventoryOptions to compare against the received option). Also test food
+  (Eat) and bones (Bury) — untested this round, no reason to suspect they differ from the whip case
+  but not yet confirmed either way.
+- **Status: IN PROGRESS, not DONE.** One confirmed-real bug fixed; the human-reported symptom
+  (wield/drop don't work) may or may not be fully resolved by it alone — needs a live retest with
+  the new diagnostics before this stage can be marked DONE. Findings apply directly to Stage 06
+  (unequip, same `dropOption`/`equipOption`-style cache lookup pattern likely present in
+  `TabEquipment.itemAction`) and Stage 08 (item-on-item option resolution) — flagged in their stage
+  files below.
+
+## STAGE 05 — Inventory item actions execute, Round 2 (2026-07-08)
+- **Cache-mismatch hypothesis DISPROVEN, not confirmed.** Built the Cache228 reader flagged above:
+  `RsProt.cache228` (new public static field, `RsProt.java` `start()`) exposes the previously
+  local-only Cache228 `FileStore`; `ItemDef.decodeStandalone(int, byte[])` (`ItemDef.java`) reuses
+  `ItemDef`'s own private byte-parser against arbitrary bytes; new `Cache228ItemDefs.java`
+  (`DMS/src/main/java/io/dm/cache/`) lazily decodes an item straight from Cache228 (archive 2,
+  group 10 — same convention as the legacy reader). Live-tested against item 4151: Cache228 and the
+  legacy cache report **byte-identical** `inventoryOptions` content and order
+  (`[null, Wield, null, null, Drop]`, `dropOption=5 equipOption=2` both readers agree). Neither
+  matched the real client's sent options (3 and 7) — so the bug was never about cache content
+  disagreeing between revisions. Keep `Cache228ItemDefs` (it's cheap, correct, and may matter for a
+  genuinely different item's content later) but the root cause was elsewhere.
+- **Real root cause found: the real 228 client's op-numbering for inventory options is not
+  "array index + 1" at all — legacy 184 assumption, wrong for 228.** Confirmed live on two items
+  (2026-07-08): whip (`opts=[null,Wield,null,null,Drop]`: Wield index1->op3, Drop index4->op7) and
+  Armadyl godsword (`opts=[null,Wield,Dismantle,null,Drop]`: Wield index1->op3, Dismantle
+  index2->op4, Drop index4->op7 — **same op7 as the whip's Drop** despite an extra populated slot
+  ahead of it, which rules out any "count of populated slots before this one" content-dependent
+  formula tried earlier in this same session). The data fits a purely positional rule: raw slots
+  0-3 map to `op = index + 2`; raw slot 4 (conventionally "Drop") is a fixed `op = 7` — the same
+  idea as Examine already being a hardcoded `op = 10` regardless of array length, just one slot
+  earlier. Indices 0 and 3 are still UNCONFIRMED — no tested item has ever populated them; if a
+  future item's option at index 0 or 3 doesn't fire, that's this formula's next thing to check.
+- **Found and fixed a second, more severe bug this same investigation surfaced: the human's own
+  live edit had left the custom `actions[]` lookup using the UNCORRECTED `option-1` as a raw array
+  index.** This is what actually caused "Wield dismantled the item" — the godsword's Wield click
+  sent `option=3` (`option-1=2`), and raw index 2 happens to be exactly where "Dismantle"'s custom
+  `ItemAction` is registered, so it fired by pure numeric coincidence, before the code ever reached
+  the equip check. Fixed by adding `resolveRawIndex(int option)` (`TabInventory.java`, reverses the
+  formula above back to a raw index) and using its result consistently for the `actions[]` lookup,
+  the drop check, and the equip check — all three now agree on which raw slot was actually clicked,
+  so this exact class of coincidental collision can't recur for other items/slots.
+- **Verified live, in order, on the Armadyl godsword**: Wield (op3) now resolves to raw index 1;
+  Dismantle (op4) now resolves to raw index 2 (previously stolen by the Wield click); Drop (op7)
+  resolves to raw index 4. Not yet re-tested after this exact fix landed (this round's live session
+  ended right after the bug was root-caused) — **next live test should confirm all three actually
+  fire their correct action now**, not just resolve to the correct index.
+- **Debug instrumentation still live in `TabInventory.click`** (the human's own `sendFilteredMessage`
+  calls, kept and updated to print `rawIndex`/`dropIndex`/`equipIndex`/`opts` instead of the stale
+  `i`/`dropOption`/`equipOption` fields) — intentionally left in per this stage's iterative
+  live-testing pattern; strip once Stage 05 is confirmed DONE and stable (Stage 11's job, see its
+  own notes on stripping temp diagnostics).
+- **Status: IN PROGRESS, not DONE.** Formula confirmed on 2 items / 3 non-Drop data points total;
+  indices 0 and 3 unconfirmed; the `actions[]` fix itself unconfirmed live post-fix. Do not mark
+  Stage 05 or 06 DONE until a live retest confirms wield/dismantle/drop/equip/unequip all actually
+  execute, not just resolve to a plausible index. This formula is the load-bearing fact for Stage
+  06 (unequip, likely the exact same op-numbering bug in `TabEquipment.itemAction`) and Stage 08
+  (item-on-item) — both should reuse `resolveRawIndex`'s logic rather than re-deriving it.
+
+## STAGE 05 — Inventory item actions execute, Round 3 (2026-07-08)
+- **New, separate gap reported by the human: some items show no "Use" option at all** (Armadyl
+  hilt 11810, godsword blade 11798, coins 995), while most items do. Confirmed via grep that no
+  Java code sets "Use" text anywhere — it must be literal per-item cache text, same mechanism as
+  "Wield"/"Drop"/"Dismantle" — so this is a cache-content or cache-reading question, not a dispatch
+  bug like Bugs 1-3 above.
+- **Built `ItemOptionDumper`** (`DMS/src/main/java/io/dm/cache/ItemOptionDumper.java`, new; wired
+  into `Server.java` right after `RsProt.start()` returns since it needs `RsProt.cache228` set —
+  writes `DMS/ITEM_OPTION_DUMP.txt`): sweeps every item in `ItemDef.cached`, decodes the same id
+  from Cache228 via `Cache228ItemDefs`, and reports any `inventoryOptions` mismatch. First live
+  run: **4404 mismatches, 1 outright Cache228 read failure, out of 24604 items.** Per the human,
+  legacy item ids >= 30000 are this server's own custom content absent from real Cache228 —
+  expected to differ/be missing there, not a bug, ignore that bucket.
+- **Found unambiguous PARSER CORRUPTION in the mismatch output, not just content drift**: id=6
+  (Cannon base)'s Cache228-read Drop-slot text came back as `^`; id=30 (Bucket of wax)'s came back
+  as `s a bucket of wax.` — a literal fragment of THAT SAME ITEM'S OWN EXAMINE TEXT, leaked into
+  the wrong field. Root cause: `ItemDef.decode(InBuffer, int)` (`DMS/src/main/java/io/dm/cache
+  /ItemDef.java`, ~line 403) has no catch-all `else` branch — any opcode present in Cache228's item
+  format that this decoder doesn't recognize consumes zero payload bytes for that opcode and
+  silently desyncs every field read afterward for that specific item. This is very likely also the
+  actual cause of the original "missing Use" report, not a genuine content gap — an item's real
+  "Use" text could easily sit downstream of whatever unknown opcode is corrupting the stream.
+- **Built `ItemDef.findFirstUnknownOpcode(byte[])` and `ItemDef.isKnownOpcode(int)`** (same file,
+  right after `decode(InBuffer,int)`): walks an item's raw bytes the same way `decode()` does, but
+  stops and returns the exact first opcode it doesn't recognize instead of silently corrupting
+  onward. `isKnownOpcode` is a deliberately separate, hardcoded mirror of the if-else chain's
+  opcode set (documented in its own javadoc as needing manual updates in lockstep with the chain).
+  Wired into `ItemOptionDumper`, which now tallies every unknown opcode hit across all ~24k items
+  (count + one example item id each) under a new `==== Unknown opcodes hit ====` section at the
+  bottom of `ITEM_OPTION_DUMP.txt`.
+- **Not yet closed: the server was never rebooted again after this diagnostic was added**, so the
+  actual unknown-opcode number(s) have never been read. Compiles clean
+  (`./gradlew :DMS:compileJava`). This is the single concrete next step — see STAGE-05
+  -inventory-actions.txt's "IMMEDIATE NEXT STEP" section (rewritten this round to be fully
+  self-contained for whoever picks this up next, per the human's request to hand off to a fresh
+  agent).
+- **Status: IN PROGRESS, not DONE.** Bugs 1-3 (dispatch/op-numbering) are fixed and reasoned
+  through carefully but not yet given a full live functional re-test. The "missing Use option"
+  question is open pending one more boot + reading the unknown-opcode tally + adding the missing
+  opcode branch(es) to `ItemDef.decode`. Do not guess at replacement option text for any item before
+  ruling out the parser bug first — a "content gap" verdict is only trustworthy once the parser
+  itself is confirmed not to be desyncing on that item.
+
+## STAGE 05 — Inventory item actions execute, Round 4 (2026-07-09)
+- Closed the Round 3 opcode-desync investigation: found and fixed all 8 previously-unknown item-cache
+  opcodes in `ItemDef.decode(InBuffer,int)` (`3`,`13`,`14`,`27`,`42`,`43`,`75`,`94`), sourced from
+  AlterRSPS's `ItemDecoder.kt`. `ITEM_OPTION_DUMP.txt`'s "Unknown opcodes hit" section is now empty
+  across all 24,604 real Cache228 items — the byte-parser is provably exhaustive.
+- Fixed an unrelated `ItemOptionDumper` perf bug (15+ min boot-time sweep → seconds): it was calling
+  `IndexFile.getFile(10, id)` twice per item, and that method nulls its cached slot after the first
+  read, so the second call re-decompressed the entire ~24,604-item archive from scratch every time.
+- Human live-tested and found "Use" (op=9) had never been handled at all in `TabInventory.click()` —
+  it fell through to the bottom catch-all and misfired as Examine. Added explicit `option==9`
+  handling (clean no-op; the actual item-on-X targeting is client-side + the already-wired
+  OpLocT/OpNpcT/OpObjT/OpPlayerT/IfButtonT handlers). Also added a general safety net: a real,
+  named option with no registered `ItemAction` now stops instead of falling through to drop/equip/
+  examine checks. **This safety net shipped with a regression — see Round 5 immediately below.**
+- Full detail: `stages/STAGE-05-inventory-actions.txt`'s "RESOLVED THIS ROUND — Round 4" section.
+
+## STAGE 05 — Inventory item actions execute, Round 5 (2026-07-09)
+- **Human live-tested Round 4's fix and reported: "not only is 'Use' still missing after the newest
+  compile, but other options like Drop and Wield have stopped working again."**
+- Root cause: Round 4's new safety net returned unconditionally whenever `opts[rawIndex] != null`
+  and no `ItemAction` was registered for that raw index. But Wield and Drop are BY DESIGN never
+  registered in `def.inventoryActions[]` — they're matched generically by option text via
+  `dropIndex`/`equipIndex`, computed a few lines below that same block. The blanket `return` fired
+  for Wield/Drop just as much as for a genuinely-unhandled option, stopping before the
+  `dropIndex`/`equipIndex` checks could ever run. Every item's Wield and Drop silently no-opped from
+  the moment Round 4 shipped; Round 4's own live test only exercised the Use question (item 5606)
+  and didn't re-run the Rounds 1-3 Wield/Drop/Dismantle script, so it wasn't caught until now.
+- **Fix** (`DMS/src/main/java/io/dm/model/inter/handlers/TabInventory.java`): the fallback `return`
+  is now `if(rawIndex != dropIndex && rawIndex != equipIndex) { return; }` instead of an
+  unconditional `return` — stops only for options that are genuinely neither a registered custom
+  action nor one of the two generic built-ins. Custom-action priority is unchanged (still checked
+  first, in the untouched inner block).
+- Compiles clean (`./gradlew :DMS:compileJava`). **NOT yet live-tested.** Next step: a full TEST
+  SCRIPT pass (Wield/Drop/Bury/Eat/Dismantle) BEFORE re-judging the Use-rendering question, since
+  every prior live test of "Use" so far also had a dispatch bug broken underneath it — see
+  `stages/STAGE-05-inventory-actions.txt`'s "IMMEDIATE NEXT STEP" (step 0).
+- **Incidental finding, NOT fixed, out of Stage 05's scope**: `TabEquipment.java`'s static
+  registration block (`DMS/src/main/java/io/dm/model/inter/handlers/TabEquipment.java:16-29`) is
+  sitting uncommitted in a broken, half-edited state unrelated to this round's work — someone
+  shifted its `h.actions[]` indices from 6-16 to 15-24 (apparently chasing Stage 06's
+  BASELINE-FINDINGS note that real unequip clicks hit components 15-22) but `h.actions[24]` is
+  assigned twice (SLOT_RING immediately overwritten by SLOT_AMMO — Ring's handler is lost), and the
+  three simple actions (EquipmentStats/IKOD/pet-check) were moved to indices 1/5/7 with no visible
+  justification. `RsProt.openFrame()`'s equipment access-mask loop still sends to childIds 6-16,
+  unchanged — now mismatched against the 15-24 registration range. Stage 06 is still "NOT STARTED"
+  per its own status line; this looks like abandoned mid-session experimentation, not finished work.
+  Flagged to the human rather than fixed, per scope discipline — this file is Stage 06's territory,
+  not Stage 05's, and untangling it needs its own investigation (real component range, correct
+  mask), not a guess made in passing.
+
+## STAGE 05 — Inventory item actions execute, Round 6 (2026-07-09)
+- **Corrected a wrong premise from Round 4**: "Use is a fixed client op=9" was never checked against
+  the actual logged packet. The real `PROTOCOL_DUMP.txt` line from clicking "Use" on item 5606 reads
+  `option=2`, matching the EXISTING `resolveRawIndex` formula for raw slot 0 exactly. "Use" is an
+  ordinary custom text option (like Wield/Eat), not a hardcoded client default — it's just authored
+  on only 1 of 24,604 real Cache228 items.
+- **Confirmed from RSProt's own sources** (`UpdateInvFull.kt`/`UpdateInvPartial.kt`/`If3Button.kt`,
+  `net.rsprot:osrs-228-model` sources jar): a standard inventory container transmits only item id +
+  quantity, never option text. There is no packet this server could ever send to make "Use" render
+  on an item lacking it — the only real fix is a cache content change.
+- **Built a JS5 cache write path** (`kronos-api`'s cache classes were read-only before this) via a
+  temporary standalone tool, empirically reverse-engineered and validated against a disposable
+  scratch copy of the cache before ever touching the real one: container format (`[compression][len]
+  [payload][2-byte version for data groups]`), reference-table crc convention (crc32 of the
+  container minus that trailing version), gzip in place of the unavailable bzip2 encoder, and
+  append-only sector writing (never overwrites existing sectors). Full detail, including every
+  validation step, in `stages/STAGE-05-inventory-actions.txt`'s "RESOLVED THIS ROUND — Round 6".
+- **Applied to the real cache**: added "Use" to 30,529 of 30,644 items in Cache228's item archive
+  (index 2, group 10; revision 1542→1543), positioned as the highest free custom option slot (right
+  before Drop, matching real OSRS's Wield/Eat/Use/Drop/Examine ordering). 113 items had no free slot
+  (left untouched); 1 item (11169) has a hardcoded server-branding override in `ItemDef.decode()`
+  that only crashes standalone (no `World.type`) — left untouched rather than guessed at. Verified
+  via a fresh, real `io.dm.api.filestore.FileStore` read (not just the tool's own parser): 30,643
+  items decode cleanly, crc/revision match expectations, spot-checked items with existing customs
+  (Armadyl godsword keeps Wield+Dismantle, gains Use at the next slot) show no corruption.
+- **Full backup exists** at `C:\Users\Turk\Documents\GitHub\Dead-Men\Cache228-BACKUP-2026-07-09\`
+  (human explicitly chose to keep it, not delete). Also noted: `Cache228/` turned out to be
+  git-tracked in this repo despite THE_PLAN.txt's earlier advice to exclude it — the 3 modified
+  binary files (`main_file_cache.dat2`, `.idx2`, `.idx255`) will show as a large diff whenever this
+  is next committed; not committed as part of this round.
+- **Status: code-complete and validated against this project's own production reading classes, but
+  NOT yet live-client-tested.** Next step: a real rev-228 client confirming "Use" actually renders
+  and targets correctly — see the stage file's rewritten "IMMEDIATE NEXT STEP".
+
+## STAGE 05 — Inventory item actions execute, Round 7 (2026-07-11)
+- **Human asked for two things after Round 6**: (1) wire up the actual action behind "Use" now that
+  it's on every item, (2) fix left-click opening the right-click menu instead of performing an action
+  directly.
+- **Found and fixed a real bug for (1): the inventory's access mask never granted the capability bits
+  that let the client transmit an item-on-X targeting packet at all.** `RsProt.openFrame(Player)`'s
+  `sendAccessMask(Interface.INVENTORY, 0, 0, 27, 1181694)` only ever encoded the ten `ClickOpN` bits
+  (1-10) plus drag-reorder (17+20). Fetched AlterRSPS's `InterfaceEvent` enum fresh from GitHub
+  (`game-api/.../ext/InterfaceEvents.kt`, same reference already cited for `ItemDecoder.kt`/
+  `InterfaceDestination.kt`) — the authoritative, named bit-flag table RSProt itself doesn't expose
+  (`IfSetEvents.events` is opaque per its own KDoc). Confirmed bits 1-10 were already correctly
+  `ClickOp1..10`, but six more bits were never granted: `UseOnGroundItem` (1 shl 11), `UseOnNpc` (1
+  shl 12), `UseOnObject` (1 shl 13), `UseOnPlayer` (1 shl 14), `UseOnInventory` (1 shl 15, item-on-
+  item), `UseOnComponent` (1 shl 16, cross-interface targeting — not granted, no current listener
+  needs it). Without bits 11-15, the client can let a player *select* an item via Use/a spell but has
+  no permission to ever send the follow-up `OpLocT`/`OpObjT`/`OpNpcT`/`OpPlayerT`/`IfButtonT` packet —
+  meaning every one of Milestone 4's item-on-X listeners was structurally unreachable the whole time,
+  for a reason nobody had checked (everyone assumed "wired but untested" meant "probably works,
+  just unwatched" — it actually meant "cannot have worked"). **Fix**: mask `1181694` → `1245182`
+  (`+63488` = the five new bits). Single-line change plus a rewritten doc comment with the full
+  citation trail. Equipment's mask (2046, worn slots) deliberately left untouched — no real OSRS
+  interaction targets a worn equipment slot, adding unused capability bits there would be scope creep.
+  Compiles clean (`./gradlew :DMS:compileJava`, 2026-07-11). **NOT yet live-tested** — this is the
+  first point in the whole migration where item-on-X targeting has even had a chance to work.
+- **Investigated (2) thoroughly, found no server-side lever, made no speculative code change.**
+  Checked, in order: RSProt's `If3Button.kt` KDoc (op 1-10, no left-click-vs-menu distinction at the
+  wire level — both produce an identical packet); the full `InterfaceEvent` enum (no "primary/default
+  action" bit exists, only per-op and per-target-type enables); AlterRSPS's own `InventoryPlugin.kt`
+  (the real rev-228 reference inventory click handler — hardcodes option 7=drop, option 3=equip,
+  10=examine, routes everything else including option 1 through a generic per-item dispatch with no
+  special "this was a left click" handling visible anywhere); the full `ItemDecoder.kt` opcode table
+  (no per-item "left-click index" field exists — opcode 42 is `dropOptionIndex`, confirming Drop's
+  slot position is an explicit per-item field rather than always-index-4 as this codebase's
+  `resolveRawIndex` currently assumes; flagged as a latent, currently-unhit risk, not fixed). Leading
+  but UNCONFIRMED hypothesis: the same missing `UseOnX` bits fixed above may also be why left-click
+  now defaults to showing the menu on virtually every item (since Round 6 gave nearly every item a
+  literal "Use" candidate action that the client had no granted capability to ever complete) — this
+  would also explain why nobody reported it before Round 6, when only 1 item in the game had "Use"
+  text at all. Not verified; the stage file's TEST SCRIPT step 9 asks the next live tester to report
+  raw left-click behavior so this can be settled with data instead of more inference.
+- **Full detail, including the complete AlterRSPS source excerpts and reasoning trail**:
+  `stages/STAGE-05-inventory-actions.txt`'s "RESOLVED THIS ROUND — Round 7" section.
+
+## STAGE 05 — Inventory item actions execute, Round 8 (2026-07-11)
+- **Round 7's access-mask fix is HUMAN-CONFIRMED LIVE.** Screenshot of an Abyssal whip's right-click
+  menu: `Wield / Use / Use / Drop / Examine / Cancel` — "Use" now fires ("i think you fixed the
+  legacy 'Use' menu action!").
+- **The duplicate "Use" revealed Round 6's cache patch was never actually necessary.** The whip's
+  cache-authored options array has exactly ONE "Use" string (Round 6's own data), so a single string
+  cannot produce two rows — the real rev-228 client synthesizes its own generic "Use" entry
+  automatically from the access-mask capability bits (`UseOnNpc`/`UseOnObject`/`UseOnGroundItem`/
+  `UseOnPlayer`/`UseOnInventory`) Round 7 granted, independent of any per-item cache text. This also
+  retroactively explains Round 3's survey finding literal "Use" text on only 1 of 24,604 real items —
+  real OSRS never needed to author it, the client already adds it once the component supports "use
+  this on something."
+- **Fix: reverted `Cache228/cache/` to a fresh, untouched stock cache**, all 24 files, not just the 3
+  Round 6 touched. The human supplied a fresh official openrs2 export
+  (`cache-oldschool-live-en-b228-2025-02-12-11-45-05-openrs2#2043.zip`) and asked for the edited cache
+  to be replaced with it; every file was overwritten from that archive and verified byte-size-identical
+  to the source afterward. This supersedes a partial 3-file restore from the Round 6 backup
+  (`Cache228-BACKUP-2026-07-09/`, still on disk, now redundant) that was in progress when a Bash
+  permission check interrupted it mid-verification — the human's fresh zip is the more complete,
+  authoritative source, so it was used instead. No Java code changed — nothing in the click-dispatch
+  path depended on "Use" text being present; a null options-slot was always handled as "no custom
+  action here," which is what it reverts to now for every item except 5606 (the one item with
+  genuinely pre-existing, real-Jagex-authored "Use" text, untouched by both the patch and the revert).
+- **Not yet re-verified against the freshly restored cache.** Next live test: confirm exactly ONE
+  "Use" per item now (not two), confirm Wield/Drop/Dismantle/Eat/Bury still all work (pure file
+  revert, should be a no-op regression-wise), and specifically check whether item 5606 shows one Use
+  or two (open question — is real OSRS's own client smart enough not to duplicate when the cache
+  already authors it, or does it double up there too now).
+- Full detail: `stages/STAGE-05-inventory-actions.txt`'s "RESOLVED THIS ROUND — Round 8" section.
+
+## STAGE 05 — Inventory item actions execute, Round 9 (2026-07-11)
+- **Human confirmed item-on-object/npc/ground-item all work live; item-on-item (combining two items
+  in the same inventory) was the one holdout, flagged as the final blocker before Stage 05 is done.**
+- **Root-caused with hard evidence, not another guessed access-mask bit.** Grepped this project's own
+  `DMS/PROTOCOL_DUMP.txt` (accumulated live-capture log since 2026-07-08) for `IfButtonT` — zero hits,
+  ever, across the whole migration. Every time two inventory items were targeted at each other (the
+  human's fresh test: coins onto the whip and back; an earlier 2026-07-08 capture: an Armadyl hilt
+  onto a blade) the logged packet was `IfButtonD` (drag), never `IfButtonT`. Meanwhile `OpLocT`/
+  `OpNpcT`/`OpObjT` fire correctly for the identical user action aimed at something outside the
+  inventory. Conclusion: the real rev-228 client represents "use an item on another item in the same
+  inventory" as a drag event, period — `RsProt.onItemOnItem`/`InterfaceOnInterfaceHandler`/
+  `TabInventory.onInterface` (the whole `IfButtonT` path) is simply never invoked for this case, no
+  matter what the access mask says. The actual bug: `TabInventory.drag()` (what `IfButtonD` already
+  correctly routes to) unconditionally swapped the two dragged slots — it never checked whether the
+  items could combine, unlike real OSRS's actual drag semantics (combine if possible, else swap).
+- **Fix**: `ItemItemAction.java` — split the existing `handleAction`'s match/dispatch logic out into a
+  new `tryHandle(Player, Item, Item)` returning `true`/`false` instead of always messaging
+  `"Nothing interesting happens."` on a miss; `handleAction` is now a thin wrapper, unchanged for its
+  existing `IfButtonT` caller. `TabInventory.drag()` now calls `tryHandle` before swapping (only when
+  the destination slot is occupied — an empty-slot move is untouched) and only falls through to the
+  pre-existing swap if no combo matched — so ordinary inventory reordering between two non-combinable
+  items behaves exactly as before, silently. Compiles clean (`./gradlew :DMS:compileJava`,
+  2026-07-11). **NOT yet live-tested.**
+- Full detail: `stages/STAGE-05-inventory-actions.txt`'s "RESOLVED THIS ROUND — Round 9" section.
+
+## STAGE 06 — Unequip from worn-equipment tab (2026-07-11)
+- **Root-caused with hard evidence from `DMS/PROTOCOL_DUMP.txt`, not another guessed access-mask bit.**
+  The stage brief's own binary fork ("does an `If3Button` line show up for unequip clicks?") was
+  already answered YES by Stage 01's baseline capture, so this was server-side, not a client-side
+  access-mask block. Re-grepped the FULL (not just Stage 01's excerpt) `interface=387` history in
+  `PROTOCOL_DUMP.txt` — it spans five live-test sessions across 2026-07-08 18:22 through 21:10 (never
+  previously analysed in full). Real clicks landed on childIds 1, 5, 7 (EquipmentStats/IKOD/pet — all
+  registered, presumably fine) and 15-22 (HAT..HANDS — all registered and matching `TabEquipment`'s own
+  slot constants exactly, many times over, across multiple sessions). But childId **25** was clicked
+  **five times in ten seconds** (20:18:02-06) and never again attempted after — the exact shape of "the
+  human tried this slot repeatedly, nothing happened, gave up."
+- **Actual bug: `TabEquipment.java`'s static block assigned `h.actions[24]` twice** — once for
+  `Equipment.SLOT_RING`, immediately overwritten by `Equipment.SLOT_AMMO` — leaving RING with no
+  handler at all and only 10 of the 11 equipment types mapped across childIds 15-24. The real rev-228
+  client evidently has an 11th distinct worn-slot component at childId 25 (RING=24, AMMO=25), one past
+  what both the legacy cache AND `CACHE_INTERFACE_DUMP.txt`'s Cache228 read report as interface 387's
+  total component count (25, i.e. childIds 0-24) — **the same legacy/228 cache-undercount class already
+  seen for interface 548's fixed-frame panes (Round 1 Bug 2), now a confirmed third occurrence** (see
+  THE_PLAN.txt Section 9's prediction about this).
+- **Fix 1 (`TabEquipment.java`):** split the collision — `actions[24]` = RING, new `actions[25]` = AMMO.
+- **Fix 2 (`InterfaceHandler.java`):** registering at childId 25 would otherwise throw
+  `ArrayIndexOutOfBoundsException` mid-static-block (interface 387's `actions` array was sized from
+  `InterfaceDef.COUNTS[387]` = 25, i.e. valid indices only 0-24) — which would have silently killed
+  `TabEquipment`'s entire static initializer, including the EARLIER `actions[15..24]` assignments that
+  already work, since Java aborts the rest of a static block on the first uncaught exception. Verified
+  `InterfaceDef.COUNTS[387]` empirically via a standalone check against this project's own
+  `io.dm.api.filestore.FileStore`/`IndexFile` reading the real `Cache/` folder (same classes `RsProt`
+  already uses to serve the cache), confirming it really is exactly 25 — not a guess. Added
+  `InterfaceHandler.register(int interfaceId, int minSize, Consumer<InterfaceHandler>)` (and a matching
+  protected constructor overload) so a registration can explicitly request more `actions` capacity than
+  `InterfaceDef.COUNTS` reports, mirroring the existing `Player.ensureVisibleCapacity`/`HANDLERS`-growth
+  pattern already established elsewhere in this exact migration for this exact bug class.
+  `TabEquipment` now calls `InterfaceHandler.register(Interface.EQUIPMENT, 26, h -> {...})`. This is a
+  generic, reusable capacity escape hatch — reach for it first if a future interface hits the same
+  "legacy/228 cache undercounts this interface's real childId range" shape instead of patching around it
+  a fourth time.
+- **Fix 3 (`RsProt.java openFrame`, documentation-only):** the equipment access-mask loop's range was
+  6-16, which never matched `TabEquipment`'s real registrations (childIds 1, 5, 7, 15-24 even before
+  this round's fix) — yet clicks on childIds outside 6-16 (1, 5, 7, 17-22, and the broken 25) all
+  arrived anyway per the PROTOCOL_DUMP evidence above. This means this single-component access mask's
+  `start=-1, end=-1` form does **not** appear to gate individual childIds the way a ranged mask would —
+  contrary to this file's own earlier assumption. Corrected the loop to 15-25 purely so it documents the
+  real, verified component range for future interfaces to copy (per this stage's own WRAP-UP
+  instruction), not because it changed any observed behaviour.
+- **Status: code-complete, compiles clean (`./gradlew :DMS:compileJava`, 2026-07-11). NOT yet
+  live-client-tested.** Whether HAT/CAPE/AMULET/WEAPON/CHEST/SHIELD/LEGS/HANDS/FEET (childIds 15-23,
+  already correctly registered before this round) actually unequip on click remains genuinely unverified
+  — no console `[BUTTON] resolved ...` output was ever captured for an equipment click in any session to
+  date, only the raw incoming packet via `PROTOCOL_DUMP.txt`. If those still don't work after this fix,
+  the next lead is that missing console evidence, not another access-mask guess: `itemAction`/
+  `Equipment.unequip` were read closely this round and look structurally correct (mirrors the already-
+  working inventory item-container update path via `ItemContainerG.sendUpdates()`/`updateItems()`,
+  including the 3-arg `InventoryObject.pack` fix from Milestone 4 Round 1 Bug 3), so nothing else was
+  changed there without live evidence.
+
+## STAGE 07 — Object interactions execute on arrival, Round 1 (2026-07-11)
+- **No live client was available this session, so this round is investigation + instrumentation,
+  not a landed fix** — consistent with the stage's own rule that only a human can live-test. Traced
+  the full walk-then-act chain end-to-end for the first time (nobody had documented it before):
+  `ObjectActionHandler.handleAction` looks the object up via `Tile.getObject(id, x, y, z)` (EXACT id
+  match against the tile's stored `GameObject`, `Tile.java:161-181`), then calls
+  `RouteFinder.routeObject(gameObject, successAction)`, which either runs `successAction` immediately
+  (already adjacent) or starts an `Entity.startEvent(...)` that delays until `Movement
+  .isAtDestination()` before re-checking reachability and running `successAction`. `successAction`
+  resolves `gameObject.actions[option-1]` falling back to `gameObject.getDef().defaultActions[option-1]`
+  (populated at boot by ~211 separate `ObjectAction.register(...)` call sites across the codebase,
+  e.g. `Door.java`), then calls `action.handle(player, gameObject)` or sends "Nothing interesting
+  happens."
+- **Used primary sources to retire two of the stage brief's three ranked hypotheses with actual
+  evidence, not guesses — same methodology this project's earlier milestones used for `If3Button`/
+  `MapProjAnim`/etc.:**
+  - Hypothesis A (server's map data is 184-era, doesn't match what the 228 client renders): WEAKENED
+    for every object tested so far. `Tile.getObject`'s exact-id-match lookup necessarily SUCCEEDED for
+    all 8 of Stage 01's tested clicks (proven indirectly — the player did walk to each object, which
+    the code cannot do unless the lookup returned non-null first). A real id/position divergence would
+    show as "player never even walks," which contradicts the recorded symptom. Still possible for
+    untested objects/regions — the new diagnostics catch that for free going forward.
+  - Hypothesis B (option-index 1-5 numbering wrong for rev 228, mirroring Stage 05's If3Button bug):
+    DISPROVEN by primary source. Extracted `OpLoc.kt` from the real
+    `osrs-228-model-1.0.0-ALPHA-20260630-sources.jar` (Gradle cache) — its own KDoc states `op` ranges
+    "1 to 5 (inclusive)," the exact convention already used throughout this codebase's legacy-shared
+    object-action code, passed straight through unmodified by `RsProt.onObjectAction`. Also confirmed
+    via the same KDoc that `OpLoc.x`/`.z` are documented as "the absolute x/z coordinate of the
+    south-western corner of the loc" (not the raw clicked tile), consistent with how `GameObject.x/y`
+    are anchored in this codebase and consistent with the successful lookups above. There is no
+    op-numbering fix to make here.
+  - Hypothesis C (the queued walk-then-act event never ticks / gets reset for RSProt players): only
+    PARTIALLY weakened. Confirmed `Entity.processEvent()`/`Movement.process()` are driven by
+    `Player.process()`, which `CoreWorker.logic()` calls unconditionally for every online player
+    regardless of transport (`CoreWorker.java:97-106` — no `getSession()`/`getChannel()` gate anywhere
+    in that path), the same mechanism ~211 pre-existing content files across raids/skilling/wilderness
+    already depend on. Not fully eliminated: `Entity.startEvent()` calls `stopEvent(true)` then stashes
+    the new event in `nextEvent` (only promoted to `activeEvent` on the NEXT tick) — if OpLoc
+    double-fires the way Stage 06 already documented equipment clicks doing (~0.6s apart), a second
+    `handleAction` call before the first event is promoted would silently overwrite `nextEvent`,
+    discarding the walk-in-progress. Not confirmed either way this round; the new instrumentation
+    below will show it directly if it's happening.
+- **Added `[OBJACTION]` diagnostic prints** (mirrors the existing `[BUTTON]`/`[DRAG]` temp-diagnostic
+  convention from Milestone 4) at every silent-return branch in the chain above:
+  `ObjectActionHandler.java` now prints on lookup (found/not-found) and inside `successAction` (which
+  of `actions`/`defaultActions` resolved, or neither); `RouteFinder.java`'s `routeObject(GameObject,
+  Runnable)` now prints on both the fast-path and event-path outcomes (success, skipReachCheck-success,
+  outOfReach, and the two previously-100%-silent `gameObject.id != id || tile == null` bail branches
+  inside the event). **Compiles clean** (`./gradlew :DMS:compileJava`, 2026-07-11).
+- **Checked and closed out the "AI bot" lever the stage brief suggests — it's a dead end.**
+  `AIPlayer.java:121-123` exposes a generic `handleObjectInteraction(...)` that calls the exact same
+  `ObjectActionHandler.handleAction(...)` this stage is investigating, but none of the four concrete
+  bot scripts that exist (`GoblinKiller`, `MeleeBot`, `EmoteScript`, `AIScript`) actually call it —
+  there is no currently-running bot behaviour that exercises object interaction to compare against.
+- **Status: IN PROGRESS, NOT DONE.** Next step is purely a human live-test: click a door, a ladder,
+  and a tree, and paste back the full `[OBJACTION]` console block for each (see the stage file's
+  updated TEST SCRIPT). That output will show directly which of the three remaining failure points
+  (object not found / silent event bail / loud-but-unreported message) is actually happening, at
+  which point the real fix should be small and targeted rather than another guess. Do not strip the
+  `[OBJACTION]` prints until that's confirmed.
+
+## Stock Cache228 Migration & Boot Fixes (2026-07-12)
+
+### Trigger
+The user discovered that `cache_path` in `DMS/server.properties` still pointed at `../Cache` — the
+old, hand-customized 184-era cache this project has used for years — despite everything the RSProt
+migration implies about "rev 228." Only `js5_cache_path` (the JS5 stream served to real rev-228
+clients, wired up by `RsProt.start()`) had ever actually moved to Cache228. Every legacy-format
+reader on `Server.fileStore` — `ItemDef`, `NPCDef`, `ObjectDef`, `InterfaceDef`, `Varpbit`,
+`AnimDef`, `GfxDef`, `ScriptDef`, region map/landscape data, everything `Server.java`'s boot
+sequence loads — was still reading the OLD cache the whole time. The user renamed `Cache/` to
+`Cache_ANTHING` to prove the point (if the server still booted fine while that path didn't
+resolve, something must have been silently falling back to it or never actually depending on it as
+claimed), then set both `cache_path` and `js5_cache_path` to `../Cache228/cache` and gave two
+explicit standing instructions: **the cache must remain stock — no re-patching it, ever** (this was
+already established practice per the Round 8 "Use"-text revert, Milestone 4 above — just now
+stated as a hard rule rather than a one-off decision) — **and any game content that turns out to
+depend on ids that only ever existed in the old custom cache gets disabled outright, not
+null-guarded into limping along.**
+
+### Method
+Boot the server, read the first real exception, fix the actual root cause (not a try-catch around
+it), rebuild, reboot, repeat. Every fix below was verified by reading the relevant source, and
+where the cause wasn't obvious from the stack trace alone, by adding a throwaway diagnostic,
+rebuilding, and reading real output — not guessed. Two hypotheses were explicitly tested and
+disproven with evidence rather than assumed (see "Region-decrypt investigation" below) — worth
+calling out because guessing-then-asserting is exactly the failure mode this session was trying to
+avoid, per explicit user instruction ("DO NOT SKIP ANYTHING, FIX IT").
+
+### Bugs fixed (real, cache-independent — would have crashed on ANY cache, just never triggered)
+- **`ScriptDef.load()` (`DMS/src/main/java/io/dm/cache/ScriptDef.java`) crashed the entire loader —
+  taking the whole server boot down with it — the instant one CS2 script archive failed to decode.**
+  Root-caused, not band-aided: added a diagnostic that printed the failing id and its raw bytes
+  before deciding on a fix. Result: id 6775's archive is exactly 2 bytes (`[0, 4]`) — nowhere near
+  large enough to contain the fixed 12+-byte trailer `decode()` requires — a genuine empty/
+  placeholder cache slot, not a truncated real script. Fixed by catching per-script instead of
+  per-load-call, with a comment recording the verified byte evidence so nobody re-litigates this as
+  a "cache format changed" theory later. 1 of 7832 scripts affected.
+- **`NPC.setCombat()` (`DMS/src/main/java/io/dm/model/entity/npc/NPC.java`) logged `"<NPC DEF
+  NULL>: " + id` on a null def but then fell through to `def.combatInfo` on the very next line
+  anyway** — the null check was missing its `return false;`. Purely latent under the old cache
+  (every npc id the game code referenced always had a def there); surfaced immediately once a
+  custom npc (Citadel's "Death") had no def to find.
+- **`Tile.occupy()` (`DMS/src/main/java/io/dm/model/map/Tile.java`) dereferenced
+  `entity.npc.getDef().occupyTiles` with no null guard** — same latent-bug class as above, hit via
+  the same Citadel NPC spawn. Added the null check.
+- **`InterfaceHandler.register()`'s `actions` array (`DMS/src/main/java/io/dm/model/inter/
+  InterfaceHandler.java`) was sized strictly from `InterfaceDef.COUNTS[id]`, which is now genuinely
+  Cache228's real per-interface child count (see "Cache-switch-specific findings" below) instead of
+  the legacy cache's.** Once real counts were being read, NINE separate interfaces crashed at
+  static-init with `ArrayIndexOutOfBoundsException` the first time `PackageLoader.load("io.dm")`
+  touched them: interface 215 (`GameMode.java`, game-mode-select — real count 12, code writes up to
+  index 13), `TabClanChat` (real 22, needs 25), `TabOptions$AdvancedOptions` (real 8, needs 9),
+  `TabOptions$Notifications` (real 7, needs 8), `TabOptions` (real 3, needs 6), `TabQuest` (real 22,
+  needs 44), `Study.java` (real 2, needs 4), `Flatpack.java` (real 4, needs 112), `SawmillOperator
+  $Plank` (real 41, needs 107). This is precisely the "third bug of this exact shape" THE_PLAN.txt's
+  old Section 9 said would justify a proper fix instead of another one-off patch — so instead of
+  hand-tuning a `minSize` per call site (the existing 3-arg `register(id, minSize, consumer)`
+  overload, still present, still useful when you already know a real number), the 2-arg
+  `register(id, consumer)` overload now retries with a doubled `actions` array whenever the
+  consumer overruns it, until it succeeds. Every registration site inspected during this session
+  only ever assigns `h.actions[n] = ...` inside the consumer with no other observable side effect,
+  so re-running the same consumer against a fresh, larger handler on retry is safe. `GameMode.java`
+  itself needed no special-casing after this — reverted an initial `register(215, 14, ...)` patch
+  back to the plain 2-arg call once the general fix landed, so there's exactly one mechanism to
+  reason about instead of two.
+- **`EnumMap` (`DMS/src/main/java/io/dm/cache/EnumMap.java`) defaulted `keys`/`stringValues`/
+  `intValues` to `null`.** `decode()` only ever populates ONE of `stringValues`/`intValues` (opcode
+  5 vs opcode 6 — never both), so any caller asking for the wrong shape, or iterating `.keys`
+  directly instead of through the length-bounded accessors, NPE'd. Two concrete crashes from this:
+  `IKOD.java:424`'s `for(int id : map.keys)` on an id with no data, and `slayer_tasks.java:25`'s
+  `EnumMap.get(1174).strings()` — enum 1174 (expected, per the calling code's assumption, to hold
+  boss slayer-task name strings) holds int-typed data in this cache instead, so `stringValues` was
+  never touched by `decode()`. Fixed by defaulting all three arrays to empty instead of null, and
+  changing `.strings()`/`.ints()`/`.valuesAsKeysInts()` to guard on `array.length < length` (not
+  `== null`, which would never trigger against an empty-by-default array) rather than crashing.
+  Note this does NOT resolve whether enum 1174 is even the right id for boss slayer tasks in this
+  cache — it now degrades to an empty map instead of a crash, which is honest about the current
+  state (unknown) rather than pretending to have fixed the content question.
+- **`region_keys.java` (`DMS/src/main/java/io/dm/data/impl/region_keys.java`) loaded region XTEA
+  decryption keys from a hand-maintained `DMS/data/region_keys.json` dump** (many entries just
+  `[0,0,0,0]`, apparently a stale or incomplete capture from whenever that file was last generated)
+  **instead of the stock cache's own `xteas.json`** — this was the actual root cause of the mass
+  "Invalid Keys for Region (NNNNN): ... keys=[0, 0, 0, 0]" spam on every boot (dozens of regions).
+  Fixed by reading `Cache228/xteas.json` directly (same OpenRS2-format file, same parsing logic
+  `RsProt.loadXteas` already uses for the client-facing protocol, sibling of `Server.cacheDir` — a
+  new public field added to `Server.java` alongside `fileStore` specifically so readers that need
+  the cache directory's sibling files, not just `Server.fileStore` itself, have a single shared
+  source for where the cache lives). 2250 real keys loaded; the mass "Invalid Keys" spam is gone
+  entirely. Also removed the `isValid()` pre-validation pass this file used to run per keyed region
+  before the real load — it just duplicated what `region.init()`'s own per-region try-catch already
+  does; see "Region-decrypt investigation" below for why this specific change was tested, not
+  assumed, to have no effect on the still-open ~84-region issue.
+- **`DMS/data/npcs/combat/Nechryarch.json`'s `"handler"` field named a class,
+  `io.dm.model.activities.bosses.Nechryarch`, that has never existed** — plain, pre-existing typo
+  found while triaging boot errors, unrelated to the cache switch (would have failed to
+  `Class.forName` on any cache, ever — nobody had apparently tried spawning/combat-testing this
+  particular npc since the file was written). The real class is `io.dm.model.activities.bosses.
+  eventboss.CorruptedNechryarch`. Corrected the handler string; the four affected npc ids (7411,
+  7412, 7414, 7415) no longer print "combat handler class not found" on boot.
+
+### Cache-switch-specific findings (content gaps and drift, not code bugs)
+- **Custom Deadman-tournament content disabled, not deleted** (nothing in this repo is committed
+  to git yet — see Section 0 — so deleting source would be genuinely hard to undo if this turns out
+  wrong): `Citadel`'s constructor (`DMS/src/main/java/io/dm/deadman/content/areas/citadel/
+  Citadel.java`) called `CitadelObjects.register()`/`CitadelNPCs.register()`/`CitadelShop.
+  register()` — all three spawn npcs/objects (Death at npc id 15100, Sir Sell A Bit, the four
+  tiered shopkeepers 15103/15105/15106/15108, altars, portals, the tournament notice board) that
+  only ever existed in the old custom cache. Confirmed via direct inspection, not assumed: these
+  ids simply have no def in Cache228. Commented out all three calls with an explanatory comment.
+  `Overworld`'s constructor (`.../areas/overworld/Overworld.java`) had the identical pattern —
+  `OverworldObjects`/`OverworldTools`/`OverworldNPCs.register()` plus two `Tile.get(...).clipping =
+  0` lines fixing collision around a custom-placed "Henge" prop inside that same custom zone's own
+  bounds (verified the underlying region, 10044, is NOT among the ~84 broken regions below — the
+  tile is simply empty in the stock cache, not corrupted). All disabled together. `DMS/data/npcs/
+  combat/Citadel_Shopkeep.json` (combat stats for the now-disabled shopkeepers, guaranteed to fail
+  every boot since those ids never resolve) renamed to `.disabled`.
+- **Interface 548's real Cache228 child count is 95, not the 80 recorded throughout this file and
+  THE_PLAN.txt.** That 80 was ALWAYS legacy-cache data — `CacheInterfaceDumper`/`InterfaceDef.load()`
+  both read `Server.fileStore`, which only became genuinely Cache228 as of this session, despite
+  `CacheInterfaceDumper`'s own doc-comment calling its output "real Cache228 interface shapes" since
+  the day it was written. Confirmed by re-running the dumper against the now-stock cache and reading
+  `CACHE_INTERFACE_DUMP.txt` directly. Doesn't change interface 548's actual behaviour (95 already
+  comfortably covers the FIXED_FRAME_PANES table's up-to-93 requirement, same as 80 did in practice
+  since nothing here ever indexed high enough to notice the gap) — recorded because it's a concrete
+  data point for anyone who reads this file's older "matches legacy exactly" note and wonders if
+  that's still true post-cache-switch. It is not; see THE_PLAN.txt's 2026-07-12 update section.
+- **stages/STAGE-07's leading Hypothesis A is now structurally moot** — its entire premise was
+  "server world data is legacy 184 while the client renders 228." That premise is false now that
+  `cache_path` = Cache228. A note was added directly to that stage file (see its own "NOTES FROM
+  OTHER STAGES") rather than repeated in full here — whoever picks that stage up next needs to
+  re-test the original symptom fresh, since the underlying cause may have changed or disappeared
+  entirely, not assume Hypothesis A's old evidence still applies.
+
+### Region-decrypt investigation (NOT resolved — documented so the next session doesn't re-start from zero)
+After the `xteas.json` fix above, ~84 regions still fail during `region_keys.java`'s load loop with
+`ArrayIndexOutOfBoundsException` (nonsensical tile heights, e.g. "Index 7 out of bounds for length
+4") or buffer overruns in `InBuffer.readSmart` (e.g. "Index 104 out of bounds for length 104" for
+region 15771). Two things were tested directly rather than assumed:
+1. **Hypothesis: `IndexFile.getFile()`'s per-file "decompress once, null the cache slot on read"
+   behaviour was the cause** — `region_keys.java`'s old `isValid()` pre-check did a throwaway trial
+   read of each keyed region's landscape data before the real load, which would consume that
+   one-time cache slot and force the real read to re-decompress from scratch. **Tested by removing
+   the pre-check entirely and re-running: the exact same ~84 regions fail, unchanged.** This
+   theory is disproven — the corruption is not an artifact of reading twice.
+2. **Pulled the actual decrypted bytes for region 15771** (`getLandscapeData()` returns cleanly, no
+   exception, `length=104`, first bytes `ff ff 93 4c 63 2b 00 02 49 29 00 08 08 58 03 59...`) and
+   hand-walked `Region.init()`'s `readSmart()`-based object-placement parser against them. The
+   first several entries decode into small, plausible-looking deltas and object types; by roughly
+   the 13th byte the position-hash delta goes negative (`0x58 0x03` as a signed smart value =
+   -10237), which real cache data should never produce — i.e. decompression/decryption succeeds
+   and produces something structured-looking, but the parse degrades into nonsense partway through
+   rather than failing cleanly at byte 0 (which is what a simply-wrong key would look like).
+3. **Computed real map coordinates for all ~84 region ids** (`baseX=(id>>8)*64, baseY=(id&0xff)*64`)
+   — they cluster almost entirely in two Y-bands, ~4224-5120 and ~9280-10240, which in OSRS's
+   coordinate space are the non-mainland "instance template" storage area (where boss/raid room
+   copies live), not the explorable overworld. Also cross-checked every coordinate involved in the
+   11 "real content" failures below against this list individually (not just eyeballed) — zero
+   overlap. These two problems are confirmed independent.
+Left open. Next step, if picked up: either a reference decoder for this exact cache build to diff
+against, or a live rev-228 client capture (RSProx) of one of these specific map squares to tell a
+genuinely-stale/wrong key apart from an instance-template-specific encoding detail this legacy
+parser predates.
+
+### ERRORS.txt follow-up round (same session, after the user pasted a fresh boot's error dump)
+Beyond the `Nechryarch.json` typo and `region_keys.java` cleanup already covered above, the
+remaining lines in that dump were investigated and NOT changed, because there was no honest way to
+fix them without guessing:
+- **11 `Package Failure` entries** — `ClueObjects`, `GodwarsObstacle`, `MotherlodeMine`, `RevCaves`,
+  `Wintertodt`, `WintertodtActions`, `Obstacle`, `AsgarnianIceDungeon`, `Taverly`, `BarbarianCourse`,
+  `WildernessCourse` — each references a specific hardcoded object id + coordinate via `Tile.
+  getObject`/`Tile.get` that resolves to null in this stock cache. Traced every single one to its
+  exact source line and computed its region id by hand (verified against the ~84-region list from
+  the investigation above — no overlap for any of them). Examples with coordinates, for whoever
+  picks this up: `ClueObjects.java:103` object 24075 @ (3034,3363); `GodwarsObstacle.java:20`
+  object 26518 @ (2885,5344); `MotherlodeMine.java:68`'s `STRUT_2` field initializer, object
+  (`BROKEN_STRUT`) @ (3742,5663); `RevCaves.java:35` object 31557 @ (3194,10055); `Wintertodt.
+  java:59`'s `WINTERTODT` field, object 29308 @ (1627,4004); `WintertodtActions.java:60`, tile
+  (1628,4023); `Obstacle.java:26`, object 4550 @ (2522,3595); `AsgarnianIceDungeon.java:16`, object
+  17385 @ (3008,9550); `Taverly.java:67`, object 154 @ (2887,9823); `BarbarianCourse.java:49`,
+  object 23144 @ (2550,3546); `WildernessCourse.java:168`, object 23542 @ (3001,3945). All are real
+  OSRS systems (agility courses, GWD, clue scrolls, Wintertodt, dungeons) — not custom content, so
+  "disable it" doesn't apply — but the exact object/position drift needs live verification against
+  a real 2025 client to fix without introducing a NEW wrong guess.
+- **`AbyssalSire.java`'s respiratory-system objects** (`DMS/data/npcs/spawns/abyssal_sire.json` has
+  4 spawn points; each computes 4 relative object offsets from its own spawn position) — same
+  category as above, computed all 4 spawns' regions, none overlap the ~84-region list either.
+- **18 "pet not supported" warnings** (`PetList.java`, enum 985) — checked what they actually are:
+  a genuine content gap, not a bug. Every name printed (Baron, Wisp, Butch, Lil'viathan, Scurry,
+  Quetzin, Smol heredit, Nid, Huberte, Moxi, Bran, etc.) is a real pet from a boss added to OSRS
+  between 2023 and 2025 — this codebase's `Pet` mappings (driven by `item_info.json`) were never
+  extended to cover them. Implementing 18 new pets is new-content authoring, not a fix, and was
+  explicitly not attempted without being asked.
+
+### Status
+Server boots cleanly and stays online through repeated rebuild-and-boot cycles (not a single lucky
+run) — `Started server in ~25s`, RSProt bound to port 13302, 0 `DataFile Failure` entries. The 11
+`Package Failure` entries and the ~84 region-decrypt failures are all non-fatal (each already
+caught per-class/per-region by existing infrastructure) and do not block the server being online;
+they're real, scoped, and documented above rather than silently left for someone to re-discover
+from scratch.
+
+Files touched this session: `DMS/server.properties` (user's own edit, not this session's),
+`DMS/src/main/java/io/dm/Server.java`, `DMS/src/main/java/io/dm/cache/ScriptDef.java`,
+`DMS/src/main/java/io/dm/cache/EnumMap.java`, `DMS/src/main/java/io/dm/model/entity/npc/NPC.java`,
+`DMS/src/main/java/io/dm/model/map/Tile.java`, `DMS/src/main/java/io/dm/model/inter/
+InterfaceHandler.java`, `DMS/src/main/java/io/dm/data/impl/region_keys.java`, `DMS/src/main/java/
+io/dm/deadman/content/areas/citadel/Citadel.java`, `DMS/src/main/java/io/dm/deadman/content/areas/
+overworld/Overworld.java`, `DMS/data/npcs/combat/Nechryarch.json`, `DMS/data/npcs/combat/
+Citadel_Shopkeep.json` (renamed `.disabled`). `THE_PLAN.txt` and `stages/STAGE-07-object-
+interactions.txt` updated in the same session to reflect all of the above — read THE_PLAN.txt's
+2026-07-12 update section first for the summary view.
+
+## STAGE 07 — Object interactions execute on arrival, Round 2 (2026-07-13)
+No live client available this round either (same constraint as Round 1) — picked up Stage 05's own
+pointer ("read Stage 05's HANDOFF note if it's done — its root cause may be yours too") and checked
+whether `ObjectDef.decode(InBuffer,int)` (`DMS/src/main/java/io/dm/cache/ObjectDef.java`) had the
+same "no catch-all `else`, unrecognized opcode silently desyncs everything after it" shape that
+Stage 05 already found and fixed for `ItemDef`. It did, and had never been audited.
+
+Built `ObjectDef.findFirstUnknownOpcode(byte[])`/`isKnownOpcode(int)` mirroring `ItemDef`'s proven
+versions, wired directly into `ObjectDef.load()`'s existing loop (reusing bytes already fetched, no
+extra cache I/O — simpler than `ItemDef`'s setup since `Server.fileStore` already IS Cache228 as of
+the 2026-07-12 switch, so no separate `Cache228ObjectDefs` reader was needed), writing a summary to
+`OBJECT_DEF_OPCODE_DUMP.txt` each boot. Then **booted the server myself** to get real numbers — this
+needed no live client, since `ObjectDef.load()` runs before any player connects and `world_stage=DEV`
+in `DMS/server.properties` skips the SQL database connection entirely (`Server.java`'s `if
+(!World.isDev())` gate). Ran `./gradlew :DMS:run` headless three times across the investigation.
+
+First boot: 21 distinct unknown opcodes. Opcode 61 was by far the dominant one — the FIRST
+unrecognized opcode on **6501 objects**, meaning every field decoded afterward for those objects
+(options, sizeX/Y, clipType, recolor/retexture, sound, varp-driven visibility, ...) was silent
+garbage. Also real: opcode 82 (357 objects), opcode 89 (163), opcode 249 (21). A long tail of ~15
+opcodes at ≤30 hits each (3, 4, 6-13, 16, 20, 37, 93, 202, 231, 246) turned out to be downstream
+noise from the opcode-61 desync, not independent bugs — confirmed because every one of them
+vanished once opcode 61 was fixed.
+
+Fetched AlterRSPS's live `ObjectDecoder.kt` from GitHub (`github.com/AlterRSPS/Alter`, path
+`plugins/filestore/src/main/kotlin/dev/openrune/cache/filestore/definition/decoder/ObjectDecoder.kt`
+— found via the git-trees API since GitHub code search needs auth; same ground-truth source Stage 05
+used for `ItemDef`, not the sibling `DeadMen/` repo) and cross-checked every opcode our decoder
+already claimed to handle, not just the unknown ones. That caught a second, subtler bug: opcodes 78
+and 79 (ambient sound) were already "known" so the audit alone would never have flagged them, but
+both under-read by exactly one byte — Cache228 (rev228 ≥ 220) appends a `soundRetain` byte AlterRSPS
+conditions on `revisionIsOrAfter(220)` that this decoder never read.
+
+Fixed all 5 real gaps: opcode 61 (`category`, new field, discarded), opcode 82 (merged into the
+existing opcode-60 `mapMarkerId` handling — AlterRSPS aliases them: `60,82 -> mapAreaId`), opcode 89
+(`randomizeAnimStart`, new field), opcode 249 (parameters block, same wire format as `ItemDef`'s own
+opcode 249 — new `attributes` map field), and the opcodes 78/79 missing byte (read-and-discard,
+unconditional since this deployment's cache is always rev228). Also closed opcode 90
+(`delayAnimationUpdate`, 0 bytes, 8 objects) for completeness, though it was never a desync risk.
+
+Second boot (mid-fix): 1 unknown opcode left (90, fixed in the same edit — dump was stale from the
+previous compile). Third boot: **0 distinct unknown opcodes**. All three boots reached well past
+`ObjectDef.load()` into `DataFile.load()`/`PackageLoader.load()`/`Starting server workers...` with no
+new exceptions — the only errors present (the ~84 region-decrypt failures, several `Package Failure`
+content gaps, one `AbyssalSire` NPE) are all pre-existing and already documented in THE_PLAN.txt's
+2026-07-12 update, not caused by this change. Killed the diagnostic server process afterward
+(headless dev-mode boot, no persistent state written).
+
+**This is a broader fix than Stage 07's own symptom** — corrects object fidelity for 6501+ objects
+project-wide (rendering, clipping, sound, recolor, varp-driven visibility), not narrowly scoped to
+"walk but don't interact." Whether it also resolves Stage 07's specific symptom is unknown: none of
+the corrupted fields were on the `successAction` resolution path Round 1 traced (that path reads
+`gameObject.actions`/`getDef().defaultActions`, code-side `ObjectAction.register` registrations, not
+cache-decoded `options`) — so Round 1's hypotheses B (disproven) and C (partially weakened) still
+stand as the more likely explanation for the original symptom, and its `[OBJACTION]` diagnostics
+(untouched this round) remain the next real lead. Stage 07 is still NOT DONE — needs a human to
+re-run the TEST SCRIPT with a real client.
+
+Files touched: `DMS/src/main/java/io/dm/cache/ObjectDef.java`. `stages/STAGE-07-object-
+interactions.txt` and `THE_PLAN.txt` updated to reflect all of the above.
+
+## STAGE 09 — NPC extended info: animations, hitsplats, transforms, overheads (2026-07-13)
+- **Goal/root cause:** NPCs rendered and moved (Stage 03) but never played an animation, showed a
+  hitsplat/hp bar, overhead text, face-direction change, or transform — `RsProt.pushMaskUpdates`
+  only ever bridged the PLAYER-side masks onto `PlayerAvatarExtendedInfo`; nothing consumed the NPC
+  masks for RSProt observers. Not a bug, a missing feature (THE_PLAN.txt Section 8 had it flagged).
+- **Implementation — `RsProt.pushNpcMaskUpdates(NPC)`** (RsProt.java, directly after
+  `pushNpcMovement`): mirrors the player bridge for the exact 7 masks `NPC.init()` instantiates —
+  `AnimationUpdate`→`setSequence(id,delay)`; `GraphicsUpdate`→`setSpotAnim(0,id,delay,height)`;
+  `HitsUpdate`→`addHitMark(-1,type,type,damage,delay)` per splat + `addHeadBar(-1,hpBarType,
+  hpBarType,ratio,ratio,0,0)`; `EntityDirectionUpdate`→`setFacePathingEntity(toRsProtEntityIndex(
+  target))` (reuses the existing +32768→+0x10000 player-index converter, via the same
+  `consumeResolvedUpdate()` self-tracking path as the player bridge — no setSent for this one);
+  `ForceTextUpdate`→`setSay(text)`; plus the two NPC-specific ones below. Called once per allocated
+  NPC per cycle from `driveUpdate()` step 2b (the existing Stage-03 world-NPC loop, alongside
+  `pushNpcMovement`), i.e. before step 3's `npcInfoProtocol.update()` gathers the cycle's
+  extended-info snapshot. Extended info is per-avatar/global, so the world-NPC loop (not a
+  per-player loop) is the correct gathering model — confirmed against how the protocol collects it.
+- **NPC-specific mapping 1 — face-coord, NOT face-angle:** `NpcAvatarExtendedInfo` has no
+  `setFaceAngle` (verified by reading `NpcAvatarExtendedInfo.kt` from the osrs-228-model sources
+  jar end to end). The legacy NPC-mode `MapDirectionUpdate.set(faceX, faceY)` stores the "fine"
+  half-tile form (`absX*2 + xLength` — see `Entity.face(int,int,int,int)`); RSProt's
+  `setFaceCoord(x, z, instant)` takes absolute tile coords (0..16383) and faces that tile's centre.
+  Bridged with `>> 1`: exact for size-1 targets (fine `2x+1` IS the centre of tile `x`), at most
+  half a tile off-centre for larger targets — documented in the javadoc as accepted rounding.
+- **NPC-specific mapping 2 — transform needs TWO calls, not one:** `setTransmogrification(id)`'s
+  own KDoc says the block is transient (one cycle, current observers only) and "the server is
+  expected to additionally change the id of the avatar itself via NpcAvatar.setId" — so the bridge
+  calls both, or any player walking up after the transform cycle would still see the old npc id.
+  `NPC.transform()` already updates the server-side id/size/combat def before the bridge runs.
+  This is the `TransformUpdate` mask Milestone 2's player bridge explicitly excluded as NPC-only;
+  its javadoc cross-reference was updated to point here instead of "a future NPC-info pass".
+- **setSent(true) discipline preserved** (the "replays forever" bug class caught on the player side
+  pre-ship): every consumed mask is marked sent so `Entity.resetUpdates()` — which
+  `CoreWorker.update()` already calls for every NPC each cycle regardless of transport — actually
+  clears it. Without this, one attack animation would replay every 600ms forever.
+- **Support getters added (purely additive):** `MapDirectionUpdate.getFaceX()/getFaceY()` (NPC-mode
+  fields were private with no reader), `TransformUpdate.getId()` (same), and
+  `NPC.getTransformUpdate()` (the field is private on NPC, and the bridge lives in another package).
+  No existing field, signature, or legacy code path touched.
+- **Verification:** `./gradlew :DMS:compileJava` BUILD SUCCESSFUL; then a full headless server boot
+  (`world_stage=DEV`, same method as Stage 07 Round 2) — booted to "Started server in 23690ms",
+  RSProt bound on 13302, and the new bridge ran over every boot-spawned NPC avatar (thousands, every
+  600ms tick, including spawn-animation masks set at spawn time) for 30+ seconds with ZERO
+  `[TICK] npc` error lines in the log. That exercises the code path for real; what it can't prove is
+  visual correctness on a client (anim actually renders, no per-tick replay, transform looks right).
+- **Status: code-complete, NOT yet live-client-tested.** Next step: human runs the TEST SCRIPT in
+  stages/STAGE-09-npc-extended-info.txt — attack an NPC (block/attack anims + hitsplat + hp bar),
+  kill it (death anim before despawn), watch for the no-replay criterion (an NPC must NOT loop its
+  last animation every 600ms — if it does, suspect the setSent path first), face-on-engage, and a
+  transforming NPC if one is reachable.
+
+## STAGE 10 — Player FX & zone FX pre-audit + fixes (2026-07-13)
+- **No live client this session (same constraint as Stage 07/09), so this round is the code
+  pre-audit half of Stage 10: every transmit-side mapping the stage owns was checked against the
+  osrs-228-model sources jar** (`MapProjAnim.kt`, `SoundArea.kt`, `MapAnim.kt`,
+  `PlayerAvatarExtendedInfo.kt` — extracted fresh from the Gradle cache) **and against the legacy
+  callers that feed it** (`Projectile.java`, `Entity.publicSound`, `PlayerMovement.force`,
+  `MapDirectionUpdate`, `ForceMovementUpdate`, `HitsUpdate`, `Direction`). Two real bugs found and
+  fixed, both in `PacketSender.java`; everything else confirmed correct with primary-source
+  evidence rather than left as "best-effort".
+- **Bug 1 (fixed) — `sendProjectile` passed `sourceIndex = -1` as "no source entity".**
+  `MapProjAnim.kt`'s KDoc is explicit: 0 = not locked to any source; players are `-(index+1)`,
+  NPCs `(index+1)`. In that encoding -1 means "player at index 0" — every projectile in the game
+  would have had its ORIGIN visually locked to whichever player holds index 0 (harmless-looking in
+  a single-player dev test, arbitrary-wrong the moment two players are online). Changed to 0.
+  `targetIndex` needed no change — `Projectile.java` already computes `target.getIndex() + 1`,
+  negated for players, 0 for tile-targeted sends: exactly RSProt's convention, verified end to end.
+- **Bug 2 (fixed) — `sendAreaSound` passed `dropOffRange = distance` (15).** Per `SoundArea.kt`'s
+  KDoc, `dropOffRange` is the SIZE of the sound's origin ("in most cases, this should be a value
+  of 1"; larger values exist so big NPCs' sounds flow from their whole footprint) — NOT a second
+  radius. Passing 15 made the client treat the coord as the SW corner of a 15x15 even-volume box,
+  destroying distance falloff entirely. Changed to 1. The `type->loops` and `distance->range`
+  halves of this mapping were separately CONFIRMED correct (legacy packed byte `distance << 4 |
+  type` = radius nibble + loop-count nibble; all live callers route through `Entity.publicSound`
+  with `type >= 1` — noted in the code comment that `loops = 0` means "never plays" per the KDoc,
+  in case a future caller passes 0 expecting one-shot).
+- **Upgraded from "guess" to "confirmed", no code change:** `curve->angle` / `something->progress`
+  in `sendProjectile` is corroborated by this codebase's own data — `Projectile.java`'s presets
+  were dumped from real RS (`print()` reads `projectile_dumps`), and the arrow family carries
+  curve=15/idk=11, the canonical OSRS angle/progress pair. THE_PLAN.txt Section 6a/9's "positional
+  best-effort" caveat for projectiles is retired; the same caveat for area sounds is resolved by
+  Bug 2 above.
+- **Audited, confirmed correct, deliberately untouched** (recorded so nobody "fixes" these on a
+  hunch): `setFaceAngle` (legacy player-mode `MapDirectionUpdate` already stores a real 0-2047
+  angle); `setExactMove` (legacy 184 is OSRS-era — `PlayerMovement.force`'s teleport-first +
+  negated-deltas convention is the same ExactMove block semantics rev 228 uses; delays are client
+  cycles on both sides; `Direction.clientValue` is a real 0-2047 angle, not a 0-3 code);
+  `addHitMark`/`addHeadBar` (7-arg call matches the (sourceIndex, selfType, otherType, startFill,
+  endFill, startTime, endTime) overload; `HitsUpdate.hpBarRatio` is already in per-headbar-type
+  pixel units, exactly RSProt's fill scale; `sourceIndex = -1` IS the documented "none" for
+  hitmarks/headbars — that differs from `MapProjAnim`, where none = 0, hence Bug 1);
+  `setSequence`/`setSpotAnim`/`setSay`/`setChat`/`setMoveSpeed` (1=walk/2=run)/`setTempMoveSpeed`
+  (127=teleport) all match their KDoc tables.
+- **Status: code-complete for the pre-audit half, compiles clean (`./gradlew :DMS:compileJava`,
+  2026-07-13). Stage 10 is IN PROGRESS, NOT DONE** — the stage IS the live verification; the
+  8-step TEST SCRIPT now in stages/STAGE-10-player-fx-verification.txt is the next step and needs
+  a human + RSProx + rev-228 client. Only after that passes do MIGRATION.txt's Milestone 1+2
+  checkboxes flip to DONE (per the stage's own WRAP-UP note).
+- Files touched: `DMS/src/main/java/io/dm/network/PacketSender.java` (2 one-line fixes + comment
+  rewrites), `stages/STAGE-10-player-fx-verification.txt` (status, findings, TEST SCRIPT),
+  `THE_PLAN.txt` (update block).
+
+## STAGE 11 — Dialog polish & diagnostic cleanup (2026-07-13)
+- **The reported symptom ("choose-option background missing") turned out to be the visible corner
+  of a much bigger, provable hole: the rev-228 client's ENTIRE dialogue-resume packet family was
+  being accepted-and-dropped.** The 228 client does not send `If3Button` for "Click here to
+  continue", choose-option selections, make-x item buttons, or the chatbox int/string/name inputs
+  — it sends `ResumePauseButton` / `ResumePCountDialog` / `ResumePStringDialog` /
+  `ResumePNameDialog` (+ `ResumePObjDialog` for GE-style item search), and all five were still in
+  `RsProt.java`'s no-op set (`DmIncomingPackets.kt`'s own doc comment even listed "Resume*
+  dialogs" as known remaining work). Primary evidence, not inference: PROTOCOL_DUMP.txt contains
+  ZERO packets from interfaces 219/270/231/229 across every live session ever logged, despite
+  humans clicking those dialogs in at least two sessions. This one hole is what the post-Stage-04
+  live-test report actually was ("choose-option renders but clicking doesn't close the box,
+  Make-X's on-screen buttons do nothing, most chatbox windows require an unrelated interaction
+  to dismiss" — the unrelated interaction "worked" because walking triggers resetActions →
+  closeDialogue server-side).
+- **Fix 1 — all five Resume* packets wired in `RsProt.java`** (same listener pattern as Milestone
+  4): `ResumePauseButton` → `onResumePauseButton`, an exact mirror of the legacy
+  `ActionButtonHandler.DialogueHandler` (opcode 1): offer the value to any suspended `GameEvent`
+  via `GameEventProcessor.resumeWith` first, then `ActionButtonHandler.handleAction(p, 1,
+  combinedId, sub, -1, dialogue=true)`. That routes through the existing `InterfaceHandler`
+  registrations untouched: `OptionsDialogue`'s 219:1 `SlotAction` (sub = 1-based option index,
+  matching its `slot - 1`), every dialogue's "continue" child, and `SkillDialogue`'s 270:14+i
+  `DefaultAction`. Make-x quantity semantics confirmed against AlterRSPS's rev-228
+  `produceItemBox()` (QueueTaskExt.kt): `ResumePauseButton.sub` IS the chosen quantity for
+  270:14+i — the exact value the legacy handler already reads from its slot parameter, so make-x
+  needed zero game-logic changes. `ResumePCountDialog` → `Player.consumerInt` and
+  `ResumePStringDialog`/`ResumePNameDialog` → `Player.consumerString`, byte-for-byte mirrors of
+  legacy `InputHandler` opcodes 8/54 and 100/39 including the retry-consumer dance (this is what
+  makes bank Withdraw-X's typed amount actually withdraw now). `ResumePObjDialog` →
+  `consumerInt` (parity plumbing; nothing prompts an item search yet, logged for the day it does).
+  All five added to the `registerNoOpsExcept` exclusion set (RSProt throws on duplicate listener
+  registration, per Milestone 4's original finding).
+- **Fix 2 — choose-option background, root-caused with primary sources instead of the stage
+  brief's "compare call sequences" guess.** Ground truth: AlterRSPS `QueueTaskExt.options()`
+  (github.com/AlterRSPS/Alter, game-api/.../ext/QueueTaskExt.kt — the same rev-228 reference
+  Stage 04 used) + the deobbed cs2 sources (github.com/Joshua-F/cs2-scripts, shallow-cloned and
+  grepped; script ids read from the files' own `// N` headers). The chain: script 58
+  (`chatbox_multi_init` — confirmed id 58, our existing call was right) draws ONLY the title,
+  option texts and sword decorations; the parchment comes from the chatbox's own layout proc
+  (`script113` → `toplevel_chatbox_background`), which (a) only fires its dialogue relayout when
+  a sub attaches to one of 162's LAST TWO children (`chat_onsubchange` watches exactly those; 565
+  in the older-rev cs2 dump where 162 had 566 components, 566 in our 567-component Cache228 —
+  and Alter's rev-228 `CHATBOX_CHILD = 566` confirms it), (b) skips drawing the parchment while
+  `varcint223` is in the future (script 2379 `toplevel_chatbox_resetbackground` zeroes it — Alter
+  runs it before every options/chatNpc/chatPlayer open), and (c) sizes the dialogue child
+  full-chatbox only when `varbit10670 = 1` AND a sub is attached (Alter sends tempvarbit 10670=1
+  in `options()`; varbit 10670 is confirmed present in OUR cache — it's in interface 162's own
+  varp-1021 config list in CACHE_INTERFACE_DUMP.txt). Our code opened dialogs on the 184-era
+  child 561 (renders, but the chatbox scripts never react — hence "background missing" while
+  buttons drew fine) and sent neither 2379 nor 10670.
+- **Changes:** `InterfaceType.java` CHATBOX 561→566 (single shared component, affects every
+  chatbox dialogue — this is the load-bearing one); `OptionsDialogue.java` open() now sends
+  script 2379 + sets new `Config.CHATBOX_DIALOGUE_FULL_SIZE` = 1, reset to 0 in a new
+  `h.closedAction` (mirroring `SkillDialogue`'s existing pattern); `Config.java` adds
+  `CHATBOX_DIALOGUE_FULL_SIZE = varpbit(10670, false)`. **Deliberately NOT changed:**
+  `SkillDialogue`/`LinkDialogue` keep varbit 5983 (`CHATBOX_INTERFACE_USE_FULL_FRAME`) — Alter's
+  own rev-228 `produceItemBox()` still sends 5983, so 5983 and 10670 are two coexisting live
+  varbits (make-x full-frame vs dialogue-child full-size), not a stale/new pair;
+  `OptionsDialogue`'s `setAlignment(219,1,0,-10)` stays (it has no RSProt branch — legacy-only,
+  invisible to 228 clients); `Interface.OPTIONS_DIALOGUE = 219` confirmed correct (2 components
+  in Cache228, matching OSRS's real 219).
+- **Diagnostics stripped** (their subsystems are human-confirmed: Stage 05 closed live 2026-07-11,
+  bank/interfaces confirmed rendering+working 2026-07-08): PacketSender `logIfaceTarget`/`[IFACE]`
+  + the `LOGGED_IFACE` set + `[VARP]` print; ActionButtonHandler `"[BUTTON] resolved"`;
+  InterfaceDragHandler `"[DRAG] resolved"`. **KEPT, deliberately:** every `[OBJACTION]` print
+  (ObjectActionHandler + RouteFinder — Stage 07 is still open and they're its next lead);
+  `[TICK]` catch-guards (permanent per the stage brief); `[MLM_RAW]` in Region.java (2026-07-12
+  session's Motherlode probe — that content gap is still unresolved and it's not a Stage-02-08
+  leftover); dm-net's `[IN] first <type>` (permanent first-unhandled-packet detector);
+  NetworkLogger/CacheInterfaceDumper (permanent by design).
+- **Verification:** `./gradlew :DMS:compileJava` BUILD SUCCESSFUL after each half. No live client
+  this session (same constraint as Stages 07/09/10) — the updated TEST SCRIPT in
+  stages/STAGE-11-polish-and-diag-cleanup.txt is the human's next step, and every dialogue
+  click/entry now lands in PROTOCOL_DUMP.txt as a Resume* line for follow-up debugging.
+- Files touched: `RsProt.java` (5 listeners + 4 bridge methods + no-op exclusions),
+  `InterfaceType.java`, `OptionsDialogue.java`, `Config.java`, `PacketSender.java` (strip),
+  `ActionButtonHandler.java` (strip), `InterfaceDragHandler.java` (strip),
+  `stages/STAGE-11-polish-and-diag-cleanup.txt`, `THE_PLAN.txt`.
+
+## STAGE 11 — Round 2: dialogue children, make-x sizing, inventory restore (2026-07-13)
+Human live-tested Round 1 the same day. Confirmed working: the Resume* wiring itself (make-x
+"smithing works" — PROTOCOL_DUMP.txt shows ResumePauseButton 270:14+i with the quantity in the
+slot field, plus 231/217 continue clicks arriving), and the chatbox parchment renders behind
+dialogs on child 566. Four reported problems, three root-caused and fixed, one instrumented:
+- **NPC/player dialogue heads+name+continue missing, continue "works sometimes"** — 231/217's
+  CHILD IDS inside the dialogue were still 184-era (head=1, name=2, continue=3, message=4). Rev
+  228 uses head=2, name=4, continue=5, message=6 — per AlterRSPS chatNpc()/chatPlayer() (incl.
+  its settextalign target 15138822 = 231:6) and proven independently by our own dump: the client
+  natively sends ResumePauseButton on 231:5/217:5 (no server mask on 5 existed — the continue
+  child fires on its own), while our masked child 3 ALSO fired (that's the "sometimes": clicks
+  landing on 3 hit our handler, clicks on the real continue child 5 hit nothing). The human's
+  screenshot corroborates: the message text rendered RED at top-centre = the NAME child's styling
+  (we were writing message into 4 = 228's name slot). Both classes remapped to 2/4/5/6, handler +
+  mask moved to child 5. The right-click "Choose Option: Continue/Continue/Cancel" menu in the
+  screenshot was these two overlapping continue-clickable components (3 + 5).
+- **MessageDialogue (229) / ItemDialogue (193, 11)** — children already matched 228 (Alter
+  messageBox/itemMessageBox/doubleItemMessageBox), but none of them ever sent an events mask, and
+  a 228 client sends NO pause click without one (Milestone 4's access-mask lesson, chatbox
+  edition). Masks added: 229:2 (-1,-1), 193:0 slots 0-1 (script 2868/objbox_setbuttons builds the
+  buttons as dynamic children of component 0), 11:4 (-1,-1).
+- **YesNoDialogue (584)** — rev 228's confirmdestroy_init (script 814) gained a middle int arg:
+  old deob signature is (obj, int, string, string), Alter's 228 destroyItem() passes (item,
+  amount, 0, title, note). Our 4-arg "oiss" send desyncs both strings on 228. Now "oiiss" with 0.
+- **Make-x clipping** — varbit 5983 (CHATBOX_INTERFACE_USE_FULL_FRAME, set by SkillDialogue/
+  LinkDialogue since forever, and still sent by Alter's produceItemBox) is NOT the full-frame
+  flag on 228: the deobbed cs2 shows it's a client settings toggle (settings_get_toggle returns
+  it; script133 flips it). The real sizing mechanism is script113's varbit 10670 check — the
+  dialogue child (162:566) is 479x96 unless 10670=1 while a sub is attached. SkillDialogue and
+  LinkDialogue now ALSO set CHATBOX_DIALOGUE_FULL_SIZE (10670) on open / 0 on close; their 5983
+  writes left untouched (harmless legacy parity, and changing two variables at once would muddy
+  the retest).
+- **Inventory pane vanishing after closing side-panel interfaces** — world switcher (TabLogout),
+  notifications/display-name (TabOptions), looting bag, transformation ring, bank/shop side views
+  all open through INVENTORY/INVENTORY_OVERLAY, whose destination IS the inventory tab's frame
+  slot (548:83 fixed / 161:79 / 164:75) — opening them REPLACES interface 149 there, and on the
+  IF3 frame a closed child just stays empty (the legacy 184 client restored tabs itself; that's
+  why this never existed pre-migration). `Player.closeInterface` now re-opens 149 via new
+  `InterfaceType.openTab` (same overlay=1 send as RsProt.openFrame's FIXED_FRAME_PANES loop) and
+  re-sends the Stage-05 inventory access mask (3407870) whenever either type closes.
+- **Options "not firing at all" — NOT root-caused, instrumented instead.** Zero interface=219
+  lines in the dump = the client sent nothing, but nothing proves the server ever OPENED one: the
+  Man conversation the human tested (NPCActionHandler's default "Beautiful day..." chain) has no
+  options step at all, and the restart-the-convo pattern in the dump is fully explained by the
+  broken continue child above. Two changes: the 10670 set moved AFTER openInterface (opening
+  fires the REPLACED chatbox handler's closedAction — 219's own, 270's and 284's all zero the
+  varbit, so a chained/resent options dialogue would have un-set it), and OptionsDialogue.open()
+  now writes a TEMP "SERVER-OUT OptionsDialogue.open" line to PROTOCOL_DUMP.txt so the next live
+  test separates "server never opened one" from "client didn't render/send". Remove that line
+  once options are confirmed live.
+- Verification: `./gradlew :DMS:compileJava` BUILD SUCCESSFUL. Files touched: NPCDialogue,
+  PlayerDialogue, MessageDialogue, ItemDialogue, YesNoDialogue, SkillDialogue, LinkDialogue,
+  OptionsDialogue, InterfaceType (openTab), Player (closeInterface restore),
+  stages/STAGE-11-polish-and-diag-cleanup.txt (ROUND 2 FINDINGS + new TEST SCRIPT), THE_PLAN.txt.
+
+## STAGE 11 — Round 3: NPC/player chat heads never left the server (2026-07-13)
+Human live-tested Round 2. NPC/player names, "Click here to continue", and message text all
+rendered correctly (proving the 231/217 child remap from Round 2 — head=2/name=4/continue=5/
+message=6 — landed each string/button on the right component), but the chat HEAD models
+themselves still weren't appearing. Root-caused, not the child-id remap: `PacketSender.
+sendPlayerHead`, `.sendNpcHead`, and `.animateInterface` were three of the very few remaining
+send methods in the entire file with NO RSProt branch at all — every other ported method in this
+class (`sendString`, `setHidden`, `sendItem`, `sendAccessMask`, `sendClientScript`, etc.) starts
+with `if (queueRsprot(new net.rsprot.protocol.game.outgoing.interfaces.IfSetXxx(...))) return;`
+before falling through to the legacy 184 `OutBuffer` path; these three skipped straight to
+`write(out)`, and `write()`'s own existing comment spells out the consequence: RSProt-bound real
+players have a null legacy Netty channel by design, so `if (player instanceof AIPlayer ||
+player.getChannel() == null) return;` silently drops the packet. The three calls in
+`NPCDialogue.open()`/`PlayerDialogue.open()` (added correctly in Round 1, retargeted to the
+correct child 2 in Round 2) were therefore complete no-ops for every rev-228 client that has ever
+connected to this server — a gap that predates Stage 11 entirely (Milestone 4's original 11-
+listener wiring never touched outbound `PacketSender` methods, and nothing in Stages 01-10
+exercised chat heads specifically enough to surface it). Confirmed via grep that
+`sendPlayerHead`/`sendNpcHead`/`animateInterface` have exactly one caller pair in the whole repo
+(NPCDialogue + PlayerDialogue), so the bug's blast radius is exactly the reported symptom, nothing
+wider.
+- **Fix**: extracted `osrs-228-model`'s sources jar (`net.rsprot:osrs-228-model:1.0.0-ALPHA-
+  20260630-sources.jar`, same ground-truth source Stage 11 Rounds 1-2 already used) and confirmed
+  `net.rsprot.protocol.game.outgoing.interfaces` has an exact equivalent for each: `IfSetPlayerHead
+  (interfaceId, componentId)`, `IfSetNpcHead(interfaceId, componentId, npc)`, `IfSetAnim
+  (interfaceId, componentId, anim)` — same `(parentId, childId[, extra])` argument shape the
+  legacy methods already take, so this was a pure missing-branch fix, no parameter remapping or
+  child-id changes needed. Added the standard `if (queueRsprot(...)) return;` guard to all three
+  methods in `PacketSender.java`, matching every other ported method's exact pattern.
+- Verification: `./gradlew :DMS:compileJava` BUILD SUCCESSFUL. Files touched: `PacketSender.java`
+  only (`sendPlayerHead`/`sendNpcHead`/`animateInterface`); NPCDialogue.java/PlayerDialogue.java
+  needed no changes since Round 2's child-id remap was already correct.
+  `stages/STAGE-11-polish-and-diag-cleanup.txt` (ROUND 3 FINDINGS + updated TEST SCRIPT step 1),
+  THE_PLAN.txt.
+- Options ("not firing at all") remains un-root-caused from Round 2 — the TEMP "SERVER-OUT
+  OptionsDialogue.open" diagnostic is still in place, not touched this round.
+- No live client this session (same constraint as every prior Stage 11 round) — pending the
+  human's next live test via the updated TEST SCRIPT step 1 in the stage file.

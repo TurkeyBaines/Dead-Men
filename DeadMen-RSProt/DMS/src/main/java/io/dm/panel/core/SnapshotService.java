@@ -91,7 +91,7 @@ public final class SnapshotService {
         long executions = Server.worker.getExecutions();
 
         // Population + world/tournament state (all defensively read).
-        int overworldPop = safeCount(() -> Deadman.getOverworld().count());
+        int overworldPop = safeCount(() -> Deadman.getCitadel().count());
         int citadelPop = safeCount(() -> Deadman.getCitadel().count());
 
         String stageName = "UNKNOWN";
@@ -133,8 +133,8 @@ public final class SnapshotService {
                         rankOf(p),
                         safeBool(p::isStaff),
                         positionOf(p),
-                        p.overworldPoints,
-                        p.overworldPointsVault,
+                        0,
+                        0,
                         p.PvmPoints,
                         p.appreciationPoints,
                         p.playTime

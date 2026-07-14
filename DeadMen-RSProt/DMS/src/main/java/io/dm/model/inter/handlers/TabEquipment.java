@@ -12,22 +12,30 @@ import io.dm.model.item.containers.Equipment;
 public class TabEquipment {
 
     static {
-        InterfaceHandler.register(Interface.EQUIPMENT, h -> {
-            h.actions[6] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_HAT);
-            h.actions[7] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_CAPE);
-            h.actions[8] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_AMULET);
-            h.actions[9] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_WEAPON);
-            h.actions[10] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_CHEST);
-            h.actions[11] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_SHIELD);
-            h.actions[12] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_LEGS);
-            h.actions[13] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_HANDS);
-            h.actions[14] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_FEET);
-            h.actions[15] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_RING);
-            h.actions[16] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_AMMO);
-            h.actions[17] = (SimpleAction) EquipmentStats::open;
+        // Stage 06 fix (2026-07-11): the ten worn-slot childIds (15-24) used to hold all 11 equipment
+        // types, so h.actions[24] was assigned twice (RING then AMMO silently overwrote it) - RING never
+        // had a working handler. PROTOCOL_DUMP.txt from live testing shows a real, repeated (5x) click on
+        // component=25 that matches no registered handler here, while components 15-22 arrived correctly
+        // matching HAT..HANDS below - confirming the real client uses childId 25 for the 11th slot (one
+        // past interface 387's legacy/Cache228-reported "25 components", the same undercount class as
+        // interface 548's fixed-frame panes). Split RING=24/AMMO=25 and register with 26 slots of
+        // capacity (see InterfaceHandler#register(int,int,Consumer)) so childId 25 doesn't throw.
+        InterfaceHandler.register(Interface.EQUIPMENT, 26, h -> {
+            h.actions[15] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_HAT);
+            h.actions[16] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_CAPE);
+            h.actions[17] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_AMULET);
+            h.actions[18] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_WEAPON);
+            h.actions[19] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_CHEST);
+            h.actions[20] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_SHIELD);
+            h.actions[21] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_LEGS);
+            h.actions[22] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_HANDS);
+            h.actions[23] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_FEET);
+            h.actions[24] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_RING);
+            h.actions[25] = (OptionAction) (player, option) -> itemAction(player, option, Equipment.SLOT_AMMO);
+            h.actions[1] = (SimpleAction) EquipmentStats::open;
             //l0l oops h.actions[19] = (SimpleAction) p -> p.sendMessage("This feature will be added with the release of the Grand Exchange!");
-            h.actions[21] = (SimpleAction) IKOD::open;
-            h.actions[23] = (SimpleAction) p -> {
+            h.actions[5] = (SimpleAction) IKOD::open;
+            h.actions[7] = (SimpleAction) p -> {
                 if(p.pet == null)
                     p.sendMessage("You don't have a follower.");
                 else

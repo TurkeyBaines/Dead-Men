@@ -1,5 +1,35 @@
 STAGE 07 — Object interactions execute on arrival
-STATUS: NOT STARTED
+STATUS (2026-07-11, Round 1): IN PROGRESS, NOT DONE. Traced the full chain end-to-end and used
+primary sources (RSProt's own osrs-228-model sources jar, direct code reading) to disprove/weaken
+two of the three ranked hypotheses with real evidence instead of guessing — see "ROUND 1 FINDINGS"
+below. No live client was available this session (per README RULES #3, only the human can do
+that), so instead of guessing a fix, this round added `[OBJACTION]` diagnostic prints at every
+silent-return branch in the walk-then-act pipeline (`ObjectActionHandler.handleAction` and both
+branches of `RouteFinder.routeObject`) — compiles clean (`./gradlew :DMS:compileJava`,
+2026-07-11). NEXT STEP: hand the human the updated TEST SCRIPT below and read the `[OBJACTION]`
+console output; it will show definitively which of the remaining branches fires. Do not remove the
+temp prints until that's done (README RULES #7 / this file's own STEPS #4).
+UPDATE 2026-07-12: the cache switched to stock Cache228 (see NOTES FROM OTHER STAGES below) — this
+stage's leading Hypothesis A is now premise-invalidated, not just weakened. Re-run the TEST SCRIPT
+fresh before trusting anything above as still-current.
+STATUS (2026-07-13, Round 2): IN PROGRESS, NOT DONE — no live client available this round either
+(same constraint as Round 1), but found and fixed a real, evidence-backed bug while doing code-only
+prep for the re-test: `ObjectDef.decode(InBuffer,int)` (the exact same class of bug already
+confirmed real for `ItemDef` in Stage 05 — see stages/STAGE-05-inventory-actions.txt's "Opcode
+desync" section) had no case for cache opcodes 61/82/89/90/249, and silently under-read opcodes
+78/79 by one byte on this rev≥220 cache. Built `ObjectDef.findFirstUnknownOpcode` (mirrors
+ItemDef's, wired directly into `ObjectDef.load()` since `Server.fileStore` already IS Cache228 as
+of 2026-07-12 — no separate Cache228 reader needed) and actually booted the server myself (headless,
+`world_stage=DEV` skips the DB requirement, no client needed — see ROUND 2 FINDINGS below) to get
+real numbers instead of guessing. Opcode 61 alone was the FIRST unrecognized opcode on 6501
+objects — i.e. it desynced every field decoded afterward (options, sizeX/Y, clipType, colors,
+sound, varp visibility, ...) for 6501 objects before this fix. Fixed all 5 real opcodes (verified
+against AlterRSPS's live ObjectDecoder.kt on GitHub, same ground-truth source Stage 05 used) —
+post-fix, 3 consecutive fresh boots all show 0 unknown opcodes and no new exceptions. THIS IS A
+BROADER FIX THAN STAGE 07's OWN SYMPTOM — it affects object fidelity project-wide, not just "walk
+but don't interact" — see THE_PLAN.txt's 2026-07-13 update. Whether it also resolves Stage 07's own
+symptom is UNKNOWN until a human re-runs the TEST SCRIPT below — the fix removes a real source of
+corruption but Round 1's other hypotheses (B disproven, C partially weakened) still stand.
 DEPENDS ON: Stage 00; Stage 01 recommended. Read Stage 05's HANDOFF note if it's done — its root
 cause may be yours too.
 Follow the RULES in stages/README.txt.
@@ -24,34 +54,199 @@ A. Reach/arrival check never satisfies. The server validates "am I next to this 
    check can never pass: player walks over and stands there forever. Diagnostic: pick the tested
    object's (id, x, y, z) from PROTOCOL_DUMP.txt and query the server's region/clip data — does
    the server even HAVE that object at those coords?
+   >>> ROUND 1 (2026-07-11): WEAKENED, NOT the root cause for the objects already tested — see
+   >>> ROUND 1 FINDINGS #1 below. `Tile.getObject(id, x, y, z)` (ObjectActionHandler.handleAction's
+   >>> lookup) requires an EXACT id match against the server's own stored GameObject at that tile
+   >>> (Tile.java:170-181: `gameObject.id == id`). Since all 8 of Stage 01's tested clicks
+   >>> successfully walked to the object (proven — see BASELINE-FINDINGS.txt), that lookup MUST have
+   >>> succeeded, which means the server's world data and the 228 client agree on both the object id
+   >>> AND its tile for every object tested so far. A real 184-vs-228 map divergence would have
+   >>> shown up as "player never even walks" (handleAction returns before routing), which is not
+   >>> what's observed. Still theoretically possible for OTHER objects/regions not yet tested — the
+   >>> new `[OBJACTION] click ... found=false` print (added this round) will catch that case
+   >>> immediately and for free on every future click, no manual cache querying needed.
 B. Option-index vs cache mismatch (Stage 05's prime hypothesis, object flavor): server matches
    the received op (1-5) against ObjectDef actions from the legacy cache; if 228's option
    ordering differs the server runs/finds nothing. Less likely to be uniform across ALL objects.
+   >>> ROUND 1 (2026-07-11): DISPROVEN by primary source, same shape as Stage 05's If3Button
+   >>> finding. Extracted `OpLoc.kt` from the real `osrs-228-model-...-sources.jar` (Gradle cache) —
+   >>> its own KDoc: "@property op the option clicked, ranging from 1 to 5 (inclusive)". This is the
+   >>> exact same 1-based convention `ObjectActionHandler`/`Door.java`/etc. already use throughout
+   >>> the legacy-shared game logic; `RsProt.onObjectAction` passes `msg.getOp()` straight through
+   >>> with no transformation, which is correct. Also confirmed `OpLoc.x`/`.z` are documented as "the
+   >>> absolute x/z coordinate of the south-western corner of the loc" (not the raw click tile) —
+   >>> consistent with how this codebase's own GameObject.x/y are anchored, and consistent with the
+   >>> successful id+position lookups above. Do not chase an op-numbering fix here; there isn't one.
 C. The queued action is cleared or never ticked for RSProt players: find how
    ObjectActionHandler.handleAction schedules the deferred action (walk-to callback? a
    player.action field polled in Player.process()?) and check nothing in the RSProt path
    (RsProt.onObjectAction's isLocked/resetActions guard, CoreWorker's session!=null branches)
    resets or skips it.
+   >>> ROUND 1 (2026-07-11): PARTIALLY WEAKENED but not eliminated — see ROUND 1 FINDINGS #2. The
+   >>> walk-then-act pipeline (`Entity.startEvent`/`processEvent`/`Movement.process`) is driven by
+   >>> `Player.process()`, which `CoreWorker.logic()` calls unconditionally for EVERY online player
+   >>> regardless of transport (Player.java:1636, CoreWorker.java:97-106 — no `getSession()`/
+   >>> `getChannel()` gate anywhere in that call chain). This is the same mechanism 200+ pre-existing
+   >>> content files (raids, skilling, wilderness — see the `ObjectAction.register` grep results)
+   >>> already depend on, strongly suggesting it isn't silently broken wholesale. What's NOT yet
+   >>> ruled out: something object-click-specific in the RSProt bridge (e.g. a duplicate/rapid
+   >>> repeat OpLoc — Stage 06 already documented equipment clicks double-firing ~0.6s apart; unclear
+   >>> if OpLoc does the same — would silently overwrite `Entity.nextEvent` before it's promoted to
+   >>> `activeEvent`, discarding the walk-event). The new `[OBJACTION] routeObject event bail ...`
+   >>> prints will show this directly if it's happening (they fire on the specific silent-return
+   >>> branches in RouteFinder.routeObject that this hypothesis would trip).
 
 KEY DEBUGGING LEVER: AI bots use the exact same handlers over the legacy path and (per the
 migration logs) are the reason the legacy path still exists. If a bot can chop a tree/open a door
 (check for a bot script: model/entity/player/ai/, e.g. GoblinKiller.java) while an RSProt player
 cannot interact with the SAME object instance, hypothesis A/B weaken and C strengthens; if bots
 ALSO fail on that object, it's A (server data), not RSProt at all.
+CHECKED (2026-07-11): this lever is a dead end, not usable right now. `AIPlayer.java:121-123`
+exposes a generic `handleObjectInteraction(...)` that delegates straight into the same
+`ObjectActionHandler.handleAction(...)` this whole stage is investigating — but none of the four
+concrete bot scripts that exist (`GoblinKiller`, `MeleeBot`, `EmoteScript`, `AIScript`, all under
+`model/entity/player/ai/scripts/`) actually call it (grepped for `GameObject`/`routeObject`/
+`ObjectAction` across the whole `ai` package — only `AIPlayer.java` itself matches). There is no
+currently-running bot behaviour that exercises object interaction to compare against.
+
+## ROUND 1 FINDINGS (2026-07-11) — the full chain, documented for the first time
+1. `ObjectActionHandler.handleAction(player, option, objectId, objectX, objectY, ctrlRun)` (called
+   from both the legacy `handle()` entry point and directly from `RsProt.onObjectAction`) looks the
+   object up via `Tile.getObject(objectId, objectX, objectY, player.getPosition().getZ())`
+   (`Tile.java:161-181`), which does an EXACT match on `gameObject.id == id` at that tile — not a
+   position-only match. Returns silently (no message, no walk) if not found.
+2. If found, it calls `player.getMovement().setCtrlRun(...)` then
+   `player.getRouteFinder().routeObject(gameObject, successAction)` where `successAction` is a
+   closure that resolves `gameObject.actions[option-1]` (per-instance override) falling back to
+   `gameObject.getDef().defaultActions[option-1]` (cache-wide default, populated at boot by ~211
+   `ObjectAction.register(...)` call sites across the codebase, e.g. `Door.java`'s static block),
+   and either calls `action.handle(player, gameObject)` or sends "Nothing interesting happens."
+3. `RouteFinder.routeObject(GameObject, Runnable)` (`RouteFinder.java:211-271`) has TWO paths:
+   - Fast path (already adjacent): runs `successAction` if `route.reachable`, else checks
+     `gameObject.skipReachCheck` (a per-object override predicate, null for ordinary objects), else
+     calls `Movement.outOfReach()` — which sends the player a very visible "I can't reach that!"
+     chatbox message + sound (`PlayerMovement.java:128-131`). This message pipeline is confirmed
+     working for RSProt players (chat/commands/examine text all work per BASELINE-FINDINGS.txt), so
+     if this branch were firing the human should have seen it. Not mentioned in the original
+     symptom report — genuinely unknown whether it fired or not, hence the new instrumentation
+     rather than assuming either way.
+   - Event path (not yet adjacent): starts an `Entity.startEvent(...)` that delays 1 tick at a time
+     until `Movement.isAtDestination()`, with a SILENT (`no message`) early return if
+     `gameObject.id != id || gameObject.tile == null` at any point (object changed/removed under
+     the player's feet) — checked both mid-wait and immediately after arrival. Once truly arrived,
+     it re-checks `route.reachable && route.finished(position)` and either fires `successAction`,
+     falls back to `skipReachCheck`, or calls the same loud `outOfReach()` as the fast path.
+4. `Entity.startEvent()` (`Entity.java:495-498`) calls `stopEvent(true)` (kills the entity's
+   currently-`active` event, if any and not persistent) then stashes the new event in `nextEvent`,
+   which is only promoted to `activeEvent` on the entity's NEXT `processEvent()` tick
+   (`Entity.java:513-522`). `processEvent()` is called unconditionally from `Player.process()`
+   (`Player.java:1636-1668`), which `CoreWorker.logic()` calls unconditionally for every online
+   player regardless of RSProt/legacy transport (`CoreWorker.java:97-106` — no session/channel
+   check anywhere in that call path). Movement stepping (`Movement.process()`) is driven the exact
+   same way. This entire chain is 100% shared, RSProt-unaware legacy code, and the same mechanism
+   underpins ~211 other `ObjectAction.register` call sites across raids/skilling/wilderness/etc.
+   content that presumably worked fine before this migration touched only the network layer.
+5. Net effect: there are exactly THREE ways this can end silently (no "I can't reach that!", no
+   "Nothing interesting happens.", no world effect) — (a) `gameObject == null` at the very first
+   lookup, (b) the `id != id || tile == null` bail inside the event wait-loop or right after it,
+   or (c) `successAction` running but resolving `action == null` from BOTH `actions[i]` and
+   `getDef().defaultActions[i]` — wait, that last one actually DOES send "Nothing interesting
+   happens.", so it is NOT silent; listed here only to be explicit that it's already ruled out as
+   a *silent* failure mode, not that it's ruled out as *a* failure mode (the human may simply not
+   have mentioned that chat line). All five `[OBJACTION]` print sites added this round map 1:1 onto
+   these branches, so the next live test resolves this by direct observation instead of inference.
+
+## ROUND 2 FINDINGS (2026-07-13) — ObjectDef opcode-desync bug, found and fixed without a live client
+While preparing to hand this stage back for a fresh live test (per the 2026-07-12 cache-switch
+note above), re-examined `ObjectDef.decode(InBuffer,int)` (`DMS/src/main/java/io/dm/cache/
+ObjectDef.java`) since Stage 05's HANDOFF note explicitly says "read Stage 05's note if it's done —
+its root cause may be yours too." Stage 05's closed "opcode desync" bug for `ItemDef` had the exact
+same shape: `decode(InBuffer,int)` has no catch-all `else` branch, so any cache opcode it doesn't
+recognize silently consumes zero payload bytes instead of erroring — desyncing every field decoded
+afterward for that record. `ObjectDef.decode` has the identical structure and had never been
+audited this way.
+1. Built `ObjectDef.findFirstUnknownOpcode(byte[])` + `isKnownOpcode(int)`, mirroring `ItemDef`'s
+   already-proven versions, and wired the check directly into `ObjectDef.load()`'s existing loop
+   (reusing the same bytes already fetched for the real decode — no extra cache I/O), writing a
+   summary to `OBJECT_DEF_OPCODE_DUMP.txt` on every boot.
+2. Booted the server myself to get real data — no live client needed for this, since `ObjectDef.
+   load()` runs at boot before any player connects, and `world_stage=DEV` in `DMS/server.properties`
+   skips the SQL database connection entirely (confirmed via `World.isDev()`/`WorldStage.DEV` and
+   Server.java's `if (!World.isDev())` gate around the DB-connect block). Ran `./gradlew :DMS:run`
+   headless with a timeout, three separate times across the fix.
+3. FIRST boot (pre-fix): 21 distinct unknown opcodes. By far the dominant one: **opcode 61, hit as
+   the FIRST unrecognized opcode on 6501 objects** — meaning 6501 objects' entire byte stream past
+   that point (options, sizeX/Y, clipType, recolor/retexture data, sound ids, varp-driven
+   visibility, ...) was garbage before this fix, completely silently (no exception, no log, nothing
+   — `LOADED.put(id, def)` still ran with the corrupted `def`). Also real: opcode 82 (357 objects —
+   turned out to be Cache228's alias for the same field as the already-handled opcode 60), opcode 89
+   (163 objects), opcode 249 (21 objects, the same "parameters" block format as ItemDef's own opcode
+   249). The remaining ~15 opcodes each hit ≤30 objects on tiny numbers (3, 4, 6-13, 16, 20, 37, 93,
+   202, 231, 246) that don't appear in any real rev-228 object decoder — see point 5 below for why.
+4. Fetched AlterRSPS's live `ObjectDecoder.kt` from GitHub (`github.com/AlterRSPS/Alter`, path
+   `plugins/filestore/src/main/kotlin/dev/openrune/cache/filestore/definition/decoder/
+   ObjectDecoder.kt`, found via the GitHub git-trees API since code search needed auth) — same
+   ground-truth source Stage 05 used for `ItemDef`, not the sibling `DeadMen/` repo (rev 184, off
+   limits per project rules). Cross-checked EVERY opcode our decoder already claimed to handle, not
+   just the unknown ones — this caught a second, more subtle bug: opcodes 78 and 79 (ambient sound)
+   were already "known" (so the opcode-audit alone would never have flagged them) but under-read by
+   exactly one byte, because Cache228 (rev228 ≥ 220) appends a `soundRetain` byte AlterRSPS's decoder
+   conditions on `revisionIsOrAfter(220)` that this decoder never read.
+5. Fixed all 5 real gaps: opcode 61 (`category`, new field, discarded), opcode 82 (merged into the
+   existing opcode-60 `mapMarkerId` case — AlterRSPS: `60,82 -> mapAreaId`), opcode 89
+   (`randomizeAnimStart`, new field), opcode 249 (parameters block, same wire format as ItemDef's —
+   new `attributes` map field), and the opcodes 78/79 missing byte (read-and-discard, matching
+   AlterRSPS's conditional exactly since this deployment's cache is always rev228). Also closed
+   opcode 90 (`delayAnimationUpdate`, 0 bytes, 8 objects) while in there, purely for completeness —
+   it was never a desync risk since it consumes 0 bytes either way.
+6. SECOND boot (post-fix): 1 distinct unknown opcode left — opcode 90, which point 5 had just fixed
+   in the same edit that produced this dump (stale — the dump reflects the PREVIOUS compile). THIRD
+   boot (after that): **0 distinct unknown opcodes**. Server reached well past `ObjectDef.load()`
+   into `DataFile.load()`/`PackageLoader.load()`/`Starting server workers...` with no new exceptions
+   across all three boots — the only errors present (the ~84 region-decrypt failures, 9-11 `Package
+   Failure` content gaps, one `AbyssalSire` NPE) are all pre-existing and already documented in
+   THE_PLAN.txt's 2026-07-12 update section, not caused by this change. Point 3's ~15 tiny-hit-count
+   "phantom" opcodes ALL disappeared once opcode 61 was fixed — confirming they were downstream
+   garbage from that one desync cascading into neighboring objects' byte alignment, not independent
+   bugs. Killed the diagnostic server process afterward (headless, `world_stage=DEV`, no persistent
+   state written — safe to just stop).
+7. **This is a broader fix than Stage 07's own symptom** — corrected object fidelity for 6501+
+   objects project-wide (rendering, clipping, sound, recolor, varp-driven visibility), not narrowly
+   scoped to "walk but don't interact." Added to THE_PLAN.txt's status sections too. Whether it also
+   resolves THIS stage's specific symptom is unknown — none of the corrupted fields were things
+   Round 1 traced as being on the `successAction` resolution path (that path reads `gameObject.
+   actions`/`getDef().defaultActions`, which are code-side `ObjectAction.register` registrations,
+   not cache-decoded `options`) — so hypotheses B (disproven) and C (partially weakened) from Round
+   1 still stand as the more likely explanations for the original symptom. Round 1's `[OBJACTION]`
+   diagnostics are untouched and still the next real lead.
 
 ## STEPS
-1. Trace ObjectActionHandler.handleAction end-to-end: how the target object is looked up
-   server-side, how walk-to+deferred-action is scheduled, where the arrival check lives, and
-   what executes it each tick. Write the chain down in your HANDOFF note (nobody has documented
-   it yet).
-2. Instrument the silent exits (object-not-found-in-map, reach-check false, action-cleared) via
-   NetworkLogger or temp prints. Have the human click a door + a ladder + a tree. Read output.
-3. Fix what the evidence shows. If it's hypothesis A (map-data divergence), fix the specific
-   blocker and escalate to the human: the durable fix (serving/loading 228 map data server-side)
-   is beyond this stage.
-4. Compile. TEST SCRIPT. Remove temp prints once confirmed.
+1. DONE (Round 1, 2026-07-11): traced ObjectActionHandler.handleAction end-to-end — see ROUND 1
+   FINDINGS #2 below for the full chain (lookup → RouteFinder.routeObject → Entity.startEvent →
+   Player.process()/processEvent() → successAction). Documented in HANDOFF.txt's Stage 07 entry.
+2. DONE (Round 1, 2026-07-11): instrumented every silent-return branch with `[OBJACTION]` prints
+   (object-not-found, routing-start, fast-path success/skipReachCheck/outOfReach, event-path
+   mid-walk bail/post-walk bail/success/skipReachCheck/outOfReach, and successAction's action
+   resolution). NOT YET exercised against a live client this round (none available) — the human
+   still needs to click a door + ladder + tree and report the console output (see TEST SCRIPT).
+2b. DONE (Round 2, 2026-07-13): found and fixed a real `ObjectDef` cache-decode desync bug
+   affecting 6501+ objects — see ROUND 2 FINDINGS above. Unrelated to the `[OBJACTION]` prints,
+   which are untouched. Verified via 3 self-run headless server boots (no client needed), NOT yet
+   verified against a live client.
+3. Fix what the evidence shows once the human reports back. If it's hypothesis A (map-data
+   divergence), fix the specific blocker and escalate to the human: the durable fix
+   (serving/loading 228 map data server-side) is beyond this stage.
+4. Compile (done, BUILD SUCCESSFUL). Re-run TEST SCRIPT with a human. Remove temp `[OBJACTION]`
+   prints once the root cause is confirmed and fixed — not before.
 
 ## TEST SCRIPT (human)
+0. NEW (Round 1): every object click now prints `[OBJACTION] ...` lines to the server console —
+   please copy/paste the full block of `[OBJACTION]` lines produced by each click below, not just
+   whether it worked. That output is the single most useful thing you can bring back.
+0b. NEW (Round 2): the ObjectDef fix means many previously-corrupted objects now decode correctly —
+   while doing the below, also watch for objects that render differently than before (correct
+   recolor/texture, correct size/clipping, ambient sound present) even outside the specific objects
+   you're testing. Not required for success, just worth noting if you spot it.
 1. Click a door → walk over, door opens.
 2. Click a ladder → climb animation/teleport.
 3. With an axe, click a tree → chopping starts (animation may be missing pre-Stage-10; logs +
@@ -71,3 +266,67 @@ legacy-vs-228 map divergence if that's the root cause — diagnose, fix the mini
 Per README RULES #7. If hypothesis A confirmed, add a prominent note to THE_PLAN.txt Section 9
 (unresolved questions): "server world data is 184-era while client renders 228 — affects
 objects/collision everywhere" with your evidence.
+
+## NOTES FROM OTHER STAGES
+- Stage 01 (2026-07-08): re-confirms the symptom description exactly — 8 different objects
+  clicked across multiple locations, all produced a correct OpLoc packet (real object id + click
+  coords) and the player walked to each one every time; zero post-arrival interactions observed.
+  Verbatim OpLoc lines (ids 24057/24067/24064/24079/24101/10529/8720, options 1 and 2) are in
+  stages/BASELINE-FINDINGS.txt if you want real object ids to seed your reach-check investigation
+  with instead of picking arbitrary ones.
+- A `MovementFixes.class` static-initializer crash appears in every boot log (NPE in
+  `ObjectAction.register`, `MovementFixes.<clinit>`, causing PackageLoader to skip the whole
+  class). The human explicitly confirmed this is unrelated pre-existing breakage from their own
+  earlier work on the old server, NOT part of this migration — don't waste time chasing it as this
+  stage's root cause, but don't be surprised it's still there either.
+- Stage 02 (2026-07-08): found and fixed a foundational bug that also affects THIS stage's visible
+  results, not just ground items. `GameObject.spawn()`/`setId()` (dynamic object add/remove — e.g.
+  a tree vanishing when chopped, a door's `GameObject` swap) and `Door.java`'s direct object-update
+  send all loop over `tile.region.players` — a list that was NEVER populated for RSProt players
+  (only the legacy `PacketSender.sendRegion()`, which RSProt clients never trigger, ever called
+  `Player.addRegion`). Fixed in `RsProt.java` via a new `syncRegionTracking(Player, zoneX, zoneZ)`,
+  called at login and inside `maybeRebuildRegion`. Practical effect for Stage 07: once you fix the
+  arrival/action-execution bug this stage owns, a door's `setId()`-driven visual open/close (and
+  any tree-chopped-down `GameObject` swap) should now actually render for RSProt players too —
+  previously it silently wouldn't have, independent of whatever Stage 07 finds, since the send
+  loop matched zero players. If a door STILL doesn't visually toggle after Stage 07's own fix
+  lands, don't assume Stage 07 failed — check `Region.get(x,y).players.contains(player)` first.
+- Stage 02 follow-up (2026-07-08, same day): also found and fixed a SECOND, independent bug in the
+  same area — `PacketSender.queueZonePayload` (used by `sendCreateObject`/`sendRemoveObject`, among
+  others) was sending world-absolute tile coordinates where RSProt expects coordinates relative to
+  the player's build-area origin; see the fuller writeup in `stages/STAGE-10-player-fx-verification
+  .txt`'s own NOTES FROM OTHER STAGES. Combined with the region-tracking fix above, dynamic
+  object add/remove (door swaps, chopped trees) should now be fully unblocked, not just
+  "unblocked once you fix Stage 07's arrival bug" as the note above originally said.
+- Stage 02 follow-up #2 (2026-07-08, same day): after both fixes above, ground items rendered but
+  were missing their cache-defined right-click options (e.g. "Take") — root cause was
+  `PacketSender.sendGroundItem` passing `(byte) 0` as `ObjAdd`'s `opFlags` param, which per RSProt's
+  own `OpFlags` helper (`osrs-228-model` sources jar) means "hide all 5 op slots," not "no extra
+  custom ops" as a stale comment there claimed. Fixed by passing `OpFlags.ALL_SHOWN` instead.
+  **`PacketSender.sendCreateObject` has the exact same bug, NOT fixed** (out of Stage 02's scope —
+  ground items only): its `LocAddChangeV2` call also passes `(byte) 0` for `opFlags`, with an
+  identical stale comment ("no custom right-click ops beyond cache-defined ones") that
+  misunderstands what the field does. `LocAddChangeV2.opFlags` has the same "hide all right-click
+  options" semantics as `ObjAdd.opFlags` (both documented by the same `OpFlags` helper). This only
+  affects DYNAMICALLY added/changed objects (things that go through `sendCreateObject`, e.g.
+  `GameObject.spawn()`) — most world objects are static cache data loaded via `RebuildNormal` and
+  unaffected. If you're chasing a dynamic object (a door's swapped-in open-state object, etc.) that
+  renders but whose right-click menu is missing an option it should have, this is almost certainly
+  why — same one-line fix as `sendGroundItem`'s (`(byte) 0` → `OpFlags.ALL_SHOWN`).
+- **IMPORTANT, 2026-07-12: Hypothesis A's entire premise is gone.** `server.properties`' `cache_path`
+  now points at stock Cache228, not the old legacy `../Cache` — `Server.fileStore` (and therefore
+  every map/object lookup this stage's whole investigation is built on) reads the SAME cache the
+  228 client renders from. Hypothesis A as written above ("server validates reach using ITS map
+  data — loaded from the LEGACY 184 cache... while the client renders the 228 cache's world") is
+  no longer a live hypothesis; its premise is false by construction now. This does NOT mean the
+  original symptom (object clicks walk you there but never interact) is fixed — nobody has re-run
+  this stage's TEST SCRIPT since the cache switch — it means: if the symptom still reproduces, the
+  cause is something else (B or C above, or a new one), and if it DOESN'T reproduce anymore, that's
+  itself the confirmation that A was the real root cause all along, just impossible to prove
+  without the cache actually matching until now. Either way, re-run the TEST SCRIPT fresh before
+  trusting any of Round 1's findings above as still-current — don't assume, verify. Full context:
+  HANDOFF.txt's "Stock Cache228 Migration & Boot Fixes (2026-07-12)" entry, and THE_PLAN.txt's
+  2026-07-12 update section.
+- Stage 11 (2026-07-13): ran its diagnostic strip but deliberately KEPT every [OBJACTION] print
+  (ObjectActionHandler + RouteFinder) because this stage is still open — they remain your next
+  lead on a live test. Strip them yourself when this stage closes.

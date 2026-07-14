@@ -16,6 +16,7 @@ import io.dm.model.map.Position;
 import io.dm.model.map.Tile;
 import io.dm.model.map.route.routes.TargetRoute;
 import io.dm.model.stat.StatType;
+import net.rsprot.protocol.game.outgoing.info.npcinfo.NpcAvatar;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,6 +49,13 @@ public class NPC extends NPCAttributes {
     public NPCDef getDef() {
         return NPCDef.cached.get(id);
     }
+
+    /**
+     * RSProt avatar (Stage 03). Allocated in {@link #spawn} / at server boot for NPCs spawned
+     * before RSProt started, released in {@link #remove}. Null means this NPC is not visible to
+     * any rev-228 client (RSProt not running yet, or alloc failed).
+     */
+    public NpcAvatar rsprotAvatar;
 
     /**
      * Actions
@@ -139,6 +147,7 @@ public class NPC extends NPCAttributes {
         NPCDef def = getDef();
         if (def == null) {
             System.out.println("<NPC DEF NULL>: " + id);
+            return false;
         }
         if(def.combatInfo == null) {
             /* not a combat npc */
@@ -217,6 +226,11 @@ public class NPC extends NPCAttributes {
 
     private TransformUpdate transformUpdate;
 
+    /** NPC-only mask (never instantiated on Player) — read by RsProt.pushNpcMaskUpdates (Stage 09). */
+    public TransformUpdate getTransformUpdate() {
+        return transformUpdate;
+    }
+
     public void transform(int id) {
         transformUpdate.set(this.id = id);
         NPCDef def = getDef();
@@ -281,6 +295,7 @@ public class NPC extends NPCAttributes {
             attackBounds = new Bounds(spawnPosition, getCombat().getAttackBoundsRange());
         }
         setIndex(World.npcs.add(this, 0));
+        io.dm.network.rsprot.RsProt.allocNpcAvatar(this);
         checkMulti();
         Tile.occupy(this);
         if (combat != null && combat.info != null && combat.info.spawn_animation != -1)
@@ -387,12 +402,25 @@ public class NPC extends NPCAttributes {
 
     private boolean removed;
 
+    /** Keeps the RSProt avatar's visibility in sync with the legacy hidden flag (e.g. death/respawn). */
+    @Override
+    public void setHidden(boolean hidden) {
+        super.setHidden(hidden);
+        if (rsprotAvatar != null) {
+            try {
+                rsprotAvatar.setInaccessible(hidden);
+            } catch (Throwable ignore) {
+            }
+        }
+    }
+
     public void remove() {
         if(removed)
             return;
         removed = true;
         setHidden(true);
         removeTarget();
+        io.dm.network.rsprot.RsProt.deallocNpcAvatar(this);
         World.npcs.remove(getIndex());
     }
 

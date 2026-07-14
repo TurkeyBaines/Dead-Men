@@ -1,5 +1,6 @@
 package io.dm.model.inter.handlers;
 
+import io.dm.cache.Cache228ItemDefs;
 import io.dm.cache.ItemDef;
 import io.dm.model.activities.wilderness.BloodyChest;
 import io.dm.model.entity.Entity;
@@ -49,29 +50,87 @@ public class TabInventory {
 
     private static void click(Player player, int option, int slot, int itemId) {
         if(player.isLocked()) {
+            io.dm.network.logging.NetworkLogger.logItemOptionMismatch(player, itemId, option, -1, -1, null, "locked");
             return;
         }
         Item item = player.getInventory().get(slot, itemId);
         if(item == null) {
+            io.dm.network.logging.NetworkLogger.logItemOptionMismatch(player, itemId, option, -1, -1, null, "slot/id mismatch");
             return;
         }
         if(option == 10) {
             item.examine(player);
             return;
         }
-        int i = option - 1;
-        if(i < 0 || i >= 5)
+        if(option == 9) {
+            // "Use" is a fixed, always-available client op on EVERY item in real OSRS, regardless
+            // of per-item cache text — confirmed via live client screenshots (Wield/Eat/Use/Drop/
+            // Examine consistently, Use always immediately before Drop) — same idea as Examine
+            // being hardcoded at op=10 regardless of array content. Stage 05 previously flagged
+            // op 9 as "unobserved/reserved" simply because nobody had clicked Use to find out.
+            // Nothing needs to happen server-side for this click itself: the client enters its own
+            // local "selected for targeting" state, and the actual item-on-X interaction fires via
+            // the already-wired OpLocT/OpNpcT/OpObjT/OpPlayerT/IfButtonT handlers (see
+            // stages/STAGE-08) once a target is clicked. Previously fell through to the bottom
+            // catch-all and misfired as Examine.
             return;
+        }
         ItemDef def = item.getDef();
-        ItemAction[] actions = def.inventoryActions;
-        if(actions != null) {
-            ItemAction action = actions[i];
-            if(action != null) {
-                action.handle(player, item);
+
+        // The real 228 client's op numbers for inventory options do NOT match the legacy "raw
+        // index + 1" assumption (184-era), and — contrary to the initial hypothesis — it's also
+        // NOT about cache content: Cache228 and the legacy cache report identical inventoryOptions
+        // for every item tested. Confirmed live on two items (2026-07-08): whip (opts=[null,Wield,
+        // null,null,Drop]: Wield idx1->op3, Drop idx4->op7) and Armadyl godsword (opts=[null,Wield,
+        // Dismantle,null,Drop]: Wield idx1->op3, Dismantle idx2->op4, Drop idx4->op7 — SAME op7 as
+        // the whip's Drop despite an extra populated slot before it, ruling out a content-dependent
+        // formula). Fits purely positionally: raw slots 0-3 -> op = index+2, and slot 4 (always
+        // "Drop" by convention) is a fixed op=7 — same idea as Examine already being fixed at
+        // op=10 regardless of array length. Indices 0 and 3 are still UNCONFIRMED (never populated
+        // in a tested item yet). See stages/STAGE-05-inventory-actions.txt and HANDOFF.txt's
+        // "STAGE 05" section. This also explains the "Wield dismantled the item" bug: the OLD
+        // actions[] lookup used raw `option-1` as the array index uncorrected, so option=3 (really
+        // Wield, raw index 1) collided with whatever sat at raw index 2 (Dismantle) purely by
+        // coincidence of the numbers. resolveRawIndex() below is now used consistently for
+        // actions[]/drop/equip so that coincidence can't happen again.
+        int rawIndex = resolveRawIndex(option);
+
+        ItemDef real = Cache228ItemDefs.get(itemId);
+        String[] opts = real != null ? real.inventoryOptions : def.inventoryOptions;
+        int dropIndex = (real != null ? real : def).getOption("drop") - 1;
+        int equipIndex = (real != null ? real : def).getOption("wield", "equip", "wear", "ride", "hold") - 1;
+
+        player.sendFilteredMessage("ItemID=" + itemId + " selected=" + option + " rawIndex=" + rawIndex
+                + " opts=" + java.util.Arrays.toString(opts) + " dropIndex=" + dropIndex + " equipIndex=" + equipIndex);
+
+        if(rawIndex >= 0 && rawIndex < opts.length && opts[rawIndex] != null) {
+            ItemAction[] actions = def.inventoryActions;
+            if(actions != null) {
+                ItemAction action = actions[rawIndex];
+                if(action != null) {
+                    action.handle(player, item);
+                    return;
+                }
+            }
+            // A real, named option (e.g. "Use") was clicked, but no ItemAction is registered for
+            // it yet. Drop/Wield are ALSO never in actions[] by design (they're matched generically
+            // by option TEXT via dropIndex/equipIndex below, not a per-item custom action), so this
+            // block must let those two fall through instead of stopping here — an unconditional
+            // return was tried and immediately broke Drop/Wield for every item (regression reported
+            // live 2026-07-09, fixed here by only stopping when rawIndex is neither built-in slot).
+            // Falling through for anything else would misfire in the common case where THIS item
+            // also happens to have Drop/Wield at another slot, and falling all the way to the
+            // bottom's examine() fallback would misrepresent this click as "Examine" (confirmed
+            // live: clicking "Use" on item 5606 incorrectly examined it). "Use"'s real item-on-X
+            // targeting flow is client-side + the already-wired OpLocT/OpNpcT/OpObjT/OpPlayerT/
+            // IfButtonT handlers (see stages/STAGE-08) — nothing needs to happen server-side for
+            // the initial click itself.
+            if(rawIndex != dropIndex && rawIndex != equipIndex) {
                 return;
             }
         }
-        if(option == def.dropOption) {
+        if(rawIndex >= 0 && rawIndex == dropIndex) {
+            player.sendFilteredMessage("[DEBUG] Drop Option Reached!");
             Tile tile = player.getPosition().getTile();
             if(tile != null && !tile.allowDrop) {
                 player.sendMessage("You can't drop items here.");
@@ -123,12 +182,29 @@ public class TabInventory {
             Loggers.logDrop(player.getUserId(), player.getName(), player.getIp(), item.getId(), item.getAmount(), player.getAbsX(), player.getAbsY(), player.getHeight());
             return;
         }
-        if (option == def.equipOption) {
+        if (rawIndex >= 0 && rawIndex == equipIndex) {
+            player.sendMessage("[DEBUG] Equip Option Reached!");
             player.getEquipment().equip(item);
             player.resetActions(false, player.getMovement().following != null, true);
             return;
         }
+        io.dm.network.logging.NetworkLogger.logItemOptionMismatch(player, itemId, option, dropIndex, equipIndex, opts);
         item.examine(player);
+    }
+
+    /**
+     * Reverses the real 228 client's op-numbering (see the comment in {@link #click}) back to a
+     * raw {@code inventoryOptions} array index: slots 0-3 use {@code op = index + 2}, slot 4
+     * (conventionally "Drop") is a fixed {@code op = 7}. Returns -1 for any op that doesn't map to
+     * a known array slot — either genuinely unobserved/reserved (1, 6, 8), or a fixed op handled
+     * separately before this is ever called: 9 is "Use" (always available on every item,
+     * independent of cache text) and 10 is Examine.
+     */
+    private static int resolveRawIndex(int option) {
+        if(option == 7)
+            return 4;
+        int index = option - 2;
+        return index >= 0 && index <= 3 ? index : -1;
     }
 
     public static void drag(Player player, int fromSlot, int toSlot) {
@@ -148,10 +224,17 @@ public class TabInventory {
         if(toItem == null) {
             player.getInventory().set(fromSlot, null);
             player.getInventory().set(toSlot, fromItem);
-        } else {
-            player.getInventory().set(toSlot, fromItem);
-            player.getInventory().set(fromSlot, toItem);
+            return;
         }
+        // Stage 05 Round 9 (2026-07-11) previously had this call ItemItemAction.tryHandle() before
+        // swapping, on the theory that the real client represents same-inventory item-on-item as a
+        // drag rather than an IfButtonT. Reverted in Round 11: human confirmed real OSRS does NOT
+        // combine on an ordinary reorder-drag — dragging one item onto another must always just
+        // swap/reorder, never trigger a combine as a side effect. Combining belongs solely to the
+        // "Use" + click flow (IfButtonT -> TabInventory.onInterface), which is the actual bug still
+        // being chased — see stages/STAGE-05's Round 11 notes.
+        player.getInventory().set(toSlot, fromItem);
+        player.getInventory().set(fromSlot, toItem);
     }
 
     private static void onInterface(Player player, int fromSlot, int fromItemId, int toSlot, int toItemId) {

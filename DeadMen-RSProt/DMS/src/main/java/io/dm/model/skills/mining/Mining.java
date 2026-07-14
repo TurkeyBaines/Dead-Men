@@ -2,7 +2,6 @@ package io.dm.model.skills.mining;
 
 import io.dm.api.utils.Random;
 import io.dm.cache.ItemDef;
-import io.dm.deadman.content.areas.overworld.OverworldTools;
 import io.dm.model.World;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerCounter;
@@ -274,24 +273,6 @@ public class Mining {
 
     public static double chance(Player p, int level, Rock type, Pickaxe pickaxe) {
         double pickaxePoints = pickaxe.points;
-        if (pickaxe == Pickaxe.OVERWORLD) {
-            if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Infernal)
-                pickaxePoints = 48;
-            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Dragon)
-                pickaxePoints = 42;
-            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Rune)
-                pickaxePoints = 36;
-            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Adamant)
-                pickaxePoints = 30;
-            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Mithril)
-                pickaxePoints = 26;
-            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Steel)
-                pickaxePoints = 14;
-            else if (p.overworldToolTier[OverworldTools.Tool.PICKAXE.id] == OverworldTools.Tier.Iron)
-                pickaxePoints = 9;
-            else
-                pickaxePoints = 5;
-        }
 
         double points = ((level - type.levelReq) + 1 + pickaxePoints);
         double denominator = type.difficulty;

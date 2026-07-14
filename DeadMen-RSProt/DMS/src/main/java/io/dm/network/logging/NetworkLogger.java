@@ -81,6 +81,34 @@ public final class NetworkLogger {
         return id == 0xffff ? -1 : id;
     }
 
+    /**
+     * Stage 05 diagnostic: logs the server-side option resolution for an inventory item click that
+     * fell through {@code TabInventory.click} without matching a custom action, drop, or equip
+     * branch, so a live-test can be correlated against {@link #log}'s recorded {@code option}
+     * without guessing at the item's cache-derived option table. See stages/STAGE-05-inventory
+     * -actions.txt's "PRIME UNTESTED HYPOTHESIS".
+     */
+    public static void logItemOptionMismatch(Player player, int itemId, int receivedOption,
+                                               int dropOption, int equipOption, String[] inventoryOptions) {
+        logItemOptionMismatch(player, itemId, receivedOption, dropOption, equipOption, inventoryOptions, "unhandled");
+    }
+
+    /** Same as above, with an explicit reason (e.g. "locked", "slot/id mismatch", "unhandled"). */
+    public static void logItemOptionMismatch(Player player, int itemId, int receivedOption,
+                                               int dropOption, int equipOption, String[] inventoryOptions,
+                                               String reason) {
+        String line = "[" + LocalDateTime.now().format(TIMESTAMP_FORMAT) + "] "
+                + "player=" + (player == null ? "?" : player.getName())
+                + " packet=ItemOptionMismatch"
+                + " reason=" + reason
+                + " item=" + itemId
+                + " receivedOption=" + receivedOption
+                + " dropOption=" + dropOption
+                + " equipOption=" + equipOption
+                + " inventoryOptions=" + java.util.Arrays.toString(inventoryOptions);
+        write(line);
+    }
+
     private static void write(String line) {
         synchronized (LOCK) {
             try (PrintWriter out = new PrintWriter(new FileWriter(FILE_NAME, true))) {

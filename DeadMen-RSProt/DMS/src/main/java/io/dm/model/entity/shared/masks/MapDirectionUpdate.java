@@ -42,6 +42,16 @@ public class MapDirectionUpdate extends UpdateMask {
         return direction;
     }
 
+    /** The NPC-mode fine face coordinate ({@code absX*2 + xLength}), set via {@link #set(int, int)}. */
+    public int getFaceX() {
+        return faceX;
+    }
+
+    /** The NPC-mode fine face coordinate ({@code absY*2 + yLength}), set via {@link #set(int, int)}. */
+    public int getFaceY() {
+        return faceY;
+    }
+
     @Override
     public void reset() {
         update = false;

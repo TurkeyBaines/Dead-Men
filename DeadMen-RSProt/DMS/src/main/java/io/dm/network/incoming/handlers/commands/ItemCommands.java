@@ -22,6 +22,10 @@ public class ItemCommands {
     public void process(Player player, String... args) {
         switch (args[0]) {
 
+            case "actions":
+                actions(player, args);
+                break;
+
             case "pickup": case "get": case "spawn":
                 pickup(player, args);
                 break;
@@ -163,6 +167,13 @@ public class ItemCommands {
             YamlLoader.load(Arrays.asList(new ShopLoader()));
             player.sendMessage("Done!");
         }).start();
+    }
+
+    private void actions(Player player, String... args) {
+        int itemID = Integer.parseInt(args[1]);
+        for (String s : ItemDef.get(itemID).inventoryOptions) {
+            player.sendFilteredMessage("[] " + s);
+        }
     }
 
 }

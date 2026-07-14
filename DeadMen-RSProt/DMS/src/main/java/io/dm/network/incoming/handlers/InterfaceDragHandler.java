@@ -76,9 +76,6 @@ public class InterfaceDragHandler {
         }
 
         InterfaceAction action = InterfaceHandler.getAction(player, fromInterfaceId, fromChildId);
-        // TEMP diagnostic (2026-07-08): see RsProt.onButton's note — remove once root-caused.
-        System.out.println("[DRAG] resolved inter=" + fromInterfaceId + " child=" + fromChildId
-                + " visible=" + player.isVisibleInterface(fromInterfaceId) + " actionFound=" + (action != null));
         if(action != null)
             action.handleDrag(player, fromSlot, fromItemId, toInterfaceId, toChildId, toSlot, toItemId);
     }

@@ -42,7 +42,10 @@ public class YesNoDialogue implements Dialogue {
     public void open(Player player) {
         player.yesNoDialogue = this;
         player.openInterface(InterfaceType.CHATBOX, Interface.YES_NO_DIALOGUE);
-        player.getPacketSender().sendClientScript(814, "oiss", itemId, itemAmount, title, message);
+        // Stage 11 Round 2: rev 228's confirmdestroy_init (script 814) grew a third int arg between
+        // the old deob (obj, int, string, string) and 228 — AlterRSPS destroyItem() passes
+        // (item, amount, 0, title, note). Sending the old 4-arg form desyncs the string reads.
+        player.getPacketSender().sendClientScript(814, "oiiss", itemId, itemAmount, 0, title, message);
         if(customItemName != null)
             player.getPacketSender().sendString(Interface.YES_NO_DIALOGUE, 6, customItemName);
         player.getPacketSender().sendAccessMask(584, 0, 0, 1, 1);

@@ -1,5 +1,18 @@
 STAGE 09 — NPC extended info (animations, hitsplats, transforms, overheads)
-STATUS: NOT STARTED
+STATUS: DONE 2026-07-13 (code-complete; compiles clean; headless server boot verified — 30s of
+live ticks over all boot-spawned NPC avatars with zero [TICK] npc errors). Pending human live-test
+via the TEST SCRIPT below. Implementation: RsProt.pushNpcMaskUpdates(NPC) (RsProt.java, right
+after pushNpcMovement), called from driveUpdate() step 2b for every allocated avatar, before
+npcInfoProtocol.update(). Bridges all 7 masks NPC.init() instantiates. NPC-specific mappings
+verified against NpcAvatarExtendedInfo.kt in the osrs-228-model sources jar (not copied from the
+player bridge): face-coord uses setFaceCoord(fineX>>1, fineY>>1) — NPCs have no setFaceAngle, and
+the legacy NPC-mode MapDirectionUpdate stores fine half-tile coords (absX*2+size); transform calls
+BOTH NpcAvatar.setId(id) and ext.setTransmogrification(id) per RSProt's own KDoc (transmog block
+is transient — without setId, new observers would still see the old variant). Same setSent(true)
+discipline as the player bridge on every consumed mask (face-entity self-tracks via
+consumeResolvedUpdate, same as player side). Support getters added: MapDirectionUpdate.getFaceX/
+getFaceY, TransformUpdate.getId, NPC.getTransformUpdate. Known accepted gap (mirrors player
+bridge): hitmarks/headbars push sourceIndex=-1 (untinted) — legacy Splat never kept the attacker.
 DEPENDS ON: Stage 03 DONE (NPC avatars must exist before extended info can be pushed to them).
 Follow the RULES in stages/README.txt.
 

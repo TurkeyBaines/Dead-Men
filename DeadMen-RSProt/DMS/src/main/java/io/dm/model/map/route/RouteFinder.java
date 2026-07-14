@@ -226,15 +226,21 @@ public class RouteFinder {
         if(route.finished(entity.getPosition())) {
             entity.face(gameObject);
             if(route.reachable) {
+                // TEMP diagnostic (Stage 07, 2026-07-11): see stages/STAGE-07-object-interactions.txt.
+                System.out.println("[OBJACTION] routeObject fast-path success id=" + gameObject.id);
                 successAction.run();
                 return;
             }
             if(gameObject.skipReachCheck != null && gameObject.skipReachCheck.test(entity.getPosition())) {
+                System.out.println("[OBJACTION] routeObject fast-path success(skipReachCheck) id=" + gameObject.id);
                 successAction.run();
                 return;
             }
-            if(entity.player != null)
+            if(entity.player != null) {
+                System.out.println("[OBJACTION] routeObject fast-path outOfReach id=" + gameObject.id
+                        + " reachable=" + route.reachable);
                 entity.player.getMovement().outOfReach();
+            }
             return;
         }
         /**
@@ -244,6 +250,9 @@ public class RouteFinder {
         entity.startEvent(event -> {
             while(!entity.getMovement().isAtDestination()) {
                 if(gameObject.id != id || gameObject.tile == null) {
+                    if(entity.player != null)
+                        System.out.println("[OBJACTION] routeObject event bail mid-walk id=" + id
+                                + " currentId=" + gameObject.id + " tileNull=" + (gameObject.tile == null));
                     entity.face(gameObject);
                     entity.getMovement().reset();
                     return;
@@ -253,20 +262,32 @@ public class RouteFinder {
             entity.face(gameObject);
             if(gameObject.id != id || gameObject.tile == null) {
                 /* obj was changed or removed */
+                if(entity.player != null)
+                    System.out.println("[OBJACTION] routeObject event bail post-walk id=" + id
+                            + " currentId=" + gameObject.id + " tileNull=" + (gameObject.tile == null));
                 return;
             }
             if(route.reachable) {
                 if(route.finished(entity.getPosition())) {
+                    if(entity.player != null)
+                        System.out.println("[OBJACTION] routeObject event success id=" + id);
                     successAction.run();
                     return;
                 }
             }
             if(gameObject.skipReachCheck != null && gameObject.skipReachCheck.test(entity.getPosition())) {
+                if(entity.player != null)
+                    System.out.println("[OBJACTION] routeObject event success(skipReachCheck) id=" + id);
                 successAction.run();
                 return;
             }
-            if(entity.player != null)
+            if(entity.player != null) {
+                System.out.println("[OBJACTION] routeObject event outOfReach id=" + id
+                        + " reachable=" + route.reachable + " finished=" + route.finished(entity.getPosition())
+                        + " pos=" + entity.getPosition().getX() + "," + entity.getPosition().getY()
+                        + " finishXY=" + route.finishX + "," + route.finishY);
                 entity.player.getMovement().outOfReach();
+            }
         }).ignoreCombatReset();
     }
 

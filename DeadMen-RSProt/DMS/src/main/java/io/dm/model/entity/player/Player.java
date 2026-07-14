@@ -2,8 +2,9 @@ package io.dm.model.entity.player;
 
 import com.google.gson.annotations.Expose;
 import io.dm.deadman.Deadman;
-import io.dm.deadman.content.areas.overworld.OverworldTools;
-import io.dm.deadman.content.areas.overworld.combat.CombatTask;
+import io.dm.deadman.content.sigils.Sigil;
+import io.dm.deadman.content.sigils.Sigils;
+import io.dm.deadman.content.sigils.Sigils.*;
 import io.dm.deadman.tournament.team.Group;
 import io.netty.channel.Channel;
 import io.dm.Server;
@@ -589,6 +590,17 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
             activeHandler.closedAction.accept(this, -1);
         type.close(this);
         activeInterfaceHandlers[type.ordinal()] = null;
+        // Stage 11 Round 2: INVENTORY/INVENTORY_OVERLAY share the inventory tab's frame slot
+        // (548:83 fixed), so anything opened through them (world switcher, bank/shop side view,
+        // looting bag, ...) REPLACES the inventory pane (149). On the rev-228 IF3 frame the child
+        // just stays empty after the close — the 184 client used to restore the tab itself — so
+        // re-open the inventory pane the same way RsProt.openFrame does at login.
+        if(type == InterfaceType.INVENTORY || type == InterfaceType.INVENTORY_OVERLAY) {
+            InterfaceType.INVENTORY.openTab(this, io.dm.model.inter.Interface.INVENTORY);
+            // Same mask RsProt.openFrame sends at login (Stage 05's final inventory mask) — a
+            // freshly re-opened sub does not retain the previous instance's IfSetEvents.
+            getPacketSender().sendAccessMask(io.dm.model.inter.Interface.INVENTORY, 0, 0, 27, 3407870);
+        }
     }
 
     public void closeInterfaces() {
@@ -1255,104 +1267,8 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
         checkMulti();
         Tile.occupy(this);
 
-        if (skillHolder == null) {
-            skillHolder = new int[][] {
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {10, 1154},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0}
-            };
-        }
-
-        if (prestigeLevel == null) {
-            prestigeLevel = new int[] {
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0
-            };
-        }
-
-        if (equipmentHolder == null) {
-            equipmentHolder = new Item[]{
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-            };
-        }
-
-        if (inventoryHolder == null) {
-            inventoryHolder = new ItemContainer();
-            inventoryHolder.init(6, false);
-            inventoryHolder.add(OVERWORLD_AXE, 1);
-            inventoryHolder.add(OVERWORLD_PICKAXE, 1);
-            inventoryHolder.add(OVERWORLD_FISHING_TOOLS, 1);
-            inventoryHolder.add(HAMMER, 1);
-            inventoryHolder.add(KNIFE, 1);
-            inventoryHolder.add(TINDERBOX, 1);
-        }
-
-        if (unlockedSigils == null) {
-            unlockedSigils = new boolean[40];
-            for (int i = 0; i < 40; i++) unlockedSigils[i] = false;
-
-            activeSigils = new int[3];
-            for (int i = 0; i < 3; i++) activeSigils[i] = -1;
-
-            toggleSigils = new boolean[4][2];
-            for (int i = 0; i < 4; i++) toggleSigils[i] = new boolean[]{false, false};
-
-            activeCooldowns = new long[3];
-            for (int i = 0; i < 3; i++) activeCooldowns[i] = -1;
-
-            toggleCooldowns = new long[4];
-            for (int i = 0; i < 4; i++) toggleCooldowns[i] = -1;
-            utc = "";
-        }
-
-        if (overworldToolTier == null) {
-            overworldToolTier = new OverworldTools.Tier[] {
-                    OverworldTools.Tier.Bronze,
-                    OverworldTools.Tier.Bronze,
-                    OverworldTools.Tier.Bronze
-            };
-        }
-
-        if (overworldTaskMonster == null) {
-            overworldTaskMonster = CombatTask.TASK_MONSTER.NONE;
-            overworldTaskTotal = -1;
-            overworldTaskRemaining = -1;
-            overworldTaskDifficulty = -1;
-            overworldPointsVault = 0;
+        if (sigils == null) {
+            sigils = new int[] {-1, -1, -1};
         }
 
     }
@@ -1758,6 +1674,10 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
                 item.getDef().onTick(this, item);
         }
 
+        if (utc == null) {
+            utc = "NULL";
+        }
+
     }
 
     /**
@@ -1858,5 +1778,67 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
     public Group getGroup() {
         if (!hasGroup()) return null;
         return Deadman.getGroups().getGroup(this, groupID);
+    }
+
+    public int getSigil(int slot) {
+        return sigils[slot];
+    }
+
+    public boolean hasSigil(Tier1 sigil) {
+        for (int i : sigils)
+            if (i == sigil.getUnattuned())
+                return true;
+        return false;
+    }
+
+    public boolean hasSigil(Tier2 sigil) {
+        for (int i : sigils)
+            if (i == sigil.getUnattuned())
+                return true;
+        return false;
+    }
+
+    public boolean canAttune() {
+        int empty = 0;
+        for (int i = 0; i < 3; i++)
+            if (sigils[i] == -1)
+                empty ++;
+
+        return empty > 0;
+    }
+
+    public boolean attune(int unattunedId) {
+        if (!canAttune())
+            return false;
+
+        for (int i = 0; i < 3; i++)
+            if (sigils[i] == -1) {
+                sigils[i] = unattunedId;
+                return true;
+            }
+
+        return false;
+    }
+
+    public boolean unattune(int attunedId) {
+        int unattunedId = attunedId + 1;
+        for (int i = 0; i < 3; i++)
+            if (sigils[i] == unattunedId) {
+                sigils[i] = -1;
+                return true;
+            }
+
+        return false;
+    }
+
+    public boolean reset() {
+        for (int i = 0; i < 3; i++)
+            sigils[i] = -1;
+        return true;
+    }
+
+    public boolean remove(int slot) {
+        sigils[slot] = -1;
+        return true;
     }
 }

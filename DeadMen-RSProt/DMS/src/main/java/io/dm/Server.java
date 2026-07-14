@@ -54,6 +54,10 @@ public class Server extends ServerWrapper {
 
     public static FileStore fileStore;
 
+    /** Absolute path to the stock cache directory (cache_path), for readers that need the
+     * cache's sibling files (e.g. {@code xteas.json}) rather than going through {@link #fileStore}. */
+    public static File cacheDir;
+
     public static File dataFolder;
 
     public static CharacterBackups backups = new CharacterBackups();
@@ -99,6 +103,7 @@ public class Server extends ServerWrapper {
         try {
 
             fileStore = new FileStore(properties.getProperty("cache_path"));
+            cacheDir = FileUtils.get(properties.getProperty("cache_path"));
             dataFolder = FileUtils.get(properties.getProperty("data_path"));
             Varpbit.load();
             IdentityKit.load();
@@ -213,6 +218,7 @@ public class Server extends ServerWrapper {
          */
         var networkService = io.dm.network.rsprot.RsProt.start(World.port, properties.getProperty("js5_cache_path"));
         println(World.type.getWorldName() + " World (" + World.id + ") on RSProt, port " + World.port);
+        io.dm.cache.ItemOptionDumper.dump();
 
         /*
          * Server Panel (in-process JavaFX ops dashboard). Launched on its own thread

@@ -14,17 +14,27 @@ public class ScriptDef {
     public static void load() {
         IndexFile index = Server.fileStore.get(12);
         LOADED = new ScriptDef[index.getLastArchiveId() + 1];
+        int failed = 0;
         for(int id = 0; id < LOADED.length; id++) {
             byte[] data = index.getFile(id, 0);
             if(data == null) {
                 //System.err.println("CS2 " + id + " has null data!");
                 continue;
             }
-            ScriptDef def = new ScriptDef();
-            def.id = id;
-            def.decode(data);
-            LOADED[id] = def;
+            try {
+                ScriptDef def = new ScriptDef();
+                def.id = id;
+                def.decode(data);
+                LOADED[id] = def;
+            } catch(Throwable t) {
+                // Verified case (id 6775 in the stock cache): a 2-byte archive, far too small to
+                // hold the fixed trailer decode() requires - not a truncated real script, just an
+                // empty/placeholder cache slot. Skip rather than crash the whole load over one id.
+                failed++;
+            }
         }
+        if(failed > 0)
+            System.out.println("[ScriptDef] " + failed + "/" + LOADED.length + " archives had no decodable script (skipped, see source comment).");
     }
 
     public static ScriptDef get(int id) {

@@ -1,8 +1,6 @@
 package io.dm.model.entity.player;
 
 import com.google.gson.annotations.Expose;
-import io.dm.deadman.content.areas.overworld.OverworldTools;
-import io.dm.deadman.content.areas.overworld.combat.CombatTask;
 import io.dm.model.achievements.Achievement;
 import io.dm.model.achievements.AchievementStage;
 import io.dm.model.activities.ActivityTimer;
@@ -55,29 +53,9 @@ public abstract class PlayerAttributes extends Entity {
     /**********************************************/
     /**********************************************/
 
-    //@Expose @Getter public SkullTimer skullTimer;
-    @Expose @Getter public int[][] skillHolder;
-    @Expose @Getter public int[] prestigeLevel;
-    @Expose @Getter public ItemContainer inventoryHolder;
-    @Expose @Getter public Item[] equipmentHolder;
-
     @Expose @Getter @Setter public String utc;
-    @Expose @Getter public int overworldPoints;
-    @Expose @Getter public OverworldTools.Tier[] overworldToolTier;
 
-    @Expose @Getter public CombatTask.TASK_MONSTER overworldTaskMonster;
-    @Expose @Getter public int overworldTaskTotal;
-    @Expose @Getter public int overworldTaskDifficulty;
-    @Expose @Getter public String str_overworldTaskDifficulty;
-    @Expose @Getter public int overworldTaskRemaining;
-    @Expose @Getter public int overworldPointsVault;
-
-    @Expose @Getter public boolean[] unlockedSigils;
-    @Expose @Getter public int[] activeSigils;
-    @Expose @Getter public boolean[][] toggleSigils;
-
-    @Expose @Getter public long[] activeCooldowns;
-    @Expose @Getter public long[] toggleCooldowns;
+    @Expose @Getter @Setter public int[] sigils;
 
     @Expose public String groupID = null;
 

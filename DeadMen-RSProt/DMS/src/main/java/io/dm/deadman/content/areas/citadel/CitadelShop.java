@@ -138,25 +138,25 @@ public class CitadelShop {
     public static void register() {
         populateFoundations();
         Shop foundationShop = Shop.builder().title("Tier 1 Shop")
-                .currency(Currency.OVERWORLD_POINTS).canSellToStore(false)
+                .currency(Currency.COINS).canSellToStore(false)
                 .defaultStock(FOUNDATIONS).generatedByBuilder(true)
                 .accessibleByIronMan(true).build();
 
         populateRush();
         Shop rushShop = Shop.builder().title("Tier 2 Shop")
-                .currency(Currency.OVERWORLD_POINTS).canSellToStore(false)
+                .currency(Currency.COINS).canSellToStore(false)
                 .defaultStock(RUSH).generatedByBuilder(true)
                 .accessibleByIronMan(true).build();
 
         populateWar();
         Shop warShop = Shop.builder().title("Tier 3 Shop")
-                .currency(Currency.OVERWORLD_POINTS).canSellToStore(false)
+                .currency(Currency.COINS).canSellToStore(false)
                 .defaultStock(WAR).generatedByBuilder(true)
                 .accessibleByIronMan(true).build();
 
         populateSqueeze();
         Shop squeezeShop = Shop.builder().title("Tier 4 Shop")
-                .currency(Currency.OVERWORLD_POINTS).canSellToStore(false)
+                .currency(Currency.COINS).canSellToStore(false)
                 .defaultStock(SQUEEZE).generatedByBuilder(true)
                 .accessibleByIronMan(true).build();
 

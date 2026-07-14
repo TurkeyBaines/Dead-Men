@@ -2,26 +2,18 @@ package io.dm.deadman;
 
 import io.dm.cache.Color;
 import io.dm.deadman.content.areas.citadel.Citadel;
-import io.dm.deadman.content.areas.overworld.Overworld;
 import io.dm.deadman.content.areas.MultiZone;
 import io.dm.deadman.content.areas.SafeZone;
-import io.dm.deadman.content.sigils.Sigil;
-import io.dm.deadman.content.sigils.Sigils;
+import io.dm.deadman.content.areas.lobby.Purgatory;
 import io.dm.deadman.tournament.Stage;
 import io.dm.deadman.tournament.Tournament;
 import io.dm.deadman.tournament.TournamentConfig;
-import io.dm.deadman.tournament.configs.Test;
 import io.dm.deadman.tournament.stages.Lobby;
 import io.dm.deadman.tournament.stages.Main;
 import io.dm.deadman.tournament.team.Groups;
 import io.dm.model.World;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.shared.listeners.LoginListener;
-import io.dm.model.inter.dialogue.OptionsDialogue;
-import io.dm.model.inter.utils.Option;
-import io.dm.model.item.Item;
-import io.dm.model.item.ItemContainer;
-import io.dm.model.stat.Stat;
 import io.dm.model.stat.StatType;
 import lombok.Getter;
 import lombok.Setter;
@@ -34,9 +26,9 @@ public class Deadman {
 
 
     @Getter private static Citadel citadel;
+    @Getter private static Purgatory purgatory;
     @Getter private static MultiZone multiZone;
     @Getter private static SafeZone safeZone;
-    @Getter private static Overworld overworld;
 
     @Getter @Setter private static String utc;
     @Getter @Setter private static Stage stage;
@@ -52,9 +44,9 @@ public class Deadman {
         config = TournamentConfig.getRandom();
 
         citadel = new Citadel();
+        purgatory = new Purgatory();
         multiZone = new MultiZone();
         safeZone = new SafeZone();
-        overworld = new Overworld();
 
         groups = new Groups();
 
@@ -76,7 +68,7 @@ public class Deadman {
         LoginListener.register(player -> {
             if (stage.stageName() == Tournament.StageName.LOBBY) {
                 player.sendMessage(Color.GOLD.wrap("[Tournament] ") + "A new tournament is due to start shortly.");
-                teleToCitadel(player);
+                teleToLobby(player);
 
                 if (!player.utc.equals(utc)) {
                     resetPlayer(player);
@@ -87,18 +79,15 @@ public class Deadman {
 
             } else if (stage.stageName() == Tournament.StageName.MAIN) {
                 player.sendMessage(Color.GOLD.wrap("[Tournament] ") + "A Tournament is underway!");
-                if (!Sigil.playerUnlocked(player, Sigils.Ruthless_Ranger) && !Sigil.playerUnlocked(player, Sigils.Menacing_Mage) && !Sigil.playerUnlocked(player, Sigils.Formidable_Fighter)) {
-                    player.dialogue(new OptionsDialogue(
-                            "Please select an starting Sigil to unlock",
-                            new Option("Sigil of the Ruthless Ranger", () -> { Sigil.unlock(player, Sigils.Ruthless_Ranger); }),
-                            new Option("Sigil of the Formidable Fighter", () -> { Sigil.unlock(player, Sigils.Formidable_Fighter); }),
-                            new Option("Sigil of the Menacing Mage", () -> { Sigil.unlock(player, Sigils.Menacing_Mage); })
-                    ));
-                    player.utc = getUtc();
+                if (!player.utc.equals(utc)) {
+                    resetPlayer(player);
+
+                    player.sendMessage("Your Stats, Equipment, Bank, and Items have been reset from a previous tournament!");
                 }
+                player.utc = getUtc();
             } else if (stage.stageName() == Tournament.StageName.FINAL) {
                 player.sendMessage(Color.RED.wrap("The Tournament Finals are underway! You can spectate it using the orb, or visit the Overworld while you wait."));
-                teleToCitadel(player);
+                teleToLobby(player);
                 resetPlayer(player);
                 player.utc = getUtc();
             }
@@ -107,50 +96,6 @@ public class Deadman {
     }
 
     private void resetPlayer(Player p) {
-        if (overworld.contains(p)) {
-            p.skillHolder = new int[][] {
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {10, 1154},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0},
-                    {1, 0}
-            };
-            p.inventoryHolder = new ItemContainer();
-            p.equipmentHolder = new Item[]{
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-            };
-        } else {
             p.getInventory().clear();
             p.getInventory().sendUpdates();
             p.getEquipment().clear();
@@ -168,12 +113,11 @@ public class Deadman {
 
                 p.getStats().get(stat).resetTo1();
             }
-        }
     }
 
-    private void teleToCitadel(Player p) {
-        if (!getCitadel().contains(p) && !getOverworld().contains(p)) {
-            p.getMovement().teleport(2970, 3343, 0);
+    private void teleToLobby(Player p) {
+        if (!getCitadel().contains(p)) {
+            p.getMovement().teleport(3808, 9754, 1);
         }
     }
 

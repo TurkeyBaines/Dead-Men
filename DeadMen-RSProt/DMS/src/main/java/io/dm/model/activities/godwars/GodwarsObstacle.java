@@ -17,53 +17,41 @@ public class GodwarsObstacle {
         /**
          * Zamorak
          */
-        ObjectAction.register(26518, 2885, 5344, 2, 1, (player, obj) -> {
-            if (player.getHp() < 70 || player.getStats().get(StatType.Hitpoints).fixedLevel < 70) {
-                player.sendFilteredMessage("Without at least 70 Hitpoints, you would never survive the icy water.");
-                return;
-            }
-            player.startEvent(event -> {
-                player.lock();
-                player.step(0, -2, StepType.FORCE_WALK);
-                event.delay(2);
-                player.getMovement().teleport(2885, 5343, 2);
-                player.graphics(68);
-                player.getAppearance().setCustomRenders(Renders.SWIM);
-                player.getPacketSender().fadeOut();
-                event.delay(6);
-                player.getPacketSender().fadeIn();
-                player.getAppearance().removeCustomRenders();
-                player.getMovement().teleport(2885, 5332, 2);
-                player.sendFilteredMessage("Dripping, you climb out of the water.");
-                player.unlock();
-            });
-        });
-        Tile.getObject(26518, 2885, 5344, 2).walkTo = new Position(2885, 5347, 2);
-        ObjectAction.register(26518, 2885, 5333, 2, 1, (player, obj) -> {
+        Position[] firstMovement = { new Position(2885, 5343, 2), new Position(2885, 5334, 2) };
+        Position[] secondMovement = { new Position(2885, 5332, 2), new Position(2885, 5346, 2) };
+        ObjectAction.register(26518, 1, (player, obj) -> {
             if (player.getHp() < 70 || player.getStats().get(StatType.Hitpoints).fixedLevel < 70) {
                 player.sendFilteredMessage("Without at least 70 Hitpoints, you would never survive the icy water.");
                 return;
             }
 
+
+
+
             player.startEvent(event -> {
+                int index = 0;
+                if (player.getPosition().getY() < 5339)
+                    index = 1;
                 player.lock();
                 player.step(0, 2, StepType.FORCE_WALK);
                 event.delay(2);
-                player.getMovement().teleport(2885, 5334, 2);
+                player.getMovement().teleport(firstMovement[index]);
                 player.graphics(68);
                 player.getAppearance().setCustomRenders(Renders.SWIM);
                 player.getPacketSender().fadeOut();
                 event.delay(6);
                 player.getPacketSender().fadeIn();
                 player.getAppearance().removeCustomRenders();
-                player.getMovement().teleport(2885, 5346, 2);
+                player.getMovement().teleport(secondMovement[index]);
                 player.sendFilteredMessage("Dripping, you climb out of the water.");
-                if (player.getStats().get(StatType.Prayer).currentLevel > 0)
+                if (player.getStats().get(StatType.Prayer).currentLevel > 0 && index == 1)
                     player.getPrayer().drain(99);
                 player.sendFilteredMessage("The extreme evil of this area leaves your Prayer drained.");
                 player.unlock();
             });
         });
+
+        Tile.getObject(26518, 2885, 5344, 2).walkTo = new Position(2885, 5347, 2);
         Tile.getObject(26518, 2885, 5333, 2).walkTo = new Position(2885, 5331, 2);
 
         /**

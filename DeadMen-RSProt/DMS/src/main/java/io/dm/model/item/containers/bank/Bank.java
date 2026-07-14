@@ -678,14 +678,23 @@ public class Bank extends ItemContainerG<BankItem> {
                     }
                 }
             };
-            h.actions[17] = (SimpleAction) p -> Config.BANK_INSERT_MODE.set(p, 0);
-            h.actions[19] = (SimpleAction) p -> Config.BANK_INSERT_MODE.set(p, 1);
-            h.actions[22] = (SimpleAction) p -> p.getBank().asNote = false;
-            h.actions[24] = (SimpleAction) p -> p.getBank().asNote = true;
-            h.actions[28] = (SimpleAction) p -> Config.BANK_DEFAULT_QUANTITY.set(p, 0);
-            h.actions[30] = (SimpleAction) p -> Config.BANK_DEFAULT_QUANTITY.set(p, 1);
-            h.actions[32] = (SimpleAction) p -> Config.BANK_DEFAULT_QUANTITY.set(p, 2);
-            h.actions[34] = (OptionAction) (p, option) -> {
+            // Rearrange mode: live-tested 2026-07-08 — Swap (19) already matched; Insert was NOT
+            // paired 2 apart from Swap as the 184-era numbering assumed (17), it's child 21.
+            h.actions[21] = (SimpleAction) p -> Config.BANK_INSERT_MODE.set(p, 1);
+            h.actions[19] = (SimpleAction) p -> Config.BANK_INSERT_MODE.set(p, 0);
+            // Withdraw-as-note / quantity settings row: live-tested 2026-07-08, every button in this
+            // row arrives 2 children higher than these 184-era numbers assumed (e.g. "Quantity: 1"
+            // sends child=30, not 28; "Withdraw as: Note" sends child=26, not 24) — confirmed via a
+            // real PROTOCOL_DUMP.txt capture of all three quantity buttons plus the note toggle.
+            // "Item"/"X"/"All"/placeholders below were not individually click-tested but are shifted
+            // by the same +2 to stay consistent with the confirmed pattern; re-verify those four on
+            // the next live test.
+            h.actions[24] = (SimpleAction) p -> p.getBank().asNote = false;
+            h.actions[26] = (SimpleAction) p -> p.getBank().asNote = true;
+            h.actions[30] = (SimpleAction) p -> Config.BANK_DEFAULT_QUANTITY.set(p, 0);
+            h.actions[32] = (SimpleAction) p -> Config.BANK_DEFAULT_QUANTITY.set(p, 1);
+            h.actions[34] = (SimpleAction) p -> Config.BANK_DEFAULT_QUANTITY.set(p, 2);
+            h.actions[36] = (OptionAction) (p, option) -> {
                 switch (option) {
                     case 1:
                         Config.BANK_DEFAULT_QUANTITY.set(p, 3);
@@ -698,8 +707,8 @@ public class Bank extends ItemContainerG<BankItem> {
                         break;
                 }
             };
-            h.actions[36] = (SimpleAction) p -> Config.BANK_DEFAULT_QUANTITY.set(p, 4);
-            h.actions[38] = (SimpleAction) Config.BANK_ALWAYS_PLACEHOLDERS::toggle;
+            h.actions[38] = (SimpleAction) p -> Config.BANK_DEFAULT_QUANTITY.set(p, 4);
+            h.actions[40] = (SimpleAction) Config.BANK_ALWAYS_PLACEHOLDERS::toggle;
             h.actions[42] = (SimpleAction) p -> p.getBank().deposit(p.getInventory(), true);
             h.actions[46] = (DefaultAction) (p, option, slot, itemId) -> p.getBank().incinerate(slot, itemId);
             h.actions[44] = (SimpleAction) p -> p.getBank().deposit(p.getEquipment(), true);

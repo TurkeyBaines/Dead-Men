@@ -18,14 +18,18 @@ public class EnumMap {
         return map;
     }
 
-    public int[] keys;
+    // Default to empty rather than null: an id with no data in the loaded cache (or the wrong
+    // opcode branch for its actual type - see strings()/ints() below) leaves these untouched, and
+    // some callers (e.g. IKOD.java) iterate `map.keys` directly with a for-each instead of going
+    // through length-bounded accessors.
+    public int[] keys = new int[0];
     public char keyType;
     public String defaultString = "null";
-    public int[] intValues;
+    public int[] intValues = new int[0];
     public int length = 0;
     public int defaultInt;
     public char valType;
-    public String[] stringValues;
+    public String[] stringValues = new String[0];
 
     void decode(InBuffer in) {
         for(; ; ) {
@@ -64,8 +68,17 @@ public class EnumMap {
         }
     }
 
+    // stringValues/intValues are only populated (grown to `length`) by whichever of opcode 5/6
+    // this enum's data actually used (decode() never touches both, so the other stays at its
+    // empty default) - a caller asking for the wrong shape (e.g. an id assumed to be
+    // string-valued that's actually int-valued in this cache) previously ran off the end of the
+    // still-empty array instead of getting an empty map back, same "which shape is this really"
+    // gap an absent enum (data == null, length left at 0) already handles gracefully.
+
     public Map<Integer, String> strings() {
         Map<Integer, String> map = new HashMap<>(length);
+        if(stringValues.length < length)
+            return map;
         for(int i = 0; i < length; i++)
             map.put(keys[i], stringValues[i]);
         return map;
@@ -73,6 +86,8 @@ public class EnumMap {
 
     public Map<Integer, Integer> ints() {
         Map<Integer, Integer> map = new HashMap<>(length);
+        if(intValues.length < length)
+            return map;
         for(int i = 0; i < length; i++)
             map.put(keys[i], intValues[i]);
         return map;
@@ -80,6 +95,8 @@ public class EnumMap {
 
     public Map<Integer, Integer> valuesAsKeysInts() {
         Map<Integer, Integer> map = new HashMap<>(length);
+        if(intValues.length < length)
+            return map;
         for(int i = 0; i < length; i++)
             map.put(intValues[i], keys[i]);
         return map;

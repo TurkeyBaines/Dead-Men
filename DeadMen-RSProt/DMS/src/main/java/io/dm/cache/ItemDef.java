@@ -77,6 +77,28 @@ public class ItemDef {
         }
     }
 
+    /**
+     * Decodes a standalone {@code ItemDef} from raw item-archive bytes without touching the
+     * {@link #cached} map — used to read item defs from a DIFFERENT {@code FileStore} than
+     * {@code Server.fileStore} (e.g. Cache228, via {@link Cache228ItemDefs}), reusing the exact
+     * same byte-format parser as {@link #load()} so both readers stay consistent. Note the
+     * returned def's {@code dropOption}/{@code equipOption} fields are NOT populated (those are
+     * only set by {@code item_info.java}'s data-driven {@code loadMisc()} pass, not by {@code
+     * decode()} itself) — call {@link #getOption(String...)} directly instead.
+     */
+    public static ItemDef decodeStandalone(int id, byte[] data) {
+        ItemDef def = new ItemDef();
+        def.id = id;
+        def.decode(new InBuffer(data));
+        if (def.stackable)
+            def.descriptiveName = "some " + def.name.toLowerCase();
+        else if (StringUtils.vowelStart(def.name))
+            def.descriptiveName = "an " + def.name;
+        else
+            def.descriptiveName = "a " + def.name;
+        return def;
+    }
+
     public static void forEach(Consumer<ItemDef> consumer) {
         for(ItemDef def : cached.values()) {
             if(def != null)
@@ -383,6 +405,8 @@ public class ItemDef {
             inventoryModel = buffer.readUnsignedShort();
         else if(opcode == 2)
             name = buffer.readString();
+        else if(opcode == 3)
+            buffer.readString(); // cache-authored description; item_info.java's own examine text is this codebase's authoritative source, so discarded
         else if(opcode == 4)
             zoom2d = buffer.readUnsignedShort();
         else if(opcode == 5)
@@ -401,6 +425,10 @@ public class ItemDef {
             stackable = true;
         else if(opcode == 12)
             value = buffer.readInt();
+        else if(opcode == 13)
+            buffer.readUnsignedByte(); // equip slot; item_info.java's equipSlot is authoritative here, so discarded
+        else if(opcode == 14)
+            buffer.readUnsignedByte(); // appearanceOverride1 (per AlterRSPS's ItemDecoder.kt); unused
         else if(opcode == 16)
             members = true;
         else if(opcode == 23) {
@@ -413,6 +441,8 @@ public class ItemDef {
             femaleOffset = buffer.readUnsignedByte();
         } else if(opcode == 26)
             anInt1496 = buffer.readUnsignedShort();
+        else if(opcode == 27)
+            buffer.readByte(); // appearanceOverride2 (per AlterRSPS's ItemDecoder.kt); unused
         else if(opcode >= 30 && opcode < 35) {
             groundOptions[opcode - 30] = buffer.readString();
             if(groundOptions[opcode - 30].equalsIgnoreCase("Hidden"))
@@ -435,8 +465,23 @@ public class ItemDef {
                 textureFind[i_3_] = (short) buffer.readUnsignedShort();
                 textureReplace[i_3_] = (short) buffer.readUnsignedShort();
             }
+        } else if(opcode == 42)
+            buffer.readByte(); // dropOptionIndex, shift-click default action (per AlterRSPS's ItemDecoder.kt); unused
+        else if(opcode == 43) {
+            // Variable-length sub-options block (per AlterRSPS's ItemDecoder.kt): one group id byte,
+            // then a 0-terminated sequence of (subopId byte, text string) pairs. Structure must be
+            // replicated exactly to stay in sync even though this codebase discards the values.
+            buffer.readUnsignedByte();
+            for(;;) {
+                int subopId = buffer.readUnsignedByte();
+                if(subopId == 0)
+                    break;
+                buffer.readString();
+            }
         } else if(opcode == 65)
             grandExchange = true;
+        else if(opcode == 75)
+            buffer.readUnsignedShort(); // weight (grams); item_info.java's weightInventory/weightEquipment are authoritative here, so discarded
         else if(opcode == 78)
             anInt1498 = buffer.readUnsignedShort();
         else if(opcode == 79)
@@ -449,6 +494,8 @@ public class ItemDef {
             anInt1501 = buffer.readUnsignedShort();
         else if(opcode == 93)
             anInt1503 = buffer.readUnsignedShort();
+        else if(opcode == 94)
+            buffer.readUnsignedShort(); // category; unused in this codebase
         else if(opcode == 95)
             zan2d = buffer.readUnsignedShort();
         else if(opcode == 97)
@@ -495,6 +542,53 @@ public class ItemDef {
                     attributes.put(key, buffer.readInt());
             }
         }
+    }
+
+    /**
+     * Diagnostic: walks {@code data}'s opcode stream the same way {@link #decode(InBuffer)} does,
+     * but stops at the FIRST opcode not in this decoder's known set instead of silently reading
+     * nothing for it (which is what {@link #decode(InBuffer, int)} does today — no {@code else}
+     * branch — desyncing every field read afterward for that item). Used to find which opcode(s)
+     * Cache228's item format uses that this legacy-cache-authored decoder doesn't know about; see
+     * {@link Cache228ItemDefs} and stages/STAGE-05-inventory-actions.txt.
+     *
+     * @return the first unrecognized opcode, or null if the stream was consumed cleanly through to
+     * the terminating 0 byte (or the buffer ran out while consuming a KNOWN opcode's payload, which
+     * would indicate a length bug in {@link #decode(InBuffer, int)} itself rather than a missing
+     * opcode — returned as -1 to distinguish that case).
+     */
+    public static Integer findFirstUnknownOpcode(byte[] data) {
+        InBuffer buffer = new InBuffer(data);
+        ItemDef scratch = new ItemDef();
+        try {
+            for (;;) {
+                int opcode = buffer.readUnsignedByte();
+                if (opcode == 0)
+                    return null;
+                if (!isKnownOpcode(opcode))
+                    return opcode;
+                scratch.decode(buffer, opcode);
+            }
+        } catch (Throwable t) {
+            return -1;
+        }
+    }
+
+    private static boolean isKnownOpcode(int opcode) {
+        if (opcode == 1 || opcode == 2 || opcode == 3 || opcode == 4 || opcode == 5 || opcode == 6
+                || opcode == 7 || opcode == 8 || opcode == 11 || opcode == 12 || opcode == 13
+                || opcode == 14 || opcode == 16 || opcode == 23
+                || opcode == 24 || opcode == 25 || opcode == 26 || opcode == 27 || opcode == 40 || opcode == 41
+                || opcode == 42 || opcode == 43
+                || opcode == 65 || opcode == 75 || opcode == 78 || opcode == 79 || opcode == 90 || opcode == 91
+                || opcode == 92 || opcode == 93 || opcode == 94 || opcode == 95 || opcode == 97 || opcode == 98
+                || opcode == 110 || opcode == 111 || opcode == 112 || opcode == 113 || opcode == 114
+                || opcode == 115 || opcode == 139 || opcode == 140 || opcode == 148 || opcode == 149
+                || opcode == 249)
+            return true;
+        if (opcode >= 30 && opcode < 40)
+            return true;
+        return opcode >= 100 && opcode < 110;
     }
 
     public int getOption(String... options) {

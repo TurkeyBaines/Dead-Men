@@ -52,9 +52,6 @@ public enum Pickaxe {
     }
 
     public static Pickaxe find(Player player) {
-        if (Deadman.getOverworld().contains(player))
-            return Pickaxe.OVERWORLD;
-
         Pickaxe bestPickaxe = null;
         for(Item item : player.getInventory().getItems())
             bestPickaxe = compare(player, item, bestPickaxe);

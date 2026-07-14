@@ -1,5 +1,5 @@
 STAGE 00 — Git safety checkpoint
-STATUS: NOT STARTED
+STATUS: DONE 2026-07-08
 DEPENDS ON: nothing. Do this before ANY other stage.
 Follow the RULES in stages/README.txt.
 

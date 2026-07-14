@@ -2,11 +2,13 @@ package io.dm.network.incoming.handlers.commands;
 
 import io.dm.Server;
 import io.dm.cache.NPCDef;
-import io.dm.deadman.content.areas.overworld.combat.CombatTask;
-import io.dm.deadman.content.areas.overworld.combat.tasks.ChickenTask;
 import io.dm.deadman.tournament.gas.GasArea;
 import io.dm.deadman.tournament.mutators.impl.StaticGasMutator;
 import io.dm.model.entity.player.Player;
+import io.dm.model.inter.dialogue.NPCDialogue;
+import io.dm.model.inter.dialogue.OptionsDialogue;
+import io.dm.model.inter.dialogue.PlayerDialogue;
+import io.dm.model.inter.utils.Option;
 import io.dm.model.map.Bounds;
 
 public class TestCommands {
@@ -31,6 +33,10 @@ public class TestCommands {
 
             case "check":
                 check(p, args);
+                break;
+
+            case "diag":
+                diag(p, args);
                 break;
         }
     }
@@ -110,22 +116,6 @@ public class TestCommands {
 
     private void task(Player p, String... args) {
         System.out.println("args length: " + args.length);
-        if (args.length == 2) {
-            if (args[1].equalsIgnoreCase("print")) {
-                CombatTask.TASK_MONSTER taskMonster = p.overworldTaskMonster;
-                if (taskMonster == CombatTask.TASK_MONSTER.NONE) {
-                    p.sendMessage("NO TASK");
-                    return;
-                }
-                String taskName = taskMonster.name();
-                int total = p.overworldTaskTotal;
-                int remain = p.overworldTaskRemaining;
-                p.sendMessage("Task: " + taskName + " [" + remain + "/" + total + "]");
-                return;
-            }
-        }
-
-        new ChickenTask(p, 1);
     }
 
     public void check(Player p, String... args) {
@@ -148,6 +138,71 @@ public class TestCommands {
                 break;
         }
 
+    }
+
+    public void diag(Player p, String... args) {
+        switch (args[1]) {
+
+            case "npc":
+                p.dialogue(
+                        new NPCDialogue(
+                                3543,
+                                "This is a test NPC Message"
+                        )
+                );
+                break;
+
+            case "player":
+                p.dialogue(
+                        new PlayerDialogue(
+                                "This is a test Player Mesage"
+                        )
+                );
+                break;
+
+            case "option2":
+                p.dialogue(
+                        new OptionsDialogue(
+                                new Option("Option 1"),
+                                new Option("Option 2")
+                        )
+                );
+                break;
+
+            case "option3":
+                p.dialogue(
+                        new OptionsDialogue(
+                                new Option("Option 1"),
+                                new Option("Option 2"),
+                                new Option("Option 2")
+                        )
+                );
+                break;
+
+            case "option4":
+                p.dialogue(
+                        new OptionsDialogue(
+                                new Option("Option 1"),
+                                new Option("Option 2"),
+                                new Option("Option 3"),
+                                new Option("Option 4")
+                        )
+                );
+                break;
+
+            case "option5":
+                p.dialogue(
+                        new OptionsDialogue(
+                                new Option("Option 1"),
+                                new Option("Option 2"),
+                                new Option("Option 3"),
+                                new Option("Option 4"),
+                                new Option("Option 5")
+                        )
+                );
+                break;
+
+        }
     }
 
 }

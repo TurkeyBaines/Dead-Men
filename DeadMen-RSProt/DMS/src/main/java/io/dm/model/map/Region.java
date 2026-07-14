@@ -137,8 +137,19 @@ public class Region {
                     int direction = objectHash & 0x3;
                     if(localX < 0 || localX >= 64 || localY < 0 || localY >= 64)
                         continue;
+                    if (id == 14936 && (objectId == 26670 || objectId == 26669 || objectId == 26672 || objectId == 26671)) {
+                        System.out.println("[MLM_RAW] objectId=" + objectId + " localX=" + localX + " localY=" + localY
+                                + " absX=" + (baseX + localX) + " absY=" + (baseY + localY)
+                                + " rawHeight=" + height + " type=" + type + " direction=" + direction
+                                + " tileData0=" + tileData[0][localX][localY] + " tileData1=" + tileData[1][localX][localY]
+                                + " tileData2=" + tileData[2][localX][localY] + " tileData3=" + tileData[3][localX][localY]
+                                + " bridgeFlag=" + ((tileData[1][localX][localY] & 0x2) == 2));
+                    }
                     if((tileData[1][localX][localY] & 0x2) == 2)
                         height--;
+                    if (id == 14936 && (objectId == 26670 || objectId == 26669 || objectId == 26672 || objectId == 26671)) {
+                        System.out.println("[MLM_RAW] -> finalHeight=" + height);
+                    }
                     if(height >= 0) {
                         int absX = baseX + localX;
                         int absY = baseY + localY;

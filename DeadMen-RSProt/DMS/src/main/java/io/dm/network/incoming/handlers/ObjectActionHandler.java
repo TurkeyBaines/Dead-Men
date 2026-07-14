@@ -84,6 +84,9 @@ public class ObjectActionHandler implements Incoming {
         if(objectId == -1)
             return;
         GameObject gameObject = Tile.getObject(objectId, objectX, objectY, player.getPosition().getZ());
+        // TEMP diagnostic (Stage 07, 2026-07-11): see stages/STAGE-07-object-interactions.txt — remove once root-caused.
+        System.out.println("[OBJACTION] click id=" + objectId + " x=" + objectX + " y=" + objectY
+                + " z=" + player.getPosition().getZ() + " option=" + option + " found=" + (gameObject != null));
         if(gameObject == null)
             return;
         if(player.debug) {
@@ -102,6 +105,8 @@ public class ObjectActionHandler implements Incoming {
             player.sendFilteredMessage("[ObjectAction] " + debug.toString());
         }
         player.getMovement().setCtrlRun(ctrlRun == 1);
+        System.out.println("[OBJACTION] routing to id=" + gameObject.id + " x=" + gameObject.x + " y=" + gameObject.y
+                + " z=" + gameObject.z + " type=" + gameObject.type + " direction=" + gameObject.direction);
         player.getRouteFinder().routeObject(gameObject, () -> {
             player.getPacketSender().resetMapFlag();
             int i = option - 1;
@@ -109,10 +114,15 @@ public class ObjectActionHandler implements Incoming {
                 return;
             ObjectAction action = null;
             ObjectAction[] actions = gameObject.actions;
+            boolean fromCustom = actions != null && actions[i] != null;
             if(actions != null)
                 action = actions[i];
             if(action == null && (actions = gameObject.getDef().defaultActions) != null)
                 action = actions[i];
+            System.out.println("[OBJACTION] successAction fired id=" + gameObject.id + " option=" + option
+                    + " customActionsPresent=" + (gameObject.actions != null)
+                    + " defaultActionsPresent=" + (gameObject.getDef().defaultActions != null)
+                    + " resolved=" + (action != null) + " source=" + (action == null ? "none" : (fromCustom ? "custom" : "default")));
             if(action != null) {
                 action.handle(player, gameObject);
                 return;

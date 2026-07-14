@@ -62,10 +62,10 @@ public class MotherlodeMine { //why do we have two motherlode mine classes? Remo
 
 
     public static final GameObject WHEEL_1 = Tile.getObject(BROKEN_WHEEL, 3743, 5668, 0);
-    public static final GameObject STRUT_1 = Tile.getObject(BROKEN_STRUT, 3742, 5669, 0);
+    public static final GameObject STRUT_1 = Tile.getObject(BROKEN_STRUT, 3742, 5669, 1);
 
     public static final GameObject WHEEL_2 = Tile.getObject(BROKEN_WHEEL, 3743, 5662, 0);
-    public static final GameObject STRUT_2 = Tile.getObject(BROKEN_STRUT, 3742, 5663, 0);
+    public static final GameObject STRUT_2 = Tile.getObject(BROKEN_STRUT, 3742, 5663, 1);
 
     public static final Bounds[] UPPER_LEVEL_VEINS = {
             new Bounds(3732, 5670, 3763, 5684, 0),
@@ -114,8 +114,15 @@ public class MotherlodeMine { //why do we have two motherlode mine classes? Remo
 
         Tile.getObject(26674, 3748, 5672, 0).skipReachCheck = p -> p.equals(3749, 5672) || p.equals(3748, 5673);
         ObjectAction.register(26674, "deposit", (player, obj) -> addToHopper(player));
-        ObjectAction.register(STRUT_1, 1, (p, obj) -> strutInteract(p, obj, WHEEL_1));
-        ObjectAction.register(STRUT_2, 1, (p, obj) -> strutInteract(p, obj, WHEEL_2));
+
+        ObjectAction.register(26670, 1, (p, o) -> {
+            if (o.getPosition().getY() == STRUT_1.getPosition().getY()) {
+                fixWheel(WHEEL_1, STRUT_1);
+            } else {
+                fixWheel(WHEEL_2, STRUT_2);
+            }
+        });
+
         ObjectAction.register(Tile.getObject(357, 3752, 5664, 0), 1, (player, obj) -> {
             if (!player.getInventory().contains(HAMMER, 1)) {
                if (player.getInventory().hasRoomFor(HAMMER)) {

@@ -1,5 +1,5 @@
 STAGE 03 — NPCs spawn and are visible
-STATUS: NOT STARTED
+STATUS: DONE 2026-07-08 (human live-tested: NPCs spawn, render, and wander correctly)
 DEPENDS ON: Stage 00. Independent of Stages 02/04-08.
 Follow the RULES in stages/README.txt.
 
@@ -66,3 +66,85 @@ field). Combat correctness. NPC pathfinding quality.
 ## WRAP-UP
 Per README RULES #7. Record the exact factory/alloc API you used in your HANDOFF note — Stage 09
 starts from it.
+
+## DONE 2026-07-08 — implementation notes for Stage 09
+- API used: `NetworkService.getNpcAvatarFactory()` (osrs-228-api) returns `NpcAvatarFactory`.
+  `.alloc(index, id, level, x, z, spawnCycle, direction, priority, specific)` returns a `NpcAvatar`
+  (index/id/level/x/z required, rest have `@JvmOverloads` defaults — we pass index/id/level/x/z/
+  spawnCycle=0/direction only). `.release(avatar)` returns it to the pool. Both are on
+  `NpcAvatarFactory`, NOT `NpcInfoProtocol` (that one is per-player, already wired pre-Stage-03 —
+  don't confuse the two, their names are easy to mix up).
+- `NpcAvatar.teleport(level, x, z, jump)` and `.walk(deltaX, deltaZ)` (deltaX/Z in -1..1, not both 0,
+  throws `ArrayIndexOutOfBoundsException` otherwise) are the two movement calls. No explicit "run" —
+  calling `.walk()`/`.crawl()` twice in the same game cycle auto-promotes to run internally (RSProt's
+  own `NpcAvatarDetails.stepCount` logic), we don't call this today (see below).
+- `NpcAvatar.setInaccessible(boolean)` hides/shows the NPC without deallocating (used for hidden/
+  death/respawn state, which the legacy game logic drives via `Entity.setHidden()`).
+- `Direction.ordinal()` (io.dm.model.map.Direction) already matches RSProt's 0-7 direction table
+  exactly (NW,N,NE,W,E,SW,S,SE) — no translation needed, confirmed by reading both enums side by
+  side, unlike the face-entity index-space mismatch Milestone 2 hit.
+- Files touched: `NPC.java` (new `public NpcAvatar rsprotAvatar` field; `spawn()` calls
+  `RsProt.allocNpcAvatar(this)` right after `setIndex`; `remove()` calls
+  `RsProt.deallocNpcAvatar(this)` before `World.npcs.remove(getIndex())`; new `setHidden()` override
+  bridges to `rsprotAvatar.setInaccessible(hidden)` so death/respawn — which uses
+  `setHidden(true/false)`, not `remove()`/`spawn()` again, per `NPCCombat.java:294-319` — reflects
+  correctly without a dealloc/realloc cycle). `RsProt.java` (new `npcAvatarFactory` field set in
+  `start()`; `allocNpcAvatar`/`deallocNpcAvatar`/`pushNpcMovement` static methods; a new step 2b in
+  `driveUpdate()`, before `npcInfoProtocol.update()`, that calls `pushNpcMovement` for every NPC with
+  a non-null avatar).
+- Bootstrap ordering gotcha: `npc_spawns.java`-style data loading runs on the main thread BEFORE
+  `RsProt.start()` (see `Server.java` — data load ~line 150-200, `RsProt.start()` at line 214), so
+  every boot-time NPC's own `spawn()` → `allocNpcAvatar()` call is a no-op (`npcAvatarFactory` is
+  still null then). `start()` itself now does a one-time catch-up pass over `World.npcs.entityList`
+  (raw array, not the indexed iterator — CoreWorker hasn't ticked yet) right after
+  `npcAvatarFactory` is assigned, marshalled onto `Server.worker` via `Server.worker.execute(...)`
+  for thread-affinity (matches the `onLogout`/doLogin precedent elsewhere in this file). Any NPC
+  spawned dynamically AFTER boot (scripted spawns, summons, etc.) goes through the normal
+  `spawn()` → `allocNpcAvatar()` path and works immediately since the factory already exists by then.
+- Movement is teleport-by-default with a walk-step fast path: `pushNpcMovement()` compares the
+  avatar's last-pushed tile (`avatar.x()/z()/level()`) against the NPC's current tile every cycle;
+  ordinary single-tile steps (the common case — `NPCMovement.process()` moves at most 1 tile/axis
+  per cycle for a plain random-walk NPC) call `avatar.walk(deltaX, deltaZ)` so it animates instead of
+  blinking; anything bigger (level change, >1 tile in one cycle — e.g. a forced 2-tile run step, or
+  the position reset on respawn) falls back to `avatar.teleport(level, x, z, jump=true)`. **Stage 09
+  or a future movement-polish pass could upgrade the run case** (two same-cycle `.walk()` calls
+  instead of one `.teleport()`) if the rare forced-run NPCs look bad in testing — not done here since
+  it's an edge case and the stage's own non-goals rule out chasing "pathfinding quality"/animation
+  polish.
+- NOT done (explicitly out of scope per this stage's NON-GOALS, left for Stage 09): no
+  `NpcAvatarExtendedInfo` bridging at all (no animations/graphics/hitsplats/transforms/overheads for
+  NPCs). `NPC.java`'s own mask fields (`animationUpdate`, `hitsUpdate`, `transformUpdate`, etc., set
+  up in `init()`) are untouched — Stage 09 should mirror `RsProt.pushMaskUpdates(Player)` for NPCs,
+  reading those same mask fields and writing to `npc.rsprotAvatar.extendedInfo`'s setters. The
+  `TransformUpdate` mask (NPC-only, unlike the Player bridge which explicitly skips it) is one Stage
+  09 will actually need to use, via `NpcAvatar.setId(id)` for the RSProt-visible id + presumably an
+  extended-info transform block — check `NpcAvatarExtendedInfo.kt` in the sources jar for the exact
+  setter name, wasn't looked up this round.
+- Not yet live-tested (no client available this session) — compiles clean
+  (`./gradlew :DMS:compileJava`, 2026-07-08). Hand the human the TEST SCRIPT above.
+
+## FOLLOW-UP 2026-07-08 — human live-tested: NPCs spawn/render correctly, but don't wander
+- **Root cause:** `NPC.isRandomWalkAllowed()` requires `localPlayers().size() != 0` — an NPC only
+  random-walks if at least one player currently considers it "local." That list is populated by
+  `NPC.addPlayer(player)`/`removePlayer(player)`, which is only ever called from
+  `PlayerNPCUpdater.process()` — and `CoreWorker.update()` only calls
+  `player.getNpcUpdater().process()` for players with NO RSProt session (`if(player.getSession() ==
+  null)`), i.e. only for the legacy 184 path. Every RSProt-connected player was therefore never added
+  to any NPC's local-player list, `localPlayers().size()` stayed 0 forever, and no NPC ever passed
+  the wander gate. (This same gap silently starves every other `npc.localPlayers()`/`localNpcs()`
+  consumer too — aggro/targeting, boss AI scripts, drop-message broadcasts, etc. — this fix isn't
+  NPC-wandering-specific, it fixes the underlying local-tracking list for RSProt players generally.)
+- **Fix:** added `PlayerNPCUpdater.syncLocalNpcs()` — the exact same local-list add/remove membership
+  logic as `process()`'s "Local"/"Global" sections, but with none of the legacy `OutBuffer` mask/
+  position packet-writing (that's meaningless for RSProt players; RSProt's own `NpcInfoProtocol`
+  already handles what's actually sent to the client). Called once per RSProt player per cycle from a
+  new step in `RsProt.driveUpdate()` (right after step 0's mask bridge, before position sync).
+  `PlayerNPCUpdater.process()` itself is untouched — still legacy-184/AI-bot only.
+- **Deliberately not folded into `process()` itself**: keeping them separate means the legacy path's
+  behavior (including its NPC-teleport-forces-remove/re-add wire quirk, irrelevant to RSProt) is
+  completely unchanged, and the new method has zero OutBuffer/packet-encoding cost for RSProt players
+  every tick.
+- Compiles clean (`./gradlew :DMS:compileJava`, 2026-07-08). Not yet re-tested live this round — next
+  step: re-run TEST SCRIPT point 2 (watch a wandering NPC for 30s) and, if convenient, sanity-check an
+  aggressive NPC actually engages a nearby player now too (same root cause, bonus fix, not a formal
+  test point of this stage).
