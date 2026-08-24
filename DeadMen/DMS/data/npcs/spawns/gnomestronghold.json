@@ -225,24 +225,6 @@
     "walkRange": 3
   },
   {
-    "name": "Gnome guard",
-    "id": 6081,
-    "x": 2467,
-    "y": 3494,
-    "z": 1,
-    "direction": "S",
-    "walkRange": 4
-  },
-  {
-    "name": "Gnome guard",
-    "id": 6081,
-    "x": 2474,
-    "y": 3498,
-    "z": 1,
-    "direction": "S",
-    "walkRange": 1
-  },
-  {
     "name": "Gnome",
     "id": 6094,
     "x": 2474,
@@ -441,15 +423,6 @@
     "walkRange": 2
   },
   {
-    "name": "Gnome guard",
-    "id": 6081,
-    "x": 2449,
-    "y": 3496,
-    "z": 2,
-    "direction": "S",
-    "walkRange": 2
-  },
-  {
     "name": "Gnome woman",
     "id": 6086,
     "x": 2451,
@@ -463,15 +436,6 @@
     "id": 6082,
     "x": 2462,
     "y": 3488,
-    "z": 2,
-    "direction": "S",
-    "walkRange": 2
-  },
-  {
-    "name": "Gnome guard",
-    "id": 6081,
-    "x": 2465,
-    "y": 3482,
     "z": 2,
     "direction": "S",
     "walkRange": 2
@@ -493,33 +457,6 @@
     "z": 2,
     "direction": "S",
     "walkRange": 3
-  },
-  {
-    "name": "Gnome guard",
-    "id": 6081,
-    "x": 2466,
-    "y": 3495,
-    "z": 2,
-    "direction": "S",
-    "walkRange": 4
-  },
-  {
-    "name": "Gnome guard",
-    "id": 6081,
-    "x": 2466,
-    "y": 3508,
-    "z": 2,
-    "direction": "S",
-    "walkRange": 2
-  },
-  {
-    "name": "Gnome guard",
-    "id": 6081,
-    "x": 2465,
-    "y": 3483,
-    "z": 2,
-    "direction": "S",
-    "walkRange": 1
   },
   {
     "name": "Gnome troop",
