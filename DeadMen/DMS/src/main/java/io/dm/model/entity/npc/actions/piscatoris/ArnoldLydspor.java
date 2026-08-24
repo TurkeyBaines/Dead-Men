@@ -23,7 +23,7 @@ public class ArnoldLydspor {
                             new Option("Would you like to trade?", () -> player.dialogue(
                                     new PlayerDialogue("Would you like to trade?"),
                                     new NPCDialogue(npc, "Ya, I have wide range of stock..."),
-                                    new ActionDialogue(() -> ShopManager.openIfExists(player,"")))//TODO Fill this in
+                                    new ActionDialogue(() -> ShopManager.openIfExists(player, "Arnold's Electic Supplies")))//TODO Fill this in
                             ),
                             new Option("Nothing, I just came to chat.", () -> player.dialogue(new PlayerDialogue("Nothing, I just came to chat."),
                                     new NPCDialogue(npc, "Ah, that is nice - always I like to chat, but Herr Caranos tell me to get back to work! " +

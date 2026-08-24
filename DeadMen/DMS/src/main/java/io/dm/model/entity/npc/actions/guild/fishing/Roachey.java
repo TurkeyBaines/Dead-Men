@@ -15,7 +15,7 @@ public class Roachey {
         NPCAction.register(ROACHEY, "talk-to", (player, npc) -> player.dialogue(
                 new NPCDialogue(npc, "Would you like to buy some fishing equipment?"),
                 new OptionsDialogue(
-                        new Option("Yes please.", () -> ShopManager.openIfExists(player, "")),//TODO Fill this in
+                        new Option("Yes please.", () -> ShopManager.openIfExists(player, "Fishing Guild Shop")),//TODO Fill this in
                         new Option("No thank you.", () -> player.dialogue(new PlayerDialogue("No thank you.")))
                 )
         ));

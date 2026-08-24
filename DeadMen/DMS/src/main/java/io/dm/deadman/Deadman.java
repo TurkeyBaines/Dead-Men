@@ -23,7 +23,9 @@ import io.dm.model.item.ItemContainer;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class Deadman {
 
@@ -33,6 +35,7 @@ public class Deadman {
     @Getter private static SafeZone safeZone;
     @Getter private static Overworld overworld;
 
+    @Getter @Setter private static String utc;
     @Getter @Setter private static Stage stage;
     @Getter @Setter private static TournamentConfig config;
     @Getter @Setter private static TournamentConfig next_config;
@@ -66,17 +69,17 @@ public class Deadman {
     }
 
     public Deadman() {
-
+        generateUTC();
         LoginListener.register(player -> {
             if (stage.stageName() == Tournament.StageName.LOBBY) {
                 player.sendMessage(Color.GOLD.wrap("[Tournament] ") + "A new tournament is due to start shortly.");
                 teleToCitadel(player);
 
-                if (player.dmmNeedsReset) {
+                if (!player.utc.equals(utc)) {
                     resetPlayer(player);
 
                     player.sendMessage("Your Stats, Equipment, Bank, and Items have been reset from a previous tournament!");
-                    player.dmmNeedsReset = false;
+                    player.utc = utc;
                 }
 
             } else if (stage.stageName() == Tournament.StageName.MAIN) {
@@ -88,12 +91,13 @@ public class Deadman {
                             new Option("Sigil of the Formidable Fighter", () -> { Sigil.unlock(player, Sigils.Formidable_Fighter); }),
                             new Option("Sigil of the Menacing Mage", () -> { Sigil.unlock(player, Sigils.Menacing_Mage); })
                     ));
-                    player.dmmNeedsReset = true;
+                    player.utc = getUtc();
                 }
             } else if (stage.stageName() == Tournament.StageName.FINAL) {
                 player.sendMessage(Color.RED.wrap("The Tournament Finals are underway! You can spectate it using the orb, or visit the Overworld while you wait."));
                 teleToCitadel(player);
-                player.dmmNeedsReset = true;
+                resetPlayer(player);
+                player.utc = getUtc();
             }
             getConfig().printConfig();
         });
@@ -195,4 +199,18 @@ public class Deadman {
     public static void overrideConfig(TournamentConfig config) {
         next_config = config;
     }
+
+    private static final String CHAR_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+            "abcdefghijklmnopqrstuvwxyz" +
+            "0123456789";
+
+    public static void generateUTC() {
+        SecureRandom RANDOM = new SecureRandom();
+
+        setUtc(RANDOM.ints(20, 0, CHAR_POOL.length())
+                .mapToObj(CHAR_POOL::charAt)
+                .map(Object::toString)
+                .collect(Collectors.joining()));
+    }
+
 }

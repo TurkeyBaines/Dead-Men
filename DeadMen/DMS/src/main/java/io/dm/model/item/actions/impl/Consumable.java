@@ -167,6 +167,13 @@ public class Consumable {
         });
     }
 
+    private static int mutatorHeal(int base) {
+        io.dm.deadman.tournament.TournamentConfig cfg = io.dm.deadman.Deadman.getConfig();
+        if (cfg != null && cfg.MUTATOR != null)
+            return cfg.MUTATOR.modifyFoodHeal(base);
+        return base;
+    }
+
     private static boolean eat(Player player, Item item, int newId, int heal, int ticks, boolean stackable) {
         if(player.isLocked() || player.isStunned())
             return false;
@@ -179,7 +186,7 @@ public class Consumable {
         else
             item.setId(newId);
         animEat(player);
-        player.incrementHp(heal);
+        player.incrementHp(mutatorHeal(heal));
         player.eatDelay.delay(ticks);
         player.getCombat().delayAttack(3);
         return true;
@@ -192,7 +199,7 @@ public class Consumable {
             return false;
         item.remove();
         animEat(player);
-        player.incrementHp(18);
+        player.incrementHp(mutatorHeal(18));
         player.karamDelay.delay(3);
         player.getCombat().delayAttack(player.eatDelay.isDelayed() ? 1 : 2); //delays combat 1 tick less than other food on rs
         return true;

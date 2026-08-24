@@ -98,7 +98,7 @@
     "direction": "S",
     "walkRange": 1,
     "shopOptions": {
-      "trade": "35b90463-33c1-42e6-a1c5-14ba417e3248"
+      "trade": "TzHaar-Mej-Roh's Rune Store"
     }
   },
   {
@@ -119,7 +119,7 @@
     "direction": "S",
     "walkRange": 1,
     "shopOptions": {
-      "trade": "5e31b723-6faf-4f79-bb5d-b8967e35c073"
+      "trade": "TzHaar-Hur-Lek's Ore and Gem Store"
     }
   },
   {
@@ -257,7 +257,7 @@
     "direction": "S",
     "walkRange": 1,
     "shopOptions": {
-      "trade": "7aacc988-30ae-44e7-b5a7-a685c79db41d"
+      "trade": "TzHaar-Hur-Tel's Equipment Store"
     }
   },
   {

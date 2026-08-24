@@ -11,7 +11,7 @@ public class Grace {
     static {
         NPCAction.register(5919, "talk-to", (player, npc) -> player.dialogue(new NPCDialogue(npc, "Hello, " + player.getName() + ". Would you like to see the mark exchange, or learn more about marks of grace?"),
                 new OptionsDialogue(
-                        new Option("Open shop", () -> ShopManager.openIfExists(player, "")),
+                        new Option("Open shop", () -> ShopManager.openIfExists(player, "Grace's Graceful Clothing")),
                         new Option("Learn more", () -> {
                             if(!player.insideWildernessAgilityCourse) {
                                 player.dialogue(new NPCDialogue(npc, "While practicing on rooftop agility courses, you will occasionally encounter marks of grace.<br>" +

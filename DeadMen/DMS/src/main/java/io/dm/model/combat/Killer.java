@@ -135,6 +135,11 @@ public class Killer {
             player.getCombat().restoreSpecial(100);
         }
 
+        io.dm.deadman.tournament.TournamentConfig _cfg = io.dm.deadman.Deadman.getConfig();
+        if (_cfg != null && _cfg.MUTATOR != null) {
+            bmAmount = (int) Math.round(bmAmount * _cfg.MUTATOR.pvpBloodMoneyMultiplier());
+            _cfg.MUTATOR.onPvpKill(player, pKilled);
+        }
         player.rewardBm(pKilled, bmAmount);
 
         if (player.insideWildernessAgilityCourse) {

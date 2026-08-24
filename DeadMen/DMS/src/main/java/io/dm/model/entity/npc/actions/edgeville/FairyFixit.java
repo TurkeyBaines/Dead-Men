@@ -17,7 +17,7 @@ public class FairyFixit {
                         new Option("What have you got for me?", () -> player.dialogue(
                                 new PlayerDialogue("What have you got for me?"),
                                 new NPCDialogue(npc, "I've got a staff and enchantment scrolls which might help if you're working with fairy rings."),
-                                new ActionDialogue(() -> ShopManager.openIfExists(player, ""))
+                                new ActionDialogue(() -> ShopManager.openIfExists(player, "Fairy Fixit's Fairy Enchantment"))
                         )),
                         new Option("Why are you carrying that toolbox?", () -> player.dialogue(
                                 new PlayerDialogue("Why are you carrying that toolbox?"),

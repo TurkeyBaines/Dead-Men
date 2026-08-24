@@ -200,6 +200,8 @@ public class StatList {
         boolean rapidRestore = player.getPrayer().isActive(Prayer.RAPID_RESTORE);
         boolean rapidHeal = player.getPrayer().isActive(Prayer.RAPID_HEAL) || HitpointsSkillCape.wearsHitpointsCape(player);
         boolean preserve = player.getPrayer().isActive(Prayer.PRESERVE);
+        io.dm.deadman.tournament.TournamentConfig cfg = io.dm.deadman.Deadman.getConfig();
+        boolean suppressHpRegen = cfg != null && cfg.MUTATOR != null && cfg.MUTATOR.suppressHpRegen();
         StatType[] types = StatType.values();
         totalLevel = 0;
         totalXp = 0;
@@ -207,8 +209,16 @@ public class StatList {
         for(int statId = 0; statId < types.length; statId++) {
             Stat stat = stats[statId];
             StatType type = types[statId];
-            if(type != StatType.Prayer)
-                stat.process(type == StatType.Hitpoints, rapidRestore, rapidHeal, preserve);
+            if(type != StatType.Prayer) {
+                boolean isHp = type == StatType.Hitpoints;
+                // When VampiricRites (or any regen-suppressing mutator) is active, skip
+                // the natural HP tick only when HP is below max; boost drain still runs.
+                if (isHp && suppressHpRegen && stat.currentLevel < stat.fixedLevel) {
+                    // intentionally skip — natural HP regen is suppressed
+                } else {
+                    stat.process(isHp, rapidRestore, rapidHeal, preserve);
+                }
+            }
             if(stat.updated) {
                 stat.updated = false;
                 player.getPacketSender().sendStat(statId, stat.currentLevel, (int) stat.experience);

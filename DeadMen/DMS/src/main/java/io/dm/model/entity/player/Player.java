@@ -1262,7 +1262,7 @@ public class Player extends PlayerAttributes {
 
             toggleCooldowns = new long[4];
             for (int i = 0; i < 4; i++) toggleCooldowns[i] = -1;
-            dmmNeedsReset = false;
+            utc = "";
         }
 
         if (overworldToolTier == null) {

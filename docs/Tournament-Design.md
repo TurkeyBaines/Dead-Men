@@ -1,0 +1,320 @@
+# Dead Men — Tournament Design Bible
+
+> A practical, numbers-filled balance guide for the tournament-style Deadman server.
+> Every number here is a **starting point you can tune**, not gospel. The goal is to get
+> you off a blank page with values that are internally consistent, so you can nudge one
+> dial at a time instead of guessing at everything at once.
+
+**Working assumptions** (tell me if any are wrong and the numbers shift):
+- Population: **Small–Medium (5–80 online)**. Scaling notes included for larger.
+- Carryover: **Cosmetics + leaderboard rank persist; gear/stats always wipe** (true Deadman).
+- Gearing: **Balanced** — supplies & mid-gear from drops/shops, BiS from events & PvP.
+
+---
+
+## 0. The one mental model that prevents "unbalancing everything"
+
+A fresh-wipe tournament has **three acts**. Tune everything against where a player sits in
+these acts, and balance stops feeling like a black box:
+
+| Act | % of runtime | What players do | What the server should feed them |
+|-----|-------------|-----------------|----------------------------------|
+| **The Rush** | first ~33% | Skill up, grab starter→mid gear, avoid fights | Fast XP, abundant *supplies*, cheap mid-gear |
+| **The War** | middle ~40% | PvP, contest events, bank loot with keys | Events, Blood Money sinks, mid→high gear |
+| **The Squeeze** | final ~27% | Finals approach, gas closes, BiS matters | Rare BiS from events, escalating danger |
+
+**Golden rule:** an *average* player should reach **combat viability** (~70–80 combat
+stats + a full mid-tier setup) right around the **33% mark**. If they hit it sooner, the
+War act drags and snowballs; later, and the tournament ends before the fun starts.
+**XP_RATE is the single dial that controls this.** Everything else is secondary.
+
+---
+
+## 1. Tournament runtimes & rates
+
+Your `TournamentConfig.Timespan` enum already offers 1h / 3h / 5h / 8h / 10h / 12h. You do
+**not** want one rate for all of them — short games need blistering XP so people can fight;
+long games need slow XP so progression *is* the content. Rates scale **inversely** with length.
+
+### Recommended format menu
+
+| Format | Timespan | XP_RATE | DROP_RATE | PET_RATE | Team size | When to run |
+|--------|----------|--------:|----------:|---------:|-----------|-------------|
+| **Blitz** | `ONE_HOUR` | 50 | 5 | 5 | Solo/Duo | Filler, low pop, "one more game" |
+| **Standard** | `THREE_HOURS` | 25 | 3 | 3 | Solo/Trio | **Your bread & butter** |
+| **Marathon** | `FIVE_HOURS` | 15 | 2 | 2 | Duo/Trio | Prime-time weekend |
+| **Endurance** | `EIGHT_HOURS` | 10 | 2 | 2 | Trio | Special / seasonal |
+| **Grand** | `TWELVE_HOURS` | 7 | 1 | 1 | Trio | Season finale only |
+
+Rationale: at 50x a player reaches ~80 combat in ~20–30 min (≈33% of a 1h game). At 7x it
+takes a couple of hours (≈33% of a 12h game). The "time to viability" stays ~1/3 of runtime
+across the board — that's the property you're protecting.
+
+> **Default config to ship:** make **Standard (3h)** the random default, not the current
+> `QuickSolo`. The current default (`QuickSolo.java`) runs **50x XP / 5x drop** which is
+> Blitz rates on an unbounded team size — that's why it feels swingy. See §8 fixes.
+
+### Lobby / finals timing
+- **Lobby: 10 min** at small pop, **15 min** at medium+ (gives latecomers time to log in & pick teams). Your code currently sets `900000` (15 min) but the chat messages say "30 minutes" — pick one and make them match (see §8).
+- **Finals: use the `Timespan.finals` value already in the enum** (15–60 min scaling with length). That window is the gas-arena endgame.
+
+---
+
+## 2. The global loot table (the heart of the economy)
+
+This is `GlobalDropManager.java`. Right now it's the single biggest balance lever **and** the
+most under-built (2 items per tier, and most kills return `null`). In a survival mode where
+players start with nothing, "you killed something and got nothing" 66% of the time feels
+punishing and starves them of the *supplies* that actually keep them alive.
+
+### Fix #1 — Split drops into two independent rolls
+
+Every NPC kill should roll **two separate tables**:
+
+1. **Supply roll** (high frequency) — food, runes, ammo, coins/Blood Money, low-level pots.
+   This is what keeps players in the fight. Aim for **~70% of kills give *something* useful.**
+2. **Gear roll** (low frequency) — the tiered weapon/armour table you already have.
+
+This single change is the difference between "Deadman feels brutal and dead" and "the map
+feels alive." Players should rarely feel a kill was wasted.
+
+### Fix #2 — Reserve BiS for events, not trash mobs
+
+The global table should top out at **mid/high gear** (rune, dragon, mystic, basic d'hide).
+**Best-in-slot lives on event & boss tables only** (§4). If a max-level trash mob can drop a
+godsword, PvP becomes a gear-lottery instead of a skill contest.
+
+### Recommended tier contents
+
+Keep your 4-tier structure (`LOW / MED / HIGH / ELITE`), but flesh each out and re-scope:
+
+```
+LOW    (starter→early): leather/iron/steel armour, iron/steel/black weapons,
+                        air/mind/water runes, bronze/iron arrows, lobster
+MED    (mid):           rune armour pieces, rune weapons, adamant gear,
+                        mystic robes, chaos/death runes, adamant arrows, swordfish
+HIGH   (high, capped):  dragon weapons (dds, scimitar, mace), green/blue d'hide,
+                        basic battlestaves, rune/dragon arrows, shark
+ELITE  (rare top of global, NOT BiS): dragon platelegs/chain, berserker/archer ring
+                        (un-imbued), helm of neitiznot, fighter torso — "almost-BiS"
+```
+
+> BiS (whip, godswords, claws, ancient/imbued items, void) → **event tables only** (§4).
+
+### Recommended weight model
+
+Your current weight math is sound in shape; here's a tuned version. Weights are *relative*,
+so only ratios matter:
+
+```
+nothing  = 250          (was 500 — halve it; pair with the supply roll so kills feel rewarding)
+low      = 120
+med      = (npcLvl > 50)  ? (npcLvl - 45) : 0
+high     = (npcLvl > 90)  ? (npcLvl - 85) : 0
+elite    = (npcLvl > 120) ? (npcLvl - 115) : 0   # only the toughest mobs, and even then rare
+```
+
+Worked example — a **level 130** NPC: nothing 250, low 120, med 85, high 45, elite 15
+→ total 515. ~49% nothing on the *gear* roll (the supply roll covers the rest). When gear
+does drop: low 45%, med 32%, high 17%, **elite only ~6%**. That keeps near-BiS scarce while
+low/mid gear flows freely. Drop the `elite` divisor threshold higher if elite still feels
+too common at your pop.
+
+> **Multiply the final gear-roll chance by `config.DROP_RATE`** so the per-tournament drop dial
+> actually does something to global loot (right now `GlobalDropManager` ignores it).
+
+---
+
+## 3. Currencies & the cost economy
+
+You already have the pieces: **Blood Money** (item `13307`, in-tournament) and shop YAMLs
+that take a `currency` field. Run **two currencies, two purposes:**
+
+### A) Blood Money — the in-tournament sink (resets each wipe)
+
+Earned by playing, spent on supplies & mid-gear. This is your *soft economy* — its whole job
+is to give players something to chase mid-game and a reason to take fights.
+
+**Income (per tournament, ballpark):**
+| Source | Blood Money |
+|--------|------------:|
+| Player kill | 1,000–3,000 (scale with victim's risk/Blood Money carried) |
+| Combat task (TaskBoard) | 500–2,000 |
+| Gold Cart event | 5,000–15,000 to participants |
+| Breach boss | 8,000–20,000 split by damage |
+| Static Chest | 3,000–10,000 to the looter |
+
+**Costs (Blood Money shop — supplies & mid gear, NOT BiS):**
+| Item | Price (BM) | Why |
+|------|-----------:|-----|
+| Shark | 150 | Keep food flowing |
+| Prayer potion (4) | 1,000 | The real bottleneck in PvP |
+| Super combat (4) | 2,500 | Premium, not free |
+| Ranging / Magic potion (4) | 1,500 | |
+| Death runes (each) | 40 | Feed casters |
+| Rune set (per piece) | 1,500–4,000 | Mid gear is buyable… |
+| Dragon weapon | 25,000–40,000 | …high gear is *expensive* |
+| **Whip / BiS** | **not sold** | Earn it from events/PvP |
+
+Design intent: a player who fights and farms events can comfortably buy **supplies + mid
+gear**, but BiS is gated behind risk and events. The numbers above assume Standard (3h) income;
+scale prices ~1.5× for Marathon+ where players earn more total.
+
+### B) Tournament Points — the persistent meta (survives wipes)
+
+This is your **retention hook** and the answer to "why grind if it all resets?" Awarded by
+**final placement**, spent on **cosmetics, titles, and leaderboard rank** that carry over.
+Use the existing `Tournament_Cosmetics` shop pattern (it already takes a currency).
+
+**Placement payout (Standard tournament, scale by population):**
+| Placement | Tournament Points |
+|-----------|------------------:|
+| 1st (winner) | 1,000 + unique seasonal title |
+| 2nd–3rd | 500 |
+| Top 10 | 250 |
+| Reached finals | 100 |
+| Participation (played the Main act) | 25 |
+
+**Cosmetic pricing:** 2,000–10,000 points each → several tournaments per cosmetic. That
+pacing is deliberate: it should take a *dedicated season* to collect a set, so the leaderboard
+and cosmetics stay aspirational. Never let meta-points buy power (per your "cosmetics + rank
+only" choice) — the moment they do, you've broken Deadman's fairness.
+
+---
+
+## 4. Event reward tiers (fix the broken ladder)
+
+`EventRewards.java` currently has **MED and HIGH tiers that are byte-for-byte identical**
+(both = void sets + a mislabeled rune defender). HIGH must be a strict upgrade or the ladder
+is meaningless. Suggested re-scope so each tier clearly beats the last:
+
+| Tier | Theme | Example contents |
+|------|-------|------------------|
+| **LOW** | Full mid setup | rune armour set, rune weapons, mystic robes *(your current LOW is fine)* |
+| **MED** | Power spikes | void sets, fighter torso, berserker/archer ring (un-imbued), dragon defender, dragon boots |
+| **HIGH** | Near-BiS | whip, dragon crossbow, trident (uncharged), occult, imbued rings, dragon warhammer |
+| **GOD** | True BiS / chase | godswords, dragon claws, ancient (Vesta/Statius/Morrigan/Zuriel) sets, kodai, sang, ACB, ghrazi rapier *(your current GOD list is great here)* |
+
+Which tier an event rolls should depend on **how contested / late it is**: early Gold Carts
+roll LOW–MED; a late-game Breach in the Squeeze act rolls HIGH–GOD. Tie the tier to
+`Main.getRuntimePercentage()` (you already compute it).
+
+---
+
+## 5. Fun mechanics to fill gameplay
+
+Your engine already supports the two best tools for variety — **Mutators** (per-tournament
+rule changes) and **Events** (timed world hotspots). Lean on these instead of inventing new
+systems; they're cheap content multipliers.
+
+### Mutators (one active per tournament — `config.MUTATOR`)
+You have `VampiricRites` and `StaticGas`. A rotation of ~6–8 keeps every tournament feeling
+different even with identical maps:
+
+| Mutator | Effect | Feeling |
+|---------|--------|---------|
+| **Vampiric Rites** *(have it)* | Hits heal a % of damage | Aggressive, melee-favoured |
+| **Static Gas** *(have it)* | Shrinking safe area / creeping gas | Forces fights, prevents camping |
+| **Double Drops** | DROP_RATE ×2 | Loot rush, faster gearing |
+| **Glass Cannon** | +25% damage dealt *and taken* | High-stakes, fast fights |
+| **Bounty Hunter** | Every player shows a visible kill bounty | Hunt the leaders |
+| **Famine** | No food on global drops; must cook your own | Survival/skilling emphasis |
+| **Rune Rain** | Free elemental runes flow; mage-favoured | Spellcaster meta |
+| **Berserk Finale** | Last 25% of runtime: all rates ×2 | Explosive endgame |
+
+Rule of thumb: a mutator should change *how you play*, never *who can win* — avoid anything
+that hard-counters a single combat style for the whole game.
+
+### Events (timed, every ~15 min — `Main.nextEvent`)
+You have **Breach** (Jad boss), **Gold Cart** (mobile loot piñata), **Static Chest**. Add a few
+zone-control / mass-loot beats so the map has rhythm:
+
+| Event | Mechanic | Why it's fun |
+|-------|----------|--------------|
+| **Breach** *(have it)* | PvE boss spawns in a zone; PvP allowed | Risk/reward, draws a crowd |
+| **Gold Cart** *(have it)* | Slow cart of loot crosses the map; escort/raid it | Moving hotspot, no camping |
+| **Static Chest** *(have it)* | High-value chest spawns at a fixed contested spot | Predictable brawl |
+| **King of the Hill** | Hold a zone for N seconds → reward; contested | Team objective, great for Duo/Trio |
+| **Blood Moon** | 5-min forced-PvP window, safe zones disabled | Spikes action on demand |
+| **Treasure Drop** | Items rain over an area for ~60s | Chaotic free-for-all |
+
+**Escalation:** make events richer and more dangerous as `getRuntimePercentage()` climbs.
+Early events = supplies & LOW gear & small Blood Money; late events = HIGH/GOD tier & big
+Blood Money, with tighter/forced PvP. This naturally pulls the lobby toward a climactic finals.
+
+### The Final (Squeeze act)
+You already have `FFA` and `Versus` finals + gas areas. Recommendation by population:
+- **Small (≤25):** FFA in a gas arena. Last team standing wins.
+- **Medium (25–80):** FFA, but seed the arena from the **Top N by Blood Money / kills** so the finals reward the whole tournament's play, not just survival.
+- **Large (80+):** bracket/`Versus` rounds feeding a final FFA.
+
+---
+
+## 6. The starter kit & sigils (the opening 5 minutes)
+
+`StarterKit.java` gives a sword/bow/staff, 12 tuna, Deadman's cape, oddskull. Good. Two notes:
+- Keep the starter **deliberately weak** — it's a "get you to the first NPC," not a loadout.
+  Power should come from the Rush act, not the box.
+- `Deadman.java` / `Main.java` make players pick a **starting combat sigil** (Ranger / Fighter
+  / Mage). That's a great identity choice — make sure the three are **balanced against each
+  other** (equal power budget) since it's the player's first commitment and effectively picks
+  their combat style for the game. The skilling/utility sigils (`Sigils.java`) are then earned
+  in-tournament — treat those as the "build crafting" layer and keep each roughly equal in value
+  so there's no single must-pick.
+
+---
+
+## 7. A concrete "first season" plan (so you can just start)
+
+If you want a turnkey starting point, run this for season 1 and adjust from data:
+
+1. **Default format:** Standard (3h, 25x XP, 3x drop), Solo + Trio allowed.
+2. **Lobby:** 15 min, message text fixed to match.
+3. **Global loot:** implement the supply-roll + gear-roll split (§2), nothing-weight 250.
+4. **Events:** every 15 min, tier scales with runtime %, your 3 existing events in rotation.
+5. **Mutator:** rotate Vampiric Rites / Static Gas / Double Drops / Berserk Finale.
+6. **Currencies:** Blood Money (sink, §3A) + Tournament Points (meta, §3B).
+7. **Finals:** FFA gas arena, seeded by top Blood Money earners at medium pop.
+8. **Fix the bugs in §8 first** — they're actively skewing balance right now.
+
+Then watch **one metric**: *when does the average player hit combat viability?* If it's much
+before/after the 33% mark, nudge **XP_RATE** and leave everything else alone for a few seasons.
+
+---
+
+## 8. Bugs & inconsistencies found in the current code
+
+These are live issues skewing balance today — worth fixing before tuning anything:
+
+1. **`EventRewards.java` — MED == HIGH tier.** `addMedTier()` and `addHighTier()` add the
+   identical 4 entries (void sets + a "Rune Defender" that actually uses void id `11665`).
+   HIGH gives no upgrade. Re-scope per §4.
+2. **`EventRewards.java` — duplicate/mislabeled entries.** Seers ring `(I)` and Void Melee
+   Helm are each added twice in GOD; the "Rune Defender" comment doesn't match its id.
+3. **`QuickSolo.java` — misleading default.** Named "Solo" but `TEAM_SIZE_MAX = TRIO`, and
+   runs **50x/5x** (Blitz rates) as the *random default*. Either rename it Blitz or make
+   Standard the default (§1).
+4. **Lobby duration mismatch.** `Lobby.onLoad()` sets `duration = 900000` (15 min) but the
+   player messages say **"30 minutes."** Pick one; make code and text agree.
+5. **`GlobalDropManager` ignores `DROP_RATE`.** The per-tournament drop multiplier never
+   reaches global loot. Multiply the gear-roll chance by `config.DROP_RATE`.
+6. **Most kills return `null`** (nothing-weight 500 with tiny tables). Pair the §2 supply
+   roll with a lower nothing-weight so the map feels alive.
+
+---
+
+## 9. Tuning cheat-sheet (which dial does what)
+
+| You want… | Turn this | Direction |
+|-----------|-----------|-----------|
+| Players gear up faster | `XP_RATE` ↑ (primary), `DROP_RATE` ↑ | up |
+| More/longer gearing before fights | `XP_RATE` ↓ | down |
+| More loot on the ground | `DROP_RATE` ↑, nothing-weight ↓ | — |
+| BiS feels too common | event tier thresholds ↑, elite weight ↓ | — |
+| Mid-game feels dead | event frequency ↑, Blood Money income ↑ | — |
+| Economy inflating | Blood Money shop prices ↑, income ↓ | — |
+| Tournaments feel samey | rotate **Mutators** | — |
+| Finals are anticlimactic | seed arena by performance, escalate late events | — |
+
+> **Change one dial per season and observe.** The fastest way to "unbalance everything" is to
+> move five numbers at once and not know which one did what.

@@ -4,6 +4,7 @@ import io.dm.deadman.Deadman;
 import io.dm.deadman.content.sigils.Sigil;
 import io.dm.deadman.tournament.Stage;
 import io.dm.deadman.tournament.Tournament;
+import io.dm.model.World;
 import io.dm.model.entity.player.Player;
 import io.dm.model.item.Item;
 import io.dm.model.item.ItemContainer;
@@ -12,6 +13,8 @@ public class Lobby extends Stage {
 
     @Override
     public void onLoad() {
+        Deadman.generateUTC();
+
         startTime = System.currentTimeMillis();
         duration = 900000;
         for (Player p : players()) {
@@ -75,7 +78,7 @@ public class Lobby extends Stage {
             p.getCombat().updateCombatLevel();
 
             Sigil.reset(p);
-            p.dmmNeedsReset = false;
+            p.utc = Deadman.getUtc();
 
             p.sendMessage("A Tournament has just finished, we are now in the Lobby Phase.");
             p.sendMessage("To take part in the next Tournament, please head to the citadel before the start time.");

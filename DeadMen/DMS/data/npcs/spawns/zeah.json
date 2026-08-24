@@ -89,7 +89,7 @@
     "direction": "E",
     "walkRange": 0,
     "shopOptions": {
-      "trade": "a1e55885-3aa4-4d63-8a5e-5808c01f54e0"
+      "trade": "Construction Supplies"
     }
   },
   {
@@ -353,7 +353,7 @@
     "direction": "S",
     "walkRange": 3,
     "shopOptions": {
-      "trade": "a339b5c8-16be-4e82-b66e-37c15f5090ef"
+      "trade": "Tynan's Fishing Supplies"
     }
   },
   {

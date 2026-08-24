@@ -330,7 +330,7 @@ public class Citadel {
         npc.spawn(2961, 3339, 0);
 
         NPCAction.register(NpcID.SIR_SELL_A_BIT, "Trade", (p, n) -> {
-            ShopManager.openIfExists(p, "472x281s-3k8d-10z8-99m2-206d6942cff8");
+            ShopManager.openIfExists(p, "Sir Sell A Bit's Emporium");
         });
     }
 }
