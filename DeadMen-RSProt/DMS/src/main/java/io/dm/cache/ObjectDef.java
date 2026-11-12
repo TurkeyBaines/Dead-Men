@@ -13,8 +13,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Consumer;
@@ -144,6 +147,35 @@ public class ObjectDef {
 
     public static ObjectDef get(int id) {
         return LOADED.get(id);
+    }
+
+    private static Map<String, List<ObjectDef>> NAME_INDEX;
+
+    /**
+     * Case-insensitive lookup of every loaded object sharing {@code name}, backed by an index
+     * built once (on first call) and cached — {@link #LOADED} never changes after boot, so the
+     * index never goes stale. Every by-name {@code ObjectAction.register}/{@code
+     * ItemObjectAction.register} overload used to instead linear-scan the ENTIRE {@link #LOADED}
+     * map (tens of thousands of objects, via {@link #forEach}) on every single call — real,
+     * measured boot-time cost (2026-07-18, see git history: {@code Door.java}'s own separate
+     * O(doors * totalObjects) scan alone cost ~5.2s, and {@code Cooking.java}'s six by-name
+     * registrations per food item cost ~1.8s). This shared index fixes every by-name call site at
+     * once instead of patching each one individually. Matching semantics are unchanged from the
+     * old {@code def.name.equalsIgnoreCase(objectName)} check — just bucketed by lowercase name
+     * instead of re-checked per candidate.
+     */
+    public static List<ObjectDef> getByName(String name) {
+        if (NAME_INDEX == null) {
+            Map<String, List<ObjectDef>> index = new HashMap<>();
+            for (ObjectDef def : LOADED.values()) {
+                if (def != null && def.name != null)
+                    index.computeIfAbsent(def.name.toLowerCase(), k -> new ArrayList<>()).add(def);
+            }
+            NAME_INDEX = index;
+        }
+        if (name == null)
+            return Collections.emptyList();
+        return NAME_INDEX.getOrDefault(name.toLowerCase(), Collections.emptyList());
     }
 
 

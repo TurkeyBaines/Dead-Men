@@ -1,5 +1,13 @@
 STAGE 12 — Legacy transport cleanup (Milestone 5)
-STATUS: NOT STARTED — GATED: do not start until Stages 02-11 are ALL marked DONE.
+STATUS: IN PROGRESS (2026-07-19) — Increment 1 done: bot audit complete + dead legacy real-player
+        login/transport chain deleted (NettyServer/LoginDecoder/PlayerLogin/LoginWorker/LoginRequest
+        + trimmed PlayerFile/login_set/Server.java). Compiles clean. Started ahead of the gate below
+        WITH EXPLICIT USER SIGN-OFF (audit-first, delete-only-what's-proven-safe) — Stages 07/10 are
+        still not DONE, so the REMAINING increments (IncomingDecoder/Incoming.java opcode dispatch,
+        per-handler InBuffer entry points, PacketSender's remaining legacy OutBuffer bodies) are
+        still gated on those closing, since they're less unambiguously dead than Increment 1's chain
+        was. Full findings: HANDOFF.txt "STAGE 12 — Legacy transport cleanup (Milestone 5),
+        Increment 1".
 DEPENDS ON: everything. This is last on purpose.
 Follow the RULES in stages/README.txt.
 

@@ -10,6 +10,9 @@ import io.dm.model.map.object.actions.ObjectAction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 // ~~~ DIRECTIONS ~~~ \\
@@ -477,6 +480,27 @@ public class Door {
                 13349, 13355, // marble dungeon door
         };
         /**
+         * PERFORMANCE (2026-07-18): findOppositeId used to linear-scan the ENTIRE
+         * ObjectDef.LOADED map (tens of thousands of objects) for every single door/gate found
+         * by the ObjectDef.forEach loop below - an O(doors * totalObjects) scan that alone made
+         * this class the single most expensive class-load in the whole boot's
+         * PackageLoader.load("io.dm") sweep (~5.2s of static-init time, measured via a temp
+         * per-class boot timer - see git history 2026-07-18). Every match findOppositeId can
+         * ever return already required the EXACT same def.name as the door being resolved (the
+         * very first real filter inside that method) - grouping every loaded object by name once,
+         * up front, turns that per-door full scan into a lookup against a small per-name bucket
+         * (door/gate variants come in small families - open/closed pairs, recolors - not spread
+         * across the whole object namespace). Every check findOppositeId already performed
+         * (render0x2, modelIds, modelTypes, modifiedModelColors, verticalFlip, options) still
+         * runs unchanged, just against a far smaller candidate list - matching results are
+         * identical, only the search strategy changed.
+         */
+        Map<String, List<ObjectDef>> objectsByName = new HashMap<>();
+        ObjectDef.forEach(def -> {
+            if (def != null)
+                objectsByName.computeIfAbsent(def.name, k -> new ArrayList<>()).add(def);
+        });
+        /**
          * Registering
          */
         ObjectDef.forEach(def -> {
@@ -504,7 +528,7 @@ public class Door {
             else if (def.id == 12658)
                 def.doorOppositeId = 12657;
             else
-                def.doorOppositeId = findOppositeId(def);
+                def.doorOppositeId = findOppositeId(def, objectsByName);
 
             for (int[] opp : oppositeOverrideIds) {
                 int id1 = opp[0];
@@ -545,16 +569,18 @@ public class Door {
             def.doorCloseSound = close;
     }
 
-    private static int findOppositeId(ObjectDef originalDef) {
+    private static int findOppositeId(ObjectDef originalDef, Map<String, List<ObjectDef>> objectsByName) {
         if (originalDef.getOption("open", "close") == -1)
             return -1;
         ArrayList<Integer> ids = new ArrayList<>();
+        List<ObjectDef> candidates = objectsByName.get(originalDef.name);
+        if (candidates == null)
+            return -1;
         defs:
-        for (ObjectDef def : ObjectDef.LOADED.values()) {
+        for (ObjectDef def : candidates) {
             if (def == null || def.id == originalDef.id)
                 continue;
-            if (!Objects.equals(def.name, originalDef.name))
-                continue;
+            // def.name == originalDef.name is already guaranteed by the objectsByName bucket.
             if (def.render0x2 != originalDef.render0x2)
                 continue;
             if (!Arrays.equals(def.modelIds, originalDef.modelIds))

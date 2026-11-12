@@ -26,6 +26,7 @@ One stage per chat session. Stages are sized to fit comfortably in one context w
 | 10    | STAGE-10-player-fx-verification.txt   | Player anims/hitsplats/projectiles/gfx verified    | 01         |
 | 11    | STAGE-11-polish-and-diag-cleanup.txt  | Choose-option background; strip temp diagnostics   | 04,05,07   |
 | 12    | STAGE-12-legacy-cleanup.txt           | Delete legacy 184 transport (Milestone 5)          | ALL        |
+| 13    | STAGE-13-clipping-and-bridges.txt     | Water/bridge collision gaps (Falador moat, etc.)   | —          |
 
 "(soft)" = the stage can run without it, but Stage 01's dump files make it easier.
 Stages 02, 03, 04 are independent of each other — they can go to different agents in parallel.

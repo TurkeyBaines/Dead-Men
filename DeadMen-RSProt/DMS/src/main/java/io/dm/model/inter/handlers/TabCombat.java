@@ -17,14 +17,14 @@ public class TabCombat {
 
     static {
         InterfaceHandler.register(Interface.COMBAT_OPTIONS, h -> {
-            h.actions[4] = (SimpleAction) p -> p.getCombat().changeAttackSet(0);
-            h.actions[8] = (SimpleAction) p -> p.getCombat().changeAttackSet(1);
-            h.actions[12] = (SimpleAction) p -> p.getCombat().changeAttackSet(2);
-            h.actions[16] = (SimpleAction) p -> p.getCombat().changeAttackSet(3);
-            h.actions[21] = (SimpleAction) p -> openAutocast(p, true);
-            h.actions[26] = (SimpleAction) p -> openAutocast(p, false);
-            h.actions[30] = (SimpleAction) Config.AUTO_RETALIATE::toggle;
-            h.actions[36] = (SimpleAction) p -> p.getCombat().toggleSpecial();
+            h.actions[5] = (SimpleAction) p -> p.getCombat().changeAttackSet(0);
+            h.actions[9] = (SimpleAction) p -> p.getCombat().changeAttackSet(1);
+            h.actions[13] = (SimpleAction) p -> p.getCombat().changeAttackSet(2);
+            h.actions[17] = (SimpleAction) p -> p.getCombat().changeAttackSet(3);
+            h.actions[22] = (SimpleAction) p -> openAutocast(p, true);
+            h.actions[27] = (SimpleAction) p -> openAutocast(p, false);
+            h.actions[31] = (SimpleAction) Config.AUTO_RETALIATE::toggle;
+            h.actions[38] = (SimpleAction) p -> p.getCombat().toggleSpecial();
         });
         InterfaceHandler.register(Interface.AUTOCAST_SELECTION, h -> {
             h.actions[1] = (SlotAction) TabCombat::selectAutocast;

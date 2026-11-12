@@ -102,6 +102,7 @@ public class Deadman {
             p.getEquipment().sendUpdates();
             p.getBank().clear();
             p.getBank().sendUpdates();
+            p.resetSigils();
             for (StatType stat : StatType.values()) {
                 if (stat == StatType.Hitpoints) {
                     p.getStats().get(stat).currentLevel = 10;
@@ -116,7 +117,7 @@ public class Deadman {
     }
 
     private void teleToLobby(Player p) {
-        if (!getCitadel().contains(p)) {
+        if (!getPurgatory().contains(p)) {
             p.getMovement().teleport(3808, 9754, 1);
         }
     }

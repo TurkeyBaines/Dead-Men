@@ -1,0 +1,289 @@
+STAGE 13 — Clipping / bridge collision investigation (water pathable, bridges "don't work")
+STATUS: FIXED (2026-07-14, round 2 session). ROOT CAUSE: `Region.java`'s tile-settings decode loop
+(`init()`) read the per-tile opcode as a single byte, and the overlay-id payload for opcode<=49 as a
+single byte. This cache generation (OpenRS2 stock 228 dump) actually encodes BOTH fields as 2-byte
+values (Jagex widened them at some point to fit more overlay/underlay texture ids than a byte allows).
+Reading 1 byte where 2 were written silently desyncs every tile parsed after the first wide value in
+a region's byte stream — no crash, no garbage, just wrong bits landing on wrong tiles for the rest of
+that region, which is exactly why blocked-flags/roof-flags/bridge-flags all "mostly worked" but were
+occasionally wrong in a way that looked like scattered missing content rather than a parser bug.
+CONFIRMED via a real, actively-maintained reference decoder: `Avexiis/RSPSi`
+(github.com/Avexiis/RSPSi, `Client/src/main/java/com/jagex/map/MapRegion.java`) ships TWO decoders —
+`decodeOldMapData` (byte-for-byte identical to what this file used to do) and `loadTerrain` (the one
+actually used for this cache generation), which reads the opcode via `readUnsignedShort()` and the
+overlay payload via a 2-byte read, not 1. The human independently confirmed this cache decodes
+correctly in that tool (RSPSi screenshots: Z=0 showing genuine unwalkable water/hillside, Z=1 showing
+the real bridge-flag tiles on the actual bridge deck) BEFORE this fix was found — that visual proof is
+what pointed straight at the byte-width bug instead of a content gap.
+FIX: `Region.java init()` — changed `mapIn.readByteUnsafe() & 0xFF` to `mapIn.readUnsignedShort()` for
+the opcode, and `mapIn.skipByte()` to `mapIn.skip(2)` for the opcode<=49 (overlay) branch. Nothing else
+in the loop changed — the 49/81 thresholds, the tileFlags storage, and the height-marker (opcode==1)
+single-byte read are untouched (per the fork's decoder, only the opcode and overlay payload widened).
+Compiled clean, human confirmed live: Falador's bridge now works, walking into the water next to it is
+now blocked, and multiple previously-reported "objects that weren't there" (Barbarian Village's log
+balance/obstacle-net area, and others) started resolving correctly too — this was a single shared root
+cause behind the whole class of "some objects/clipping missing" symptoms in THE_PLAN.txt's 2026-07-12
+"11 real content gaps" list, not 11 separate gaps. Region.java is otherwise unchanged.
+CORRECTION to Round 1 below: that attempt was on the right track (same file, same idea: opcode width
+mismatch) but only widened the overlay-payload read while leaving the OPCODE read at 1 byte — a
+half-fix that desyncs the stream even further (reads garbage for both what-the-opcode-is AND
+its payload), which is exactly why it made things worse elsewhere instead of fixing anything. Widening
+BOTH together (this fix) keeps the stream aligned.
+This file's prior "BLOCKED / INVESTIGATION ONLY" state and everything below is kept for the trail —
+read it if you want the reasoning, but the fix above is the actionable answer.
+
+## GOAL
+Human report (verbatim, two messages):
+1. "Bridges don't appear to be working correctly, and general clipping is broken in some
+   instances. for instance I just managed to path across water."
+2. Repro: "Falador Castle, region 11828. the bridge leading across to the castle doesn't work,
+   which means the pathfinding routes me through the water. normally it should prevent me from
+   moving, because it should be stuck without the bridge, but it just paths me across the water
+   anyway. I also find I can just walk onto water, or through certain clips by clicking 1 tile
+   infront of me, or letting the pathfinder path me through it."
+   (NOTE: the human later retracted the "clicking 1 tile in front of me" half of that claim —
+   do not treat single-step movement as a separately-confirmed symptom. See "RETRACTED" below.)
+
+Screenshots confirmed: standing on the stone bridge over Falador Castle's moat, walking directly
+into the water (annotated "INVISIBLE WALL" on a *different*, unrelated screenshot — see Round 2).
+
+## CONFIRMED FACTS (high confidence, don't re-derive these)
+
+1. **The clip/pathfinding code has genuinely not been touched since the rev-184 codebase was
+   bulk-committed.** `git log -p -- DMS/src/main/java/io/dm/model/map/Region.java` shows exactly
+   two commits touching this file: the initial bulk add (54951c08, entire file at once — this is
+   the untouched legacy 184 code) and one later commit that only added the pre-existing
+   `[MLM_RAW]` debug print for Motherlode Mine (unrelated to this investigation, do not remove it,
+   it is not mine and may still be in use). Same story for Tile.java/ClipUtils.java/
+   RouteFinder.java. The human's suspicion ("hasn't been updated since rev 184") is factually
+   correct as a git-history statement.
+
+2. **The collision bit-flag semantics are verified correct against Alter's actual current source**
+   (not rsmod — the human specifically pushed back on checking rsmod instead of Alter, correctly).
+   Fetched `github.com/AlterRSPS/Alter`, path
+   `game-server/src/main/kotlin/org/alter/game/model/collision/CollisionExt.kt` (via
+   `api.github.com/repos/AlterRSPS/Alter/contents/...`, base64-decoded locally — do this again if
+   you need to re-verify, WebFetch's summarizer paraphrases/truncates unpredictably, always ask for
+   the raw `content` field and decode it yourself with `base64 -d`, don't trust its prose summary):
+   ```
+   const val BLOCKED_TILE = 0x1
+   const val BRIDGE_TILE = 0x2
+   const val ROOF_TILE = 0x4
+   ```
+   This is a bit-for-bit match with what `Region.java` already does (`tileData[z][x][y] & 0x1` for
+   blocked, `tileData[1][x][y] & 0x2` for the bridge-plane-merge, `& 0x4` for roof-removal). **The
+   flag meanings have not drifted between rev 184 and whatever Alter currently targets.** This
+   specific sub-hypothesis (bridge flag bit position wrong, or blocked/bridge flags colliding) is
+   DISPROVEN.
+
+3. **Region 11828 (Falador Castle, baseX=2944, baseY=3328) genuinely has no ground-level (z=0)
+   blocked flag anywhere in the water strip around the bridge.** Confirmed by temporarily
+   instrumenting `Region.init()`'s block-flag loop to print every `(x,y,z)` where
+   `tileData[z][x][y] & 0x1 == 1`, restricted to `id == 11828`. In the bounding box around the
+   bridge (roughly absX 2954-2966, absY 3350-3360) every blocked-flag hit found was at **z=1, 2,
+   or 3** (e.g. `absX=2964 absY=3356 z=3`), **never z=0**, and none of them carried the bridge flag
+   (`tileData[1][x][y] & 0x2` was false in every case checked), so the existing z1→z0 bridge-merge
+   never fires for this column. Net effect: the actual ground-plane water tile the player stands
+   in has `clipping == 0` (fully open) because nothing in the parsed data ever marks z=0 blocked
+   here.
+
+4. **No wall/fence/railing object borders the specific open-water strip either.** Dumped every
+   `GameObject` placed in region 11828 (via a temp print in the landscape/loc parsing loop) and
+   filtered to the bounding box around the bridge at z=0. Found dense wall-type objects (ids
+   24175/24185/23994/23997/4736-4741-family, types 0/1/2/3/9, `clipType=2, tall=true` — correctly
+   blocking) forming what is almost certainly the castle building's own walls, but they sit to the
+   west (~x=2953-2963) and don't form a continuous barrier specifically along the open water
+   columns around x=2964-2965. No object was found whose placement would plug that specific gap.
+
+5. **Both movement code paths (full BFS `RouteFinder` and single-step `DumbRoute`) read the exact
+   same `Tile.clipping` value through `ClipUtils.REGULAR.getAbs()`.** There is no separate "single
+   step ignores clipping" bug — if `Tile.clipping == 0` for a tile, every movement path will treat
+   it as open, because they all resolve to the same underlying data. (The human retracted the
+   claim that clicking one tile ahead was a *separate* bypass — see RETRACTED below — so this
+   point is now just confirming there's no distinct second bug here, not chasing one.)
+
+6. This codebase already has a well-established, widely-used convention for exactly this class of
+   problem: manually patching specific tiles with `Tile.get(x, y, z, true).flagUnmovable()` (and
+   the inverse `.unflagUnmovable()`) at content-registration time, when the real cache doesn't
+   encode the collision a specific area needs. Examples already in the tree (NOT written by this
+   investigation, pre-existing): `io.dm.model.content.Obstacle`, `io.dm.model.activities.
+   wilderness.MageArena`, `io.dm.model.activities.wilderness.RevCaves`, `io.dm.model.activities.
+   wintertodt.WintertodtActions`, `io.dm.model.map.object.actions.impl.dungeons.Cerberus`,
+   `io.dm.model.skills.agility.courses.WildernessCourse`, `io.dm.model.activities.motherlodemine.
+   MotherlodeMine` (uses `.clipping = 0` directly to force a tile open instead). **This is a real,
+   accepted pattern in this codebase, not a hack invented for this investigation** — but see the
+   human's objection under "WHY NOT JUST PATCH IT" below before reaching for it as the fix.
+
+## RETRACTED
+The human initially reported bypassing clips "by clicking 1 tile infront of me" as if it were a
+separate bug from the pathfinder routing through water. They later said: "You mentioned bypassing
+clips by clicking one tile ahead of you specifically - i retract this." Do not treat single-step
+click-bypass as a confirmed, separate symptom. Fact #5 above (both paths share the same data) means
+even if it WAS observed, it's fully explained by the same root cause as the water-pathing bug, not
+a second bug — so there is likely nothing extra to chase here regardless.
+
+## ROUND 1 — byte-width hypothesis (TRIED, REVERTED, CAUSED A LIVE REGRESSION)
+Compared `Region.java`'s map-tile-settings byte parser against `rsmod/rsmod` (the engine Alter is
+"a modified version of", per Alter's own repo description) — specifically
+`api/cache/src/main/kotlin/org/rsmod/api/cache/map/tile/MapTileDecoder.kt`. Its `decode(buf:
+ByteBuf)` function reads:
+  - `opcode <= 49` → `buf.readShort()` (2 bytes) for an overlay id
+  - `opcode <= 81` → rule = opcode-49, no extra read (matches this project already)
+  - `opcode > 81` → `id = opcode - 81`, **no extra buf read at all** (computed straight from the
+    already-consumed opcode byte)
+This project's original code does `mapIn.skipByte()` (1 byte) for `<=49` and does **nothing** for
+`>81` (falls through the if/else-if chain as a silent no-op, net effect identical to "no extra
+read" — which, per the above, is actually correct for the `>81` case).
+
+Changed ONLY the `<=49` branch from `skipByte()` to `skip(2)`, matching rsmod. Compiled clean.
+**Live-tested by the human and it made things WORSE** — new invisible walls appeared in open paths
+in an unrelated area (a custom tournament/DMM arena baked into a high-Y "instance template" region,
+~x=3806,y=9757, region 15256 — screenshot showed a red-annotated "INVISIBLE WALL" mid-corridor).
+**Reverted immediately.** Root of the mistake: no confirmation that rsmod's CURRENT `main` branch
+targets the same cache generation as this project's actual `Cache228` (a Feb-2025 OpenRS2 dump of
+rev 228 specifically). rsmod is a live, continuously-updated engine; Jagex has added large numbers
+of new overlay/underlay texture ids over the years and very plausibly widened that field at some
+revision AFTER 228. Comparing against rsmod's latest source may silently be comparing against a
+newer wire format than this cache actually uses. **Do not blindly trust rsmod's current source as
+a stand-in for "what Alter/228 does" — go to Alter's own repo, and ideally pin to a specific
+commit/tag if one exists close to a 228-era timeframe, not just `main`.**
+
+## ROUND 2 — empirical buffer-alignment check (INCONCLUSIVE, but informative)
+Before touching anything live again, wrote a throwaway simulation (in `Region.getMapData()`,
+temporary, removed after) that replays the exact same tile-settings byte stream under 4 hypotheses
+(overlay skip = 1 or 2 bytes, underlay skip = 0 or 2 bytes) and reports how many bytes of the
+decompressed buffer are left over after all `4*64*64 = 16384` tiles terminate.
+
+Real data pulled via this project's own `IndexFile`/`FileStore` (region 11828 = Falador, archive
+name `m46_52`, archiveId 4002, `validFilesCount=1` — single-file archive, ruling out an
+IndexFile.cacheArchiveFiles multi-file-slicing bug; compressed 6229 bytes, decompressed 70976
+bytes; region 15256 = the tournament arena regressed in Round 1, archiveId 2976, compressed 2079,
+decompressed 95862):
+
+| overlaySkip | underlaySkip2 | region 11828 finalPos/70976 | region 15256 finalPos/95862 |
+|-------------|---------------|------------------------------|-------------------------------|
+| 1 (current) | false (current)| 33525 (37451 leftover)      | 46011 (49851 leftover)        |
+| 2           | false          | 32611 (38365 leftover)      | 36864 (58998 leftover)        |
+| 1           | true           | 49353 (21623 leftover)      | 70369 (25493 leftover)        |
+| 2           | true           | 45150 (25826 leftover)      | 51926 (43936 leftover)        |
+
+**None of the four hit an exact match** (tiles-terminated was 16384/16384 in all four cases with
+zero exceptions — the loop never runs off the buffer end under ANY hypothesis, because zero bytes
+are common enough in real terrain data that every hypothesis trivially finds "a" terminator per
+tile; this makes "does it complete without crashing" a useless discriminator). Checked whether the
+leftover region was pure zero-padding (which would mean the decompressed buffer is just
+oversized/padded and leftover is a non-bug) — it is NOT: 25-35% of the leftover bytes are non-zero
+in every variant, meaning there is real, structured, un-parsed content after wherever each
+hypothesis stops, regardless of which hypothesis is used. **This rules out the simple "declared
+decompressed length is padded" explanation too.**
+
+Manually hand-traced the first ~109 bytes of Falador's raw decompressed map data (hex dump
+preserved below) against the CURRENT/ORIGINAL single-byte scheme. It decodes into a clean,
+sensible, exactly-repeating 11-token pattern (`90 00 01 28 00 02 00 7B 00 35 00`, repeating
+identically ~6 times in a row — entirely plausible as a uniform floor/wall texture run in a
+courtyard), with no contradictions or garbled tile boundaries. **This is the strongest single piece
+of evidence that the ORIGINAL single-byte parser is likely correct**, and that Round 1's "fix" was
+comparing against the wrong wire-format generation. Combined with fact #2 above (flag semantics
+verified against Alter itself, not just rsmod), the working theory going into the next session
+should be **"the tile-settings parser is probably fine; something else is missing/wrong"** —
+almost certainly a genuine content gap (a fence/wall object that should exist in this exact stock
+Cache228 dump and doesn't, OR exists but has a decode bug specific to it) rather than a systemic
+byte-format bug. This would be consistent with THE_PLAN.txt's own 2026-07-12 entry documenting
+~11 other real-content object/tile references that don't resolve against this exact stock cache
+snapshot (GWD, Motherlode Mine, Revenant Caves, Wintertodt, agility courses, etc.) — Falador's
+moat fence may simply be a 12th instance of the same already-known category of gap, not a new bug
+class.
+
+Raw hex (first 109 bytes of the decompressed `m46_52` map archive, i.e. region 11828's tile
+settings section, byte 0 = start of buffer):
+```
+00 82 00 01 14 00 82 00 01 17 00 82 00 01 1E 00 90 00 01 28 00 02 00 7B 00 35 00 90 00 01 28 00
+02 00 7B 00 35 00 90 00 01 28 00 02 00 7B 00 35 00 90 00 01 28 00 02 00 7B 00 35 00 90 00 01 28
+00 02 00 7B 00 35 00 90 00 01 28 00 28 00 89 00 90 00 01 28 00 82 00 01 28 00 82 00 00 00 82 00
+00 00 82 00 00 00 82 00 00 00 82 00 01
+```
+
+## OTHER THINGS CHECKED, RULED OUT
+- **Multi-file archive de-interleaving bug in `IndexFile.cacheArchiveFiles`**: ruled out —
+  `getValidFilesCount` reports exactly 1 for both test regions' map archives, so the
+  `filesCount <= 1` fast path is what actually runs (no de-interleave logic involved at all).
+- **XTEA encryption on "m" (map/terrain) archives**: not applicable — only "l" (landscape/object)
+  archives are XTEA-encrypted in the real OSRS format; `getMapData()` correctly never passes keys.
+  This matches known-correct behavior, not a bug.
+- **`FaladorCourse.java`** (the rooftop agility course through the same castle) was checked for any
+  existing manual clip patch near the moat that might hint at a known-good fix — it operates at
+  z=3 on the roof (coords ~x=3010-3050,y=3330-3365), unrelated to the ground-level moat at
+  z=0/x=2955-2965. No direct precedent found there.
+- **`::pos`/`::clipping` admin commands**: while getting repro coordinates from the human, found
+  bare `::pos` throws `Cannot load from object array because "args" is null"` — `CommandHandler.
+  handle()` sets `args = null` when the command has no trailing space (`io.dm.network.incoming.
+  handlers.CommandHandler.java:69`), and `MapCommands.process()` immediately does `switch(args[0])`
+  with no null guard. **This is a real, pre-existing, unrelated bug** (you must type `::pos pos` /
+  `::pos clipping`, not bare `::pos`/`::clipping`, or it NPEs and prints nothing useful) — not fixed
+  in this investigation, flagging it here since it wastes a human's time during live-testing if
+  they don't know the workaround. Cheap, safe, out-of-scope fix if you want to pick it up: null-
+  guard `args` in `MapCommands.process` (or default it to an empty array in `CommandHandler.
+  handle()` instead of `null`).
+
+## KNOWN REPRO COORDINATES (for the next agent's own live testing / instrumentation)
+- Region 11828 = Falador Castle, baseX=2944, baseY=3328 (map archive `m46_52`, archiveId 4002).
+- Human stood on the bridge at Abs `2956, 3357, 0` and in open water at Abs `2964, 3356, 0` — these
+  two `::pos pos` readings are the only hard coordinates confirmed directly by the human this
+  session. Get `::pos clipping`'s numeric output at both (not obtained this session — the human
+  only got the `Abs:` line before the investigation moved to the byte-format side-quest) before
+  trying anything else; that number will tell you definitively whether `2964,3356,0`'s `Tile.
+  clipping` is `0` or has some other unexpected bit set that the diagnostics above didn't catch.
+
+## WHY NOT JUST PATCH IT (read before reaching for `flagUnmovable()`)
+The human explicitly pushed back on a manual per-tile patch: "surely this is flagged as unwalkable
+in the cache? we can't hard code every single thing... Surely something isn't mapping properly."
+Their concern is legitimate — if this is one symptom of a systemic mapping problem, patching this
+one spot fixes nothing else and leaves the real bug live elsewhere (every other bridge/moat/water
+edge in the game is unverified). **Before patching Falador specifically, form a view on whether
+this is isolated or systemic** — e.g. check a second, unrelated, well-known bridge (Lumbridge's
+river bridge was the planned next check this session, region should be ~12850 given baseX/baseY
+math off (3222,3217), NOT executed — an edit for a `[LUM_CLIP]` diagnostic was drafted but the
+human interrupted before it was compiled/run, so it was reverted untested). If Lumbridge (or
+another simple, iconic bridge) shows the exact same "blocked flag exists above z=0, nothing at
+z=0, no bordering wall object" pattern, that's evidence of a systemic issue worth chasing further
+upstream (maybe in how `l`/object data or a specific object class's `clipType` gets decoded — see
+Stage 07's already-documented `ObjectDef` opcode-desync bug for a precedent of exactly this shape
+of systemic issue, fixed for options/size/clip/colour fields but conceivably incomplete). If
+Lumbridge is clean, that's evidence Falador's moat specifically is a stock-cache content gap (like
+the ~11 already-documented ones in THE_PLAN.txt's 2026-07-12 section) and a targeted
+`flagUnmovable()` patch — the same pattern already used all over this codebase — is the
+appropriate, low-risk fix for this one spot, not a sign of surrender.
+
+## STEPS (suggested order for the next agent)
+1. Re-run `::pos clipping` (not bare `::clipping`) at both `2956,3357,0` and `2964,3356,0` to get
+   the actual numeric `Tile.clipping` value — confirms fact #3 above numerically instead of just
+   via the boot-time dump.
+2. Pick 1-2 other well-known bridges/water edges (Lumbridge river bridge, Barbarian Village bridge,
+   or similar) and check the same way (temporary boot-time print in `Region.init()`, same pattern
+   as this session's `[FALADOR_CLIP]`/`[FALADOR_OBJ]` diagnostics — remove them before handing
+   back) to determine isolated-vs-systemic per the section above.
+3. If isolated: find (or confirm the absence of) the specific wall/fence object that should border
+   Falador's moat in real OSRS, and either fix its decode (if it exists in the cache but mis-
+   places/mis-clips) or add a minimal `flagUnmovable()` patch covering only the confirmed-open
+   tiles (get the human to walk the edges with `::pos pos` first so the patch doesn't over-block
+   the actual bridge deck — do NOT guess the footprint).
+4. If systemic: the lead is almost certainly object-decode-related (ObjectDef clipType/size/tall
+   fields), not the terrain tile-settings parser (that's now fairly well-verified per this file).
+   Revisit Stage 07's opcode-desync fix and check whether it's actually complete for every opcode,
+   the same way that stage found opcode 61 corrupting 6501 objects' worth of data.
+5. Whichever path, compile (`./gradlew :DMS:compileJava`) and hand the human a TEST SCRIPT: walk
+   onto the specific water tile(s) from both directions (via the bridge, and via a direct water-
+   ward click) and confirm movement is blocked; confirm the actual bridge deck tiles themselves
+   are still walkable (don't over-block).
+
+## NON-GOALS
+Rewriting the map-tile-settings byte parser wholesale (fact #2 above says it's probably fine).
+Auditing every bridge/water tile on the map in one pass — scope this to Falador first, then decide
+isolated-vs-systemic before going wider. The `::pos`/`::clipping` null-arg bug (noted above, cheap
+to fix, but separate from this stage's goal — flag it to the human rather than folding it in
+silently, so it doesn't get lost in an unrelated diff).
+
+## WRAP-UP
+Per README RULES #7. In particular: if you find the real root cause, correct the "probably fine"
+framing in fact #2/Round 2 above rather than leaving it stale for a third investigation to trip
+over.

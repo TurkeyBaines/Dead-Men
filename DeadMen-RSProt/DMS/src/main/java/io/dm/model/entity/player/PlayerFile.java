@@ -34,38 +34,6 @@ public class PlayerFile {
         }
     }).create();
 
-    public static void loadPlayer(PlayerLogin login) {
-        if (Protocol.method360(login.info.name) == null) {
-            login.deny(Response.CHANGE_DISPLAY_NAME);
-            return;
-        }
-        if (!World.isDev()) {
-            if (UUIDBan.isUUIDBanned(login.info.uuid)
-                    || IPBans.isIPBanned(login.info.ipAddress)
-                    || MACBan.isMACBanned(login.info.macAddress)) {
-                login.deny(Response.DISABLED_ACCOUNT);
-                return;
-            }
-        }
-        String saved = "";
-        File savedFile = new File(CHARACTERS_FOLDER, login.info.name.toLowerCase() + ".json");
-        if (savedFile.exists()) {
-            try {
-                saved = new String(Files.readAllBytes(savedFile.toPath()));
-            } catch (Exception e) {
-                Server.logError("Failed to load player file for " + login.info.name, e);
-                login.deny(Response.ERROR_LOADING_ACCOUNT);
-                return;
-            }
-        }
-        if (World.isDev()) {
-            login.info.update(login.info.name, saved, ListUtils.toList(PlayerGroup.ADMINISTRATOR.id));
-        } else {
-            login.info.update(login.info.name, saved, ListUtils.toList(PlayerGroup.REGISTERED.id));
-        }
-        login.success();
-    }
-
     /**
      * RSProt-path loader: reads {@code characters/{name}.json} if present and deserializes it into
      * a {@link Player} using the same GSON (so custom type-adapters like {@link Room} work), or
@@ -101,39 +69,6 @@ public class PlayerFile {
             return player;
         } catch (Throwable t) {
             Server.logError("Failed to load player file (RSProt) for " + name, t);
-            return null;
-        }
-    }
-
-    public static Player load(PlayerLogin login) {
-        try {
-            Player player;
-            if (login.info.saved == null || login.info.saved.isEmpty())
-                player = new Player();
-            else
-                player = GSON_LOADER.fromJson(login.info.saved, Player.class);
-            Config.load(player);
-
-            if (player.getSavedGroupIds() != null && player.getSavedGroupIds().contains(PlayerGroup.BANNED.id)) {
-                login.deny(Response.DISABLED_ACCOUNT);
-                return null;
-            }
-            if (!World.isDev() && player.getPassword() != null) {
-                boolean passwordMatch;
-                if (player.getPassword().startsWith("$2a$")) {
-                    passwordMatch = BCrypt.checkpw(login.info.password, player.getPassword());
-                } else {
-                    passwordMatch = login.info.password.equals(player.getPassword());
-                }
-                if (!passwordMatch) {
-                    login.deny(Response.INVALID_LOGIN);
-                    return null;
-                }
-            }
-
-            return player;
-        } catch (Throwable t) {
-            Server.logError("", t);
             return null;
         }
     }

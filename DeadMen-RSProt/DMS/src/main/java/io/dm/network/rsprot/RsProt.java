@@ -38,6 +38,7 @@ import net.rsprot.protocol.game.incoming.locs.OpLoc;
 import net.rsprot.protocol.game.incoming.locs.OpLocT;
 import net.rsprot.protocol.game.incoming.messaging.MessagePublic;
 import net.rsprot.protocol.game.incoming.misc.user.ClientCheat;
+import net.rsprot.protocol.game.incoming.misc.user.CloseModal;
 import net.rsprot.protocol.game.incoming.misc.user.MoveGameClick;
 import net.rsprot.protocol.game.incoming.misc.user.MoveMinimapClick;
 import net.rsprot.protocol.game.incoming.npcs.OpNpc;
@@ -234,6 +235,15 @@ public final class RsProt {
                     builder.addListener(ResumePObjDialog.class,
                             (MessageConsumer<DmNetworkPlayer, ResumePObjDialog>) (player, msg) ->
                                     onObjInput(player, msg));
+                    // Modal close (the X button / Esc): the rev-228 client closes the modal (and
+                    // its TAB_AREA side sub) on its own side and reports it with CloseModal — the
+                    // legacy analog is opcode 57 (CloseInterfaceHandler). Before this it fell into
+                    // the no-op set, so every client-side close left the server's interface state
+                    // stale: handlers/closedActions never fired, trades never closed, and clicks
+                    // kept routing to interfaces the client no longer showed.
+                    builder.addListener(CloseModal.class,
+                            (MessageConsumer<DmNetworkPlayer, CloseModal>) (player, msg) ->
+                                    onCloseModal(player));
                     // Everything else is accepted-and-dropped so processIncomingPackets never throws.
                     DmIncomingPackets.INSTANCE.registerNoOpsExcept(builder, java.util.Set.of(
                             MoveGameClick.class, MoveMinimapClick.class,
@@ -243,7 +253,7 @@ public final class RsProt {
                             IfButtonT.class, IfButtonD.class,
                             ResumePauseButton.class, ResumePCountDialog.class,
                             ResumePStringDialog.class, ResumePNameDialog.class,
-                            ResumePObjDialog.class));
+                            ResumePObjDialog.class, CloseModal.class));
                     return Unit.INSTANCE;
                 });
         service = svc;
@@ -374,8 +384,8 @@ public final class RsProt {
         if (hits.hasUpdate(false)) {
             int splatCount = hits.splatCount();
             for (int i = 0; i < splatCount; i++) {
-                int type = hits.splatType(i);
-                ext.addHitMark(-1, type, type, hits.splatDamage(i), hits.splatDelay(i));
+                ext.addHitMark(-1, hits.splatRsProtSelfType(i), hits.splatRsProtOtherType(i),
+                        hits.splatDamage(i), hits.splatDelay(i));
             }
             int ratio = hits.getHpBarRatio();
             ext.addHeadBar(-1, hits.hpBarType, hits.hpBarType, ratio, ratio, 0, 0);
@@ -387,6 +397,7 @@ public final class RsProt {
         if (faceEntity.consumeResolvedUpdate()) {
             ext.setFacePathingEntity(toRsProtEntityIndex(faceEntity.getResolvedTarget()));
         }
+        faceEntity.tickTemporary();
 
         var faceCoord = npc.getMapDirectionUpdate();
         if (faceCoord.hasUpdate(false)) {
@@ -419,9 +430,15 @@ public final class RsProt {
      * around objects, respects collision). Runs on the game thread (invoked from
      * {@code processIncoming}); fills {@code Player.getMovement()} which {@code Player.process()} walks.
      * RSProt gives absolute world coords; {@code routeAbsolute} takes (x, y) = (x, RSProt-z).
+     *
+     * <p>{@code resetActions} mirrors the legacy {@code WalkHandler}'s own call before routing (it was
+     * missing here) — without it, a manual walk click never cancels an in-progress {@code following}/
+     * {@code TargetRoute} (Follow/Trade with/etc.), so the player-option chase keeps overriding every
+     * subsequent step and the character appears stuck until another action happens to reset it.
      */
     private static void onWalk(DmNetworkPlayer player, int destX, int destY) {
         if (player instanceof Player p) {
+            p.resetActions(true, true, true);
             p.getRouteFinder().routeAbsolute(destX, destY);
         }
     }
@@ -524,6 +541,22 @@ public final class RsProt {
                     msg.getOp(), msg.getSub(), msg.getObj());
             io.dm.network.incoming.handlers.ActionButtonHandler.handleAction(
                     p, msg.getOp(), msg.getCombinedId(), msg.getSub(), msg.getObj(), false);
+        }
+    }
+
+    /**
+     * Incoming modal close (X button / Esc — the client has already dismissed the modal and any
+     * TAB_AREA side sub on its own side by the time this arrives) → the legacy opcode-57
+     * {@code CloseInterfaceHandler} behaviour: {@code Player.closeInterfaces()}. Purely server-state
+     * sync: fires closedActions, clears active handlers, closes trades/dialogues, and re-sends
+     * IfCloseSub for the already-gone subs (harmless). The visual sidebar restore is client-side —
+     * the inventory pane (149) is never evicted now that side panels open into the TAB_AREA
+     * side-modal slot (see {@code InterfaceType.INVENTORY}).
+     */
+    private static void onCloseModal(DmNetworkPlayer player) {
+        if (player instanceof Player p) {
+            NetworkLogger.log(p, "CloseModal", -1, -1, -1, -1, -1);
+            p.closeInterfaces();
         }
     }
 
@@ -1040,6 +1073,10 @@ public final class RsProt {
 
         var anim = p.getAnimationUpdate();
         if (anim.hasUpdate(false)) {
+            // TEMP diagnostic (combat migration, 2026-07-14): confirm this branch actually fires and
+            // with what id/delay on the next live combat test — remove once animations are confirmed
+            // rendering (or not) on a real client.
+            System.out.println("[ANIM] player " + p.getName() + " id=" + anim.id + " delay=" + anim.delay);
             ext.setSequence(anim.id, anim.delay);
             anim.setSent(true);
         }
@@ -1054,8 +1091,8 @@ public final class RsProt {
         if (hits.hasUpdate(false)) {
             int splatCount = hits.splatCount();
             for (int i = 0; i < splatCount; i++) {
-                int type = hits.splatType(i);
-                ext.addHitMark(-1, type, type, hits.splatDamage(i), hits.splatDelay(i));
+                ext.addHitMark(-1, hits.splatRsProtSelfType(i), hits.splatRsProtOtherType(i),
+                        hits.splatDamage(i), hits.splatDelay(i));
             }
             int ratio = hits.getHpBarRatio();
             ext.addHeadBar(-1, hits.hpBarType, hits.hpBarType, ratio, ratio, 0, 0);
@@ -1074,6 +1111,7 @@ public final class RsProt {
         if (faceEntity.consumeResolvedUpdate()) {
             ext.setFacePathingEntity(toRsProtEntityIndex(faceEntity.getResolvedTarget()));
         }
+        faceEntity.tickTemporary();
 
         var faceAngle = p.getMapDirectionUpdate();
         if (faceAngle.hasUpdate(false)) {

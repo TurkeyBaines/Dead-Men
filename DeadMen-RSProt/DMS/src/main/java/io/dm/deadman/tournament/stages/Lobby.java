@@ -16,7 +16,7 @@ public class Lobby extends Stage {
         Deadman.generateUTC();
 
         startTime = System.currentTimeMillis();
-        duration = 60000;
+        duration = Long.MAX_VALUE - startTime;
         for (Player p : players()) {
             p.getStats().reset();
             p.getInventory().clear();
@@ -28,6 +28,7 @@ public class Lobby extends Stage {
             p.getCombat().updateCombatLevel();
 
             p.utc = Deadman.getUtc();
+
 
             p.sendMessage("A Tournament has just finished, we are now in the Lobby Phase.");
             p.sendMessage("To take part in the next Tournament, please head to the citadel before the start time.");

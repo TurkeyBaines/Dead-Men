@@ -48,8 +48,16 @@ application {
     mainClassName = 'io.dm.Server'
     applicationDefaultJvmArgs = [
             "--add-exports=java.base/jdk.internal.vm=ALL-UNNAMED",
-            // Loads two caches now (legacy defs + the 236 JS5 cache) on top of all game content.
-            "-Xmx8g"
+            // Was -Xmx8g. That was papering over a real bug: SigilPurchaseScreen's static block
+            // indexed InterfaceHandler.actions[-1] for its placeholder enum constants, and
+            // InterfaceHandler.register's "retry with a doubled array" recovery can never fix a
+            // negative index, so it looped forever doubling the array size toward an
+            // OutOfMemoryError on every single boot (see git history 2026-07-18 for the fix, both
+            // the actual bug and a hard cap on InterfaceHandler.register's retry growth). Measured
+            // post-fix via jcmd GC.heap_info after a full boot with zero players: ~2GB used /
+            // ~3.5GB committed. 4g leaves real headroom for live players without the previous
+            // 8g ceiling masking future bugs of this same shape.
+            "-Xmx4g"
     ]
 }
 

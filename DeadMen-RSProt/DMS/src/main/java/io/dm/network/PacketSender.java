@@ -672,6 +672,12 @@ public class PacketSender {
     }
 
     public void sendPlayerAction(String name, boolean top, int option) {
+        // Legacy 184 signals "clear this slot" with the literal text "null"; RSProt's SetPlayerOp
+        // takes a real nullable op for the same purpose (see its own KDoc).
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp(
+                option, top, "null".equals(name) ? null : name))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(4 + Protocol.strLen(name)).sendVarBytePacket(80)
                 .addByteS(top ? 1 : 0)
                 .addString(name)

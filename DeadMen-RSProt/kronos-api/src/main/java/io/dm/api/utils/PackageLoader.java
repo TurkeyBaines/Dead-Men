@@ -24,11 +24,37 @@ public class PackageLoader {
      */
     private static final String[] EXCLUDED_PACKAGES = { "io.dm.panel" };
 
+    /**
+     * Individual classes excluded from the eager {@code Class.forName(..)} scan, by fully
+     * qualified name. Unlike {@link #EXCLUDED_PACKAGES}, these are auto-generated, pure
+     * {@code public static final int} constant-holder classes (no static block, nothing to
+     * register) that happen to live in a package ({@code io.dm.cache}) full of classes that
+     * genuinely DO need loading (e.g. {@code ItemDef}, {@code ObjectDef}). Every reference to one
+     * of these constants elsewhere in the codebase (e.g. {@code ItemID.CANNON_BASE}) is a
+     * compile-time-constant field access that javac already inlines as a literal into the
+     * referencing class's own bytecode (JLS 13.4.9) — nothing at runtime actually needs these
+     * three classes loaded. Force-loading them anyway cost ~5.2 seconds combined at boot (measured
+     * via a temp per-class boot timer, 2026-07-18: ObjectID ~3.3s, ItemID ~1.3s, NpcID ~0.7s) —
+     * verifying/parsing a class file with tens of thousands of constant-pool entries is genuinely
+     * expensive, for zero behavioral benefit.
+     */
+    private static final String[] EXCLUDED_CLASSES = {
+            "io.dm.cache.ItemID", "io.dm.cache.NpcID", "io.dm.cache.ObjectID"
+    };
+
     private static boolean isExcluded(String classOrPackageName) {
         for (String excluded : EXCLUDED_PACKAGES) {
             if (classOrPackageName.equals(excluded) || classOrPackageName.startsWith(excluded + ".")) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    private static boolean isExcludedClass(String fullyQualifiedClassName) {
+        for (String excluded : EXCLUDED_CLASSES) {
+            if (fullyQualifiedClassName.equals(excluded))
+                return true;
         }
         return false;
     }
@@ -85,7 +111,8 @@ public class PackageLoader {
                 while((entry = in.getNextEntry()) != null) {
                     String name = codePath(entry.getName());
                     if(name.endsWith(".class") && name.startsWith(packageName)
-                            && !isExcluded(name.substring(0, name.length() - 6))) {
+                            && !isExcluded(name.substring(0, name.length() - 6))
+                            && !isExcludedClass(name.substring(0, name.length() - 6))) {
                         try {
                             classes.add(Class.forName(name.substring(0, name.length() - 6)));
                         } catch(Throwable t) {
@@ -116,7 +143,8 @@ public class PackageLoader {
                         classes.addAll(loaded);
                     continue;
                 }
-                if(name.endsWith(".class") && !isExcluded(packageName)) {
+                if(name.endsWith(".class") && !isExcluded(packageName)
+                        && !isExcludedClass(packageName + '.' + name.substring(0, name.length() - 6))) {
                     try {
                         classes.add(Class.forName(packageName + '.' + name.substring(0, name.length() - 6)));
                     } catch(Throwable t) {

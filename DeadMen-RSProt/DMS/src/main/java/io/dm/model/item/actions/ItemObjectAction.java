@@ -21,10 +21,8 @@ public interface ItemObjectAction {
     }
 
     static void register(String objectName, ItemObjectAction action) {
-        ObjectDef.forEach(objectDef -> {
-            if(objectDef.name.equalsIgnoreCase(objectName))
-                register(objectDef.id, action);
-        });
+        for (ObjectDef objectDef : ObjectDef.getByName(objectName))
+            register(objectDef.id, action);
     }
 
     static void register(GameObject obj, ItemObjectAction action) {
@@ -43,10 +41,8 @@ public interface ItemObjectAction {
     }
 
     static void register(int itemId, String objectName, ItemObjectAction action) {
-        ObjectDef.forEach(objDef -> {
-            if(objDef.name.equalsIgnoreCase(objectName))
-                register(itemId, objDef.id, action);
-        });
+        for (ObjectDef objDef : ObjectDef.getByName(objectName))
+            register(itemId, objDef.id, action);
     }
 
     static void register(int itemId, GameObject obj, ItemObjectAction action) {

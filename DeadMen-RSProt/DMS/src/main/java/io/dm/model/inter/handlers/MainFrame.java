@@ -59,6 +59,8 @@ public class MainFrame {
                 if(option == 2)
                     Config.DISABLE_SPELL_FILTERING.toggle(player);
             };
+
+
 //            actions.actions[50] = (SimpleAction) player -> {
 //                player.journal = Journal.PRESETS;
 //                for(int childId = 9; childId <= 47; childId++) {
@@ -138,6 +140,7 @@ public class MainFrame {
 //                player.journal.send(player);
 //            };
         });
+
     }
 
 }

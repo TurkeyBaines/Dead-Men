@@ -24,13 +24,15 @@ public class SigilCommands {
     public void print(Player p) {
         p.sendMessage("----==== Sigils ====----");
         for (int i = 0; i < 3; i++) {
-            p.sendMessage("[" + i + "] Sigil ID:" + p.getSigil(i));
+            if (p.getSigilID(i) == -1) continue;
+
+            p.sendMessage("[" + i + "] Sigil: " + p.getSigil(i).name());
         }
         p.sendMessage("----===============----");
     }
 
     public void reset(Player p) {
-        p.reset();
+        p.resetSigils();
     }
 
     public void remove(Player p, String[] args) {

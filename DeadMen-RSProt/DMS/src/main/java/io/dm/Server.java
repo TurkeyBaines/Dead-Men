@@ -4,7 +4,6 @@ import io.dm.api.database.Database;
 import io.dm.api.database.DatabaseUtils;
 import io.dm.api.database.DummyDatabase;
 import io.dm.api.filestore.FileStore;
-import io.dm.api.netty.NettyServer;
 import io.dm.api.process.ProcessWorker;
 //import io.dm.api.rest.KronosRest;
 import io.dm.api.utils.*;
@@ -19,10 +18,8 @@ import io.dm.model.entity.player.Player;
 import io.dm.model.map.object.actions.impl.Trapdoor;
 import io.dm.model.map.object.actions.impl.dungeons.StrongholdSecurity;
 import io.dm.model.shop.ShopManager;
-import io.dm.network.LoginDecoder;
 import io.dm.network.incoming.Incoming;
 import io.dm.process.CoreWorker;
-import io.dm.process.LoginWorker;
 import io.dm.process.event.EventWorker;
 import io.dm.services.LatestUpdate;
 import io.dm.services.Loggers;
@@ -209,7 +206,6 @@ public class Server extends ServerWrapper {
             EventWorker.process();
             return false;
         });
-        LoginWorker.start();
         //LiveData.start();
         /*
          * Network (RSProt, rev 236). Replaces the legacy NettyServer/LoginDecoder stack.

@@ -219,10 +219,22 @@ public enum SpellBook {
         return Config.MAGIC_BOOK.get(player) == ordinal();
     }
 
+    /** Interface 218's real component id of the first spellbook's first spell (Home Teleport). */
+    private static final int FIRST_SPELL_COMPONENT_ID = 7;
+
+    /**
+     * Each book's spells sit back-to-back in interface 218's component range, in enum
+     * declaration order. Deriving every offset from the previous book's offset + spell count
+     * (instead of hand-typing each one) makes it impossible for two books to ever overlap again -
+     * previously ANCIENT/LUNAR/ARCEUUS's offsets were hand-typed constants that didn't account for
+     * MODERN actually having 70 spells, not 67, so ANCIENT's first 3 components silently clobbered
+     * MODERN's last 3 in the shared actions[] array (see TabMagic).
+     */
     static {
-        SpellBook.MODERN.spellIdOffset = 1;
-        SpellBook.ANCIENT.spellIdOffset = 74;
-        SpellBook.LUNAR.spellIdOffset = 99;
-        SpellBook.ARCEUUS.spellIdOffset = 143;
+        int nextOffset = FIRST_SPELL_COMPONENT_ID;
+        for (SpellBook book : values()) {
+            book.spellIdOffset = nextOffset;
+            nextOffset += book.spells.length;
+        }
     }
 }

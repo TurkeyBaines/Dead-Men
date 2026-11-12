@@ -21,10 +21,8 @@ public interface ItemNPCAction {
     }
 
     static void register(String npcName, ItemNPCAction action) {
-        NPCDef.forEach(npcDef -> {
-            if(npcDef.name.equalsIgnoreCase(npcName))
-                register(npcDef.id, action);
-        });
+        for (NPCDef npcDef : NPCDef.getByName(npcName))
+            register(npcDef.id, action);
     }
 
     static void register(NPC npc, ItemNPCAction action) {
@@ -43,10 +41,8 @@ public interface ItemNPCAction {
     }
 
     static void register(int itemId, String npcName, ItemNPCAction action) {
-        NPCDef.forEach(npcDef -> {
-            if(npcDef.name.equalsIgnoreCase(npcName))
-                register(itemId, npcDef.id, action);
-        });
+        for (NPCDef npcDef : NPCDef.getByName(npcName))
+            register(itemId, npcDef.id, action);
     }
 
     static void register(int itemId, NPC npc, ItemNPCAction action) {

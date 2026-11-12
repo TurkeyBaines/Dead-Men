@@ -3,6 +3,448 @@ Generated 2026-07-08 by reviewing HANDOFF.txt + MIGRATION.txt line-by-line AND i
 verifying the claims against the actual source tree (grep'd the real files, ran a real compile).
 Everything marked VERIFIED below was checked against code on disk, not just read from the logs.
 
+## >>> UPDATE 2026-07-19: STAGE 10 — PROJECTILES NEVER SENT AT ALL, FOUND & FIXED <<<
+Human reported (live) animations are fine but projectiles don't work. Root-caused, not guessed:
+`Player.localPlayers()` shared the exact bug class Stage 16's Bug A already fixed for its sibling
+`isLocal(Player)` but was never itself patched — it read the legacy `PlayerUpdater.local[]`/
+`localCount` fields, populated only when `CoreWorker.update()` runs the legacy updater
+(`getSession() == null`, never true for a real RSProt player), so it silently returned an empty
+iterable for every RSProt caster. Every ordinary player-cast ranged/magic attack in
+`PlayerCombat.java` builds its `Projectile` without `.regionBased()`, so `Projectile.send(...)`'s
+outgoing-player loop ran over that empty list — `PacketSender.sendProjectile` was never called at
+all, for anyone, not a wrong-field-value bug like Stage 10 Round 1's two earlier fixes. Fixed with a
+proximity-based fallback in `Player.localPlayers()` (same `World.players` scan + membership rule
+`isLocal()`'s own RSProt fallback already established), scoped so legacy/AI-bot players are
+untouched. Also fixes the same bug for every other `localPlayers()` caller on a real player receiver
+(`Retribution`, `DragonCrossbow`'s special, `TargetSpell`'s multi-target splash, etc.) as a
+structural side effect, not individually verified. Compiles clean, full rebuild verified. NOT yet
+live-client-tested. Full detail: HANDOFF.txt "STAGE 10 — Player FX verification, Round 2" and
+`stages/STAGE-10-player-fx-verification.txt`'s "ROUND 2 FINDINGS".
+
+## >>> UPDATE 2026-07-18 (part 5): MAGIC TAB — TWO REAL BUGS FOUND & FIXED, PENDING LIVE-TEST <<<
+Human reported the magic tab is "fucked" — only a few low-level spells work, the rest fire the
+wrong thing — and that their own attempt to add debug logging to `TabMagic.java` throws instead of
+printing. Both root-caused, not guessed:
+1. **The human's own debug line crashes `TabMagic`'s entire static init, so interface 218 (the
+   spellbook, `Interface.MAGIC_BOOK`) gets NO registered handler at all.** The added line was
+   `book.spells[i].toString() != null ? book.spells[i].toString() : ""` — it dereferences
+   `book.spells[i]` before the null-check, and `SpellBook.MODERN`'s array has one deliberate `null`
+   placeholder entry (index 64, preserving component-id alignment for a spell this codebase never
+   implemented). NPE there is uncaught (`InterfaceHandler.register`'s retry loop only catches
+   `ArrayIndexOutOfBoundsException`), and `register()` only does `HANDLERS[interfaceId] = handler`
+   *after* the consumer lambda returns without throwing — so the crash means interface 218 was
+   registered with zero actions, full stop, this session. (The checked-in code before this debug
+   line was added didn't crash — it just silently built an `InterfaceAction` around the `null` spell
+   that would itself NPE if that one specific component were ever clicked; also fixed, see below.)
+2. **Real bug, pre-dates this session: `SpellBook.ANCIENT`'s hardcoded `spellIdOffset = 74`
+   undercounts `SpellBook.MODERN`, which has 70 spells (not 67), so ANCIENT's first 3 components
+   (74/75/76) silently overwrote MODERN's last 3 (EarthSurge, Lvl-7 Enchant, Fire Surge) in the
+   shared `h.actions[]` array** — clicking those 3 real modern-book components ran Ice Rush/Ice
+   Blitz/Ice Burst's `InterfaceAction` instead, which then no-ops anyway because `book.isActive()`
+   checks for the Ancient book while the player is on Modern. This is the "rest are mapped to
+   incorrect things" symptom. Verified by hand-counting every book's spell array (MODERN=70,
+   ANCIENT=25, LUNAR=44, ARCEUUS=35): ANCIENT→LUNAR (74+25=99 ✓) and LUNAR→ARCEUUS (99+44=143 ✓)
+   are internally consistent, which is why only the MODERN→ANCIENT boundary was ever suspect, not
+   the other three. Cross-checked against real captured clicks in `PROTOCOL_DUMP.txt`: component 7
+   (Home Teleport, plain click) and components 8/9/11 (WindStrike/Confuse/WaterStrike, all
+   `TargetSpell`s dispatched via `OpNpcT`) match the current offset=7 base and in-book spell order
+   exactly, so only the cross-book arithmetic was wrong, not the base offset or per-book ordering.
+- **Fix applied:** `SpellBook.java`'s hand-typed `MODERN/ANCIENT/LUNAR/ARCEUUS.spellIdOffset = ...`
+  block replaced with a static loop that derives every book's offset from a running total
+  (`FIRST_SPELL_COMPONENT_ID = 7` plus each prior book's `spells.length`) — this doesn't just move
+  ANCIENT to the correct 77, it also correctly cascades LUNAR (99→102) and ARCEUUS (143→146), which
+  a manual one-line fix would have silently left wrong. Makes this exact bug class (adding/removing
+  a spell later and forgetting to re-sync every later book's offset by hand) structurally
+  impossible going forward. `TabMagic.java`'s loop now skips `null` spell slots instead of
+  registering an action that would NPE if clicked, and its debug print is null-safe. Added
+  `Spell.toString()` (defaults to `getClass().getSimpleName()`) and a more specific `TodoSpell`
+  override (`"TodoSpell(" + name + ")"`) so the boot-time printout actually identifies spells by
+  name instead of the default `Object.toString()` hash.
+- **Not otherwise touched:** book-switching (`SpellBook.setActive`, altar/citadel objects),
+  `Config.MAGIC_BOOK` varpbit, and every individual spell's own game logic are unrelated to this bug
+  and untouched.
+- **Open question, not guessed at:** `PROTOCOL_DUMP.txt` has real captured clicks on interface 218
+  components 4 and 12 (same two components, same order, repeated near-identically across many past
+  sessions) that don't correspond to any spell under the old OR the fixed numbering — components 0-6
+  are before the spell grid even starts (offset 7), and component 12 now resolves to Weaken, an
+  entity-targeted spell, but was clicked as a plain option-1 click with no target. Most likely
+  explanation is the 5 spell-filter checkboxes (`h.actions[184]`'s combat/teleport/utility/etc.
+  toggles) are NOT actually one component with 5 "slots" as currently coded — but there's no hard
+  evidence either way yet. Left alone rather than guessed at, per this project's standing rule.
+- **Status: compiles clean for all 4 touched files** (`Spell.java`, `TodoSpell.java`,
+  `SpellBook.java`, `TabMagic.java` — none appear anywhere in a full `:DMS:compileJava` error list).
+  **`:DMS:compileJava` does NOT currently build end-to-end**, but every error is pre-existing and
+  unrelated to magic — a large, separate `ItemEffect.getUpgrade`/`ShopItem`/ `Shop`/ `Bank`-area
+  break plus the in-progress, uncommitted Sigil tier1/tier2 work (`SigilPurchaseScreen.java`'s
+  duplicate `WELL_FED` enum constant, `CitadelShop.java`'s missing `ShopItem.builder()`) — confirmed
+  via `git diff`/`git status` to already exist before this session touched anything. Not fixed here;
+  flagged for whoever owns that in-progress work.
+  **NOT yet live-client-tested** — no client/RSProx available this session, matching this project's
+  standing pattern for every other milestone. Next step: `::debug` (or `::db`) toggles
+  `player.debug`, which makes `ActionButtonHandler` print `[ActionButton] option/inter/child/slot/item`
+  for every click — the fastest way to confirm each spell's real component id against the printed
+  boot-time table (`====== modern (components 7-76) =====` etc. in the server console) and to
+  finally pin down what components 4/12 really are.
+
+## >>> UPDATE 2026-07-18 (part 4): FOLLOW/TRADE LIVE-TESTED — TWO SEPARATE MOVEMENT BUGS FOUND &
+FIXED, SEE STAGE 16 <<<
+First live test of STAGE 15's `SetPlayerOp` fix (same day): human reported right-click "Follow" does
+nothing, "Trade with" produces a rough/stuck imitation of Follow, and it behaves like a toggle (the
+character isn't freed to move normally again until "Trade with" is clicked a second time). Two
+unrelated root causes, both found and fixed:
+1. **Follow self-cancels every tick.** `PlayerMovement`'s `following` logic gates on
+   `Player.isLocal(Player)`, which read the legacy `PlayerUpdater.local[]` bit array — populated only
+   by `PlayerUpdater.process()`, which `CoreWorker.update()` only calls `if(getSession() == null)`
+   (never for real RSProt players, by design — RSProt's own info protocols replace it for them). So
+   `isLocal()` always returned `false` for RSProt players regardless of real distance, and Follow
+   cleared itself the instant it was set, before ever taking a step. Fixed: `isLocal()` now falls back
+   to a direct proximity check (the same radius `PlayerUpdater.isVisible()` already uses) when
+   `getSession() != null`; legacy/AI-bot players are untouched.
+2. **Manual walking never interrupted Follow/Trade's chase.** The legacy `WalkHandler` calls
+   `player.resetActions(true, true, true)` (which clears `following`/`TargetRoute`, among other
+   things) before every route — `RsProt.onWalk` (the bridge behind both `MoveGameClick`/
+   `MoveMinimapClick`) never picked up the same call, so once a chase was active (Follow after fix #1,
+   or Trade with, which was already reachable and didn't need fix #1), it kept dragging the character
+   back every tick, and only another player-option click (which itself calls `resetActions`) could
+   ever clear it — exactly the reported "toggle." Fixed by adding the identical
+   `resetActions(true, true, true)` call to `onWalk`, matching the legacy entry point.
+Trade's own chase-then-request behavior (`TargetRoute`, pre-existing/unmigrated) is genuinely a
+coarser one-shot "walk adjacent then fire a callback" mechanic, not real continuous following — that's
+why it looked like a "bad Follow" even before fix #2, and is expected/unchanged, not itself a bug.
+**Continued the same session with a live re-test of fixes #1/#2: Follow confirmed "almost looks
+correct" — good enough to leave for now — but Trade (both characters stationary) still looked like it
+was following indefinitely and never sent the "wishes to trade with you" message.** Found a third,
+Trade-specific bug (Bug C): `TargetRoute.afterMovement0`'s success/failure decision only ever
+re-synced its `withinDistance` flag against the entity's real post-movement position `if(abs)` (the
+NPC-with-`walkTo` case) — for every other caller (Trade with/Invite, NPC dialogue-adjacency,
+item-on-entity adjacency — i.e. every real use of this mechanic) it trusted a flag last written mid-step
+by `RouteFinder.allowStep`, which isn't guaranteed to still be accurate by the time `afterMovement0`
+reads it (e.g. if a later clipping/`Wilderness.stopFollowing` check in the same step rejects the move
+after `TargetRoute.allowStep` already marked it as arriving). Fixed by always recomputing
+`withinDistance` from the real current position, matching the `abs` branch's existing pattern.
+Unlike Bugs #1/#2, this one couldn't be fully confirmed by static tracing alone, so a TEMP
+`[TARGETROUTE]` diagnostic was added at the same spot — flag this one as the more speculative of the
+three until that line is actually seen firing correctly on a live approach.
+All three fixes compile clean (`./gradlew :DMS:compileJava`, 2026-07-18, `BUILD SUCCESSFUL`). NOT yet
+live-client-tested — no client/RSProx available this session. Full detail: HANDOFF.txt "STAGE 16 —
+Player-to-Player Follow/Trade Movement Bugs" (Bugs A, B, C).
+
+## >>> UPDATE 2026-07-18 (part 3): PLAYER-TO-PLAYER OPTIONS (ATTACK/FOLLOW/TRADE) NEVER LEFT THE
+SERVER FOR RSPROT — FOUND & FIXED, SEE STAGE 15 <<<
+Human reported right-clicking another player shows no Attack/Follow/Trade with — only "Walk here",
+a duplicated client-side "Lookup" placeholder, and "Cancel". Root-caused, not guessed:
+`PacketSender.sendPlayerAction()` (`PacketSender.java:674`), the single method behind every
+player-option menu slot (`Player.setAction()` → `sendPlayerAction()`), had simply never been ported
+to RSProt — no `queueRsprot(...)` branch at all, unlike its neighbors `sendStat`/`sendRunEnergy`/
+`sendWeight` a few lines above it, so it silently no-op'd for every RSProt player via the legacy
+path's existing null-channel guard. This packet was missing from Phase D's own "Ported Packets"
+inventory in HANDOFF.txt (now corrected) — a real gap the original port simply never covered, not a
+regression. Fixed by bridging to RSProt's `SetPlayerOp(id, priority, op)` (confirmed field-for-field
+against the `osrs-228-model` sources jar's own KDoc — same 1-8 slot range, same
+priority-over-Walk-here flag, real `null` in place of the legacy "null"-string sentinel for clearing
+a slot). This single fix covers Attack, Follow, Trade with, Fight, and Invite together, since all
+five route through the same `setAction`/`sendPlayerAction` choke point — matching this project's
+established pattern of one shared helper explaining what look like several separate symptoms. The
+incoming side (`OpPlayer` → `PlayerActionHandler`) has been correctly wired since Milestone 4 and
+needed no changes; it could never have been exercised before this fix because the rev-228 client
+won't emit a click for an option slot it was never told exists. Compiles clean
+(`./gradlew :DMS:compileJava`, 2026-07-18). NOT yet live-client-tested — no client/RSProx available
+this session. Full detail: HANDOFF.txt "STAGE 15 — Player-to-Player Interaction Options (SetPlayerOp
+Bridge)".
+
+## >>> UPDATE 2026-07-18 (part 2): BOOT TIME — 26s → ~14s, FOUND VIA REAL PER-PHASE MEASUREMENT <<<
+Follow-up to the OOM fix below, same session: human asked whether the ~1641 JSON data files
+(5.3MB total) were the boot-time bottleneck and whether they could be read another way (e.g. from
+the cache). Answer, found by MEASURING rather than guessing (temporary per-phase/per-class boot
+timers, removed once done): **JSON parsing itself was never the bottleneck** — the real ~1641 files
+total well under 2 seconds combined. The actual costs, found and fixed:
+- **`PackageLoader.load("io.dm")`: 16.5s → ~4s.** Two real, distinct causes, both fixed:
+  1. Three auto-generated, pure-constant classes (`ItemID`/`NpcID`/`ObjectID`, 39,009 lines
+     combined, zero static blocks) were being force-loaded via `Class.forName` for no reason — every
+     reference to one of their constants elsewhere is already inlined as a literal by javac at
+     compile time (JLS 13.4.9), so nothing at runtime needs them loaded at all. Cost ~5.2s for zero
+     behavioral benefit. Excluded from `PackageLoader`'s scan (`PackageLoader.java`, new
+     `EXCLUDED_CLASSES`/`isExcludedClass`).
+  2. `Door.java`'s static block called `findOppositeId(def)` — a full linear scan of EVERY loaded
+     `ObjectDef` (tens of thousands) — for every door/gate object found, an O(doors × totalObjects)
+     scan costing ~5.2s alone (the single most expensive class-load in the entire boot). Fixed by
+     pre-grouping all objects by name once (`Door.java`), turning the per-door scan into a small
+     bucket lookup with identical matching semantics.
+  3. **The same "scan every ObjectDef/NPCDef for a name match" pattern turned out to be the shared
+     implementation of every by-name `ObjectAction.register`/`ItemObjectAction.register`/
+     `NPCAction.register`/`ItemNPCAction.register` overload** — used across the whole codebase
+     (`Cooking.java` alone called it 6 times per food type). Added a cached, case-insensitive name
+     index to both `ObjectDef` and `NPCDef` (`getByName(String)`, built once on first use) and
+     repointed all 8 by-name `register(...)` overloads at it instead of `ObjectDef.forEach`/
+     `NPCDef.forEach`. This is a general fix — it speeds up every by-name registration site in the
+     codebase, not just the ones profiled this session.
+- **`DataFile.load` (the actual JSON loading): ~6-7s, mostly genuine work, one real waste removed.**
+  `DataFile.PackedFile`'s constructor was re-serializing every parsed data file's result back into a
+  JSON string via Gson (`JsonUtils.GSON_EXPOSE.toJson(...)`) — a value that's only ever consumed by
+  `loadPacked()` replaying a `server-data.json` file that hasn't been written by anything since the
+  code that would write it was commented out. Every one of ~1641 files was paying for this and
+  discarding the result. Fixed (`DataFile.java`, new `computePackedJson` parameter, defaults false).
+  **The dominant remaining cost inside `DataFile.load` is NOT JSON at all — it's `region_keys.java`
+  triggering `Region.init()` for every real game region (~4.1s of DataFile.load's ~6s), i.e. full
+  terrain+object decompression/placement for the entire live game world, done eagerly and serially
+  at boot.** This is genuine, necessary work under the current architecture (not a bug), and NOT
+  fixed this round — parallelizing it was investigated and rejected as unsafe without further work:
+  `BankActions.markTiles` (called from inside every region's object-placement loop for any bank
+  object) can walk across a region boundary into a NEIGHBORING region's `Tile` data, and
+  `Region.getTile`'s lazy allocation (`tiles == null` check, per-slot `Tile` creation) is not
+  thread-safe for concurrent access from two different regions' `init()` calls. Parallelizing
+  region loading safely would need `Tile`'s lazy allocation fixed first — and that path is also the
+  hot per-tick gameplay lookup, so any fix must not add lock overhead to live tick processing. Left
+  as a flagged follow-up, not attempted blind.
+- **Verified via 6 full headless boots** (`./gradlew :DMS:run`, before/after each fix), with a
+  temporary per-phase and per-class boot timer (added, used, then fully reverted — `git diff
+  Server.java` shows zero net change from this round). Total boot time: **44.7s (original, pre-OOM-fix)
+  → 26.6s (post-OOM-fix baseline) → 13.7s (post all boot-time fixes)**, a ~70% reduction from the
+  original baseline. Zero `OutOfMemoryError`, zero new `Package Failure` lines (`TabMagic.class`'s
+  pre-existing, unrelated spellbook-data NPE is the only one present, before and after).
+- Files touched: `kronos-api/src/main/java/io/dm/api/utils/PackageLoader.java`,
+  `DMS/src/main/java/io/dm/cache/ObjectDef.java`, `DMS/src/main/java/io/dm/cache/NPCDef.java`,
+  `DMS/src/main/java/io/dm/model/map/object/actions/impl/Door.java`,
+  `DMS/src/main/java/io/dm/model/map/object/actions/ObjectAction.java`,
+  `DMS/src/main/java/io/dm/model/entity/npc/NPCAction.java`,
+  `DMS/src/main/java/io/dm/model/item/actions/ItemObjectAction.java`,
+  `DMS/src/main/java/io/dm/model/item/actions/ItemNPCAction.java`,
+  `DMS/src/main/java/io/dm/data/DataFile.java`. Full detail: HANDOFF.txt "Boot Time Fix (2026-07-18,
+  part 2)".
+
+## >>> UPDATE 2026-07-18: BOOT OOM FOUND & FIXED — RAM DROPPED FROM 8GB (hitting the cap) TO ~2GB <<<
+Human reported the server consumes 8GB+ RAM and takes 20+ seconds to boot. Root-caused with a real
+headless boot (`./gradlew :DMS:run`, `world_stage=DEV`) rather than guessed: the boot log contained
+a literal `java.lang.OutOfMemoryError: Java heap space` (caught per-class by `PackageLoader`'s
+existing try-catch, hence invisible unless you actually read the full boot log, not just the
+"Started server" line) at `InterfaceHandler.<init>` while loading `SigilPurchaseScreen.class`.
+- **Real bug: `SigilPurchaseScreen`'s static block indexed `h.actions[element.component]` for
+  EVERY enum constant, including its 23 placeholder constants** (`SPECIALISED_STRIKES()`,
+  `METICULOUS_MAGE()`, etc. — sigils with no purchase-screen mapping yet) that use the no-arg
+  constructor, defaulting `component = -1`. `h.actions[-1]` throws `ArrayIndexOutOfBoundsException`.
+  `InterfaceHandler.register`'s existing "retry with a doubled array" recovery (added 2026-07-12 to
+  fix real legacy-vs-228 undersized-array bugs — see that update's own section below) can only ever
+  fix an array that's TOO SMALL; doubling a size can never turn -1 into a valid index. So it retried
+  forever, doubling the array (1, 2, 4, 8, ... exponentially) until the allocation itself exhausted
+  the heap — on every single boot, whether or not the failure ever surfaced to a human as anything
+  more than a swallowed "Package Failure" line.
+- **Fix 1 (the actual bug), `SigilPurchaseScreen.java`:** skip placeholder constants
+  (`component < 0`) in the static block instead of indexing with them.
+- **Fix 2 (defense-in-depth), `InterfaceHandler.java`:** `register`'s retry loop now caps growth at
+  `MAX_ACTIONS_SIZE = 100_000` (real Cache228 interfaces top out around 567 components — interface
+  162, the chatbox) and throws a clear `IllegalStateException` instead of continuing to double past
+  it. This protects all 71 other `InterfaceHandler.register` call sites in the codebase from the
+  exact same failure mode in the future — not audited individually (too many to hand-check in one
+  pass), but now structurally incapable of causing an unbounded-growth OOM regardless of what future
+  content authoring does wrong.
+- **Fix 3, `DMS/build.gradle`:** `applicationDefaultJvmArgs`' `-Xmx8g` → `-Xmx4g`. The 8g ceiling was
+  clearly raised at some point specifically to survive this OOM long enough to keep booting, not
+  because the server genuinely needs 8GB — measured via `jcmd <pid> GC.heap_info` after a full boot
+  with zero players (both before capping and after): ~1.96GB used / ~3.5GB committed, comfortably
+  under 4g with real headroom left for live players.
+- **Verified, not assumed:** 3 full headless boots (`./gradlew :DMS:run`) before/after comparison —
+  before the fix, boot log contains the `OutOfMemoryError` and takes 44.7s; after, zero
+  `OutOfMemoryError` occurrences, `SigilPurchaseScreen` registers cleanly (no more "Package Failure"
+  line for it), and boot time dropped to 26-29s (the OOM retry loop's own GC churn was also eating
+  real wall-clock time, not just RAM). Real heap usage measured directly via `jcmd GC.heap_info`,
+  not inferred from Task Manager RSS.
+- **Not fully addressed — boot time is still 26-29s, "over 20 seconds" per the original report.**
+  The OOM loop's own GC churn accounted for a large chunk of the original 44.7s, but not all of it —
+  this session prioritized RAM (explicit user instruction) and stopped once the OOM was closed and
+  RAM was reasonable. `CacheInterfaceDumper`/`ItemOptionDumper`/`ObjectDef`'s opcode audit all run
+  unconditionally on every boot (diagnostic tooling from the migration's early stages, still useful
+  but not free) and are candidates for the next time-focused pass if boot time is still a concern —
+  not touched this round, no evidence gathered on their individual cost.
+- Files touched: `DMS/src/main/java/io/dm/deadman/content/sigils/SigilPurchaseScreen.java`,
+  `DMS/src/main/java/io/dm/model/inter/InterfaceHandler.java`, `DMS/build.gradle`. Full detail:
+  HANDOFF.txt "Boot Memory & OOM Fix (2026-07-18)".
+
+## >>> UPDATE 2026-07-14 (round 6): REV CAVES — REVCAVES.JAVA CRASH FIXED; CLIENT-CRASH STILL OPEN <<<
+Human reported the (real rev-228) client crashes on teleporting into the Revenant Caves (regions
+12701/12702/12703/12957/12958/12959, e.g. `map move 3196 10055`). Investigated with a temporary
+boot-time diagnostic (added to `Region.init()`/`ObjectAction`, removed again once it had answered
+the question — not left in the tree).
+- **Verified clean, ruled out as causes:** all six regions' xtea keys are present and valid, map +
+  landscape archives decode with zero exceptions (consistent with round 5's fix above — these six
+  were never in the original ~84 error list), every one of the ~3200-4000 objects placed per region
+  resolves to a real `ObjectDef` (zero unknown ids), `npc_spawns` for `rev_caves.json` loaded with
+  no `NPCDef` errors, and `RsProt.loadXteas`/`region_keys.loadStockXteas` read the identical
+  `xteas.json`/`mapsquare` scheme (no client/server key mismatch possible). Wilderness-level math
+  for this Y-band (`Wilderness.java`'s `((y-9920)/8)+1` "idk" bounds) produces a sane value (17) at
+  the reported coordinate, not a runaway number.
+- **Real bug found and fixed (confirmed, not a guess): `ObjectAction.register(GameObject, ...)` had
+  no null-check.** `io.dm.model.activities.wilderness.RevCaves.java`'s static initializer (line 35,
+  its very FIRST statement) registers an "exit" action for objectId 31557 at (3194,10055,0) — but
+  the diagnostic proved that object doesn't exist anywhere in region 12701 (nor do the other two
+  door ids, 31555/31556; the fourth, 31558, exists but ~180 tiles away from its registered spot at
+  (3218,10058) instead of (3240,10235) — the door coordinates look ported from a different
+  reference and were never checked against this actual stock cache). `Tile.getObject(...)` correctly
+  returned `null` for the missing door, but `ObjectAction.register(GameObject obj, String
+  optionName, ...)` (ObjectAction.java:92, `obj.getDef().getOption(...)`) dereferenced it with no
+  guard — throwing an NPE that became an `ExceptionInInitializerError` out of the whole class's
+  `<clinit>`. Because Java permanently marks a class "erroneous" after a failed static init, this
+  took down **every** registration in the file, including the 5 jump-pillar actions, which the same
+  diagnostic independently confirmed are all placed EXACTLY where the code expects (object 31561 at
+  all 5 registered coordinates, byte-for-byte). One stale door coordinate was silently breaking five
+  unrelated, correct registrations — same "one bad entry crashes everything else in the same loader"
+  bug class as `NPC.setCombat()`/`Tile.occupy()`/`ScriptDef.load()` in the 2026-07-12 update below.
+  **Fix:** null-guarded all three `ObjectAction.register(GameObject, ...)` overloads
+  (`ObjectAction.java`) to log a one-line `[ObjectAction] register(...) called with no object (stale
+  coordinate?) - skipped` warning and return/no-op instead of crashing. Verified via headless boot:
+  `Package Failure: RevCaves.class` no longer appears; the 5 pillar registrations and the 2 "enter"
+  door registrations (31555/31556 — these DO resolve correctly) now succeed; only the 2 "exit" doors
+  (31557 missing entirely, 31558 at the wrong coordinate) print the new skip warning instead of
+  crashing. `./gradlew :DMS:compileJava` clean; confirmed by 3 consecutive fresh headless boots.
+- **Still genuinely open, NOT fixed — the actual reported client crash.** The `ObjectAction` fix
+  above is a real, independent bug (it was silently breaking the pillars and would have kept doing
+  so regardless of this investigation), but nothing about it explains a real client crashing on a
+  raw position teleport (`map move` calls the exact same `Player.getMovement().teleport(x,y,z)`
+  every other teleport in the codebase uses — it is not a distinct/special code path, so whatever
+  causes this would equally affect a spell teleport or the cave door once its coordinate is fixed).
+  With region data, keys, object ids, NPC ids, and xtea plumbing all independently verified clean for
+  these exact six regions, there is no remaining server-side Java exception to chase with the
+  evidence gathered this round — the `SAFEZONE: unix > EXITED` / `[LOGOUT] 'unix'` sequence the human
+  posted comes from `RsProt.onLogout`, which only fires on a Netty channel-close (i.e. the disconnect
+  came from the client side, not from a caught server exception), so there is nothing in
+  `logs/error.log` or `logs/warn.log` to find either (neither file exists on this machine yet).
+  **Next step needs a live client session**, ideally with one new piece of information: does the
+  client show any error text/dialog, or does the window simply close/freeze, and does the same crash
+  reproduce on ANY other far-away/high-Y teleport (another wilderness deep spot, another
+  instance-template region) or only Rev Caves specifically — the isolated-vs-systemic split that
+  already worked well for Stage 13's bridge investigation.
+
+## >>> UPDATE 2026-07-14 (round 5): THE ~84 "REGION FAILS TO LOAD" ERRORS — ROOT-CAUSED & FIXED <<<
+Human supplied a fresh boot log listing dozens of regions failing with `ArrayIndexOutOfBoundsException`
+in `Region.init()`/`Region.getTile()` or `InBuffer.readSmart()` (buffer-overrun reads at the exact
+buffer length). This is the same unresolved item THE_PLAN's 2026-07-12 entry and Section 9 flagged as
+"needs a reference decoder for this exact cache format" — now actually root-caused, not a duplicate of
+the Stage 13 map-tile-settings fix (that was the "m" terrain archive; this is the "l" landscape/object
+archive, a completely separate byte stream).
+- **Root cause: the object-id gap between successive locs in the landscape stream is encoded as an
+  accumulating "smart2"-style value, not a single plain smart.** `Region.init()`'s outer loop read it
+  with `landIn.readSmart()` (max representable value 32767 in one step). Confirmed against a second
+  real reference decoder, `Avexiis/RSPSi` (the same repo already proven correct for this exact cache
+  generation's terrain data in Stage 13) — its actual location-loading code
+  (`MapRegion.unpackObjects`/`decodeConstructedLandscapes`, `Buffer.readUnsignedIntSmartShortCompat`/
+  `readUSmartInt`) uses an accumulating read for the id-offset specifically: read a plain smart, and if
+  it's exactly `32767`, add 32767 and read again, repeating until a smaller value terminates the chain.
+  This codebase already had the exact matching accumulator sitting unused —
+  `InBuffer.readSmart2()` (only ever called for the id-offset case, never wired to it). Any region
+  containing an object-id gap of 32767 or more (increasingly common with modern, sparsely-numbered
+  object ids) hit the plain `readSmart()`'s upper bound, silently misread the multi-chunk encoding as
+  a short/terminating value, and desynced every remaining byte in that region's landscape stream —
+  producing exactly the reported symptoms: some regions come out with a bogus `height` (garbage
+  `positionHash` -> `Region.getTile` gets a z outside `0..3`, "Index N out of bounds for length 4"),
+  others just run the loop off the end of the buffer entirely ("Index N out of bounds for length N").
+- **Fix applied in `Region.java` `init()`:** changed the outer id-offset read from `landIn.readSmart()`
+  to `landIn.readSmart2()` (the position-offset read inside stays a plain `readSmart()` — confirmed
+  against the same RSPSi source that only the id-offset uses the accumulating form). Also added a
+  defensive height clamp (`if(height >= 4) height = 3;`) immediately after computing `height` from the
+  position hash, matching RSPSi's own `unpackObjects` decoder line-for-line (`if (height >= 4) height =
+  3;`) — this is a real belt-and-braces guard the actual client-side decoder also has, not a
+  workaround invented here; with the id-offset fix in place it's not expected to trigger, but keeps a
+  single future edge case from crashing the whole loader again instead of just clamping one object's
+  plane.
+- **Verified, not assumed:** `./gradlew :DMS:compileJava` — `BUILD SUCCESSFUL`. Then a full headless
+  boot (`world_stage=DEV`, no live client needed) — zero `Error loading region` lines anywhere in the
+  boot log (previously 60+, including region 4914/12945/15771 from the human's own report, all gone).
+  `[region_keys] loaded 2250 keys...` still logs normally right before where the per-region errors used
+  to appear. Server reached script/handler loading and NPC/shop registration past that point with no
+  new regressions introduced by this change (the only new-vs-old log differences are pre-existing,
+  unrelated issues: a `RevCaves` null-object NPE during package load, and a bad `Currency` enum value
+  in a shop YAML — neither touched, out of scope, not caused by this fix).
+- **Status: FIXED, high confidence** (root cause confirmed against a second independent real decoder
+  for this exact stock cache generation, same standard this project already set in Stage 13). The ~84
+  regions noted in the 2026-07-12 section below as "instance template" content were largely believed
+  non-explorable/low-priority; this fix isn't scoped to just those — it's a general fix for the actual
+  decode bug, so it should also protect any real/explorable region that happens to hit the same
+  object-id-gap->=32767 condition, not just the ones in the human's reported list.
+
+## >>> UPDATE 2026-07-14 (round 4): COMBAT HITSPLAT IDS WERE WRONG — FIXED; ANIM STILL OPEN <<<
+Human reported live combat is buggy: no NPC animations, no player animations, no visible damage
+splat when the player hits an NPC (XP is still granted, so damage IS computed), and damage the NPC
+deals to the player renders as a "very weird hitsplash." Root cause found and fixed for the
+hitsplat part: `RsProt.pushMaskUpdates`/`pushNpcMaskUpdates` were passing this codebase's own
+`HitType` enum ordinal (0-6, e.g. BLOCKED=0, DAMAGE=1, POISON=2...) straight into RSProt's
+`addHitMark`/`addHeadBar` `selfType`/`otherType` parameters. Those parameters are NOT a small
+semantic enum — they're real OSRS cache-driven `HitsplatID` config ids (confirmed via RuneLite's
+`HitsplatID.java`: e.g. `DAMAGE_ME=16`, `DAMAGE_OTHER=17`, `BLOCK_ME=12`, `BLOCK_OTHER=13`,
+`POISON=65`, `VENOM=5`, `HEAL=6`, `CORRUPTION=0`) — a completely different, unrelated numbering
+scheme from this codebase's own ordinal-based enum, which is only meaningful to the legacy 184
+`HitsUpdate.send()` OutBuffer wire format. Ordinal 1 (`DAMAGE`, the single most common combat hit)
+had no corresponding real hitsplat id at all — nothing rendered, matching "no visible damage to
+NPC" exactly. Ordinal 0 (`BLOCKED`) landed on real id 0 = `CORRUPTION`, an unrelated splat — matching
+"weird hitsplash" when the player got hit (armor/prayer block reduces a hit to 0, which is the
+BLOCKED type). Fixed by adding real `rsprotSelfSplat`/`rsprotOtherSplat` ids to each `HitType` enum
+constant (`DMS/src/main/java/io/dm/model/combat/HitType.java`) and two new accessors on
+`HitsUpdate` (`splatRsProtSelfType`/`splatRsProtOtherType`) that `RsProt.java`'s two `addHitMark`
+call sites now use instead of the raw legacy ordinal. Legacy 184 wire format (`HitsUpdate.send()`)
+is untouched — it still packs the same ordinal it always did, this fix only affects the RSProt
+bridge. Mapping used: BLOCKED→(12,13), DAMAGE→(16,17), POISON→(65,65), DISEASE1→(4,4),
+DISEASE2→(3,3), VENOM→(5,5), HEAL→(6,6) — POISON/DISEASE/VENOM/HEAL have no distinct "me"/"other"
+variant in the real id table so the same id is used for both. Headbar (`hpBarType`, the actual hp
+bar sprite, distinct from hitsplat type) was deliberately left untouched — those per-boss values
+(`Necrominion`, `GreatOlm`, etc. setting 1/2/5/7/8) look like they were already tuned against real
+per-boss bar styles, and there was no equivalent hard evidence of a mismatch, so per this project's
+own standing "don't guess without a ground-truth source" rule it was left alone.
+**Animations (both player and NPC) are still unexplained** — the mask-bridge code structurally
+mirrors the now-confirmed-working hits bridge (same `hasUpdate`/`setSent`/`reset` lifecycle, same
+tick ordering in `driveUpdate()`), `setSequence(id, delay)`'s call signature matches the
+`osrs-228-model` sources jar exactly, and no gating/null-check specific to animations was found.
+Added a TEMP `[ANIM]` console print at both `pushMaskUpdates`/`pushNpcMaskUpdates` call sites
+(prints entity + sequence id/delay whenever the branch fires) so the next live combat test shows
+directly whether the branch fires at all, and with what id — remove once animations are confirmed
+working (or the real cause is found). Compiles clean (`./gradlew :DMS:compileJava`). Full detail:
+HANDOFF.txt "STAGE 14 — Combat Migration (2026-07-14)".
+
+## >>> UPDATE 2026-07-14 (round 3): NPCs STAYED FACING PLAYER AFTER DIALOGUE — FIXED <<<
+Human reported NPCs remain facing the player after talking to them (should un-face after a couple
+ticks, same as legacy 184). Root cause: `EntityDirectionUpdate`'s temporary-face auto-revert (the
+`stage` 1→2→remove progression used by e.g. `npc.faceTemp(player)` in dialogue) only runs inside
+`reset()`, which `Entity.resetUpdates()` only calls once `isSent()` is true. The RSProt bridge
+(`RsProt.pushMaskUpdates`/`pushNpcMaskUpdates`) deliberately never sets `isSent(true)` for this
+mask — it self-clears via `consumeResolvedUpdate()` instead (see the Milestone 2 fix rationale in
+HANDOFF.txt) — so `isSent()` never becomes true for RSProt-connected entities and the stage
+progression that would un-face the NPC never fired; a temporary face became permanent. Fixed by
+adding `EntityDirectionUpdate.tickTemporary()` (mirrors `reset()`'s stage progression without the
+`isSent()` gate) and calling it unconditionally once per tick from both RSProt bridge points
+(`RsProt.java`, player and NPC `pushMaskUpdates`), right after the existing
+`consumeResolvedUpdate()` block. Legacy 184/AI-bot behavior (which does go through `isSent()`/
+`reset()` normally) is untouched. Compiles clean (`./gradlew :DMS:compileJava`). Not yet
+live-client-verified.
+
+## >>> UPDATE 2026-07-14 (round 2): STAGE 13 FIXED — TILE-SETTINGS OPCODE WAS READ AS 1 BYTE, IS 2 <<<
+Root cause found and fixed: `Region.java init()`'s tile-settings decode loop read the per-tile opcode
+(and the opcode<=49 overlay-id payload) as a single byte; this cache generation actually encodes both
+as 2-byte values, so every tile after the first wide value in a region silently desynced (no crash,
+just wrong bits on wrong tiles — indistinguishable from scattered missing content until now). Confirmed
+against `Avexiis/RSPSi`'s `loadTerrain` decoder (a maintained fork of the real RSPSi map tool, verified
+live by the human against this exact stock cache via screenshots showing correct water-blocking and
+bridge-flag placement). Fixed by widening both reads (`readUnsignedShort()` / `skip(2)`); nothing else
+in the loop changed. Human-confirmed live: Falador's bridge now works correctly, walking into the
+adjacent water is now blocked, AND several previously-reported "missing objects" elsewhere on the map
+resolved as a side effect — this was one shared root cause, not the ~11 separate content gaps this
+file's 2026-07-12 section assumed. Full trail: stages/STAGE-13-clipping-and-bridges.txt.
+
+## >>> UPDATE 2026-07-14 (round 1, superseded by round 2 above): STAGE 13 OPENED — BLOCKED, NOT FIXED <<<
+Human reported bridges "not working" and general clipping gaps (walking across water at Falador
+Castle's moat, region 11828). Investigated but NOT resolved this session — see
+stages/STAGE-13-clipping-and-bridges.txt for the full trail before touching this again. Short
+version: confirmed via git history that Region.java/Tile.java/ClipUtils.java/RouteFinder.java
+(collision + pathfinding) have not changed since the rev-184 bulk commit; confirmed against
+Alter's own real source (github.com/AlterRSPS/Alter, CollisionExt.kt) that the BLOCKED/BRIDGE/ROOF
+bit-flag semantics (0x1/0x2/0x4) still match exactly; confirmed Falador's specific water tiles near
+the bridge have no z=0 blocked flag and no bordering wall object in the parsed cache data. One fix
+attempt (widening the overlay-id byte read to match rsmod's *current* decoder) was tried, live-
+tested by the human, and made things WORSE elsewhere (new invisible walls in the tournament arena,
+region 15256) — reverted. Working theory going forward: the tile-settings parser itself is
+probably fine (rsmod's current `main` may simply target a later cache generation than this
+project's 228 dump); the real gap is more likely a missing/mis-decoded object (fence/wall) specific
+to this stock cache snapshot, in the same family as the ~11 other content gaps documented in the
+2026-07-12 update below. Not yet determined whether this is isolated to Falador or systemic —
+that's the first thing Stage 13 should settle. Region.java etc. are untouched (byte-identical to
+HEAD) — nothing was left mid-edit.
+
 ## >>> UPDATE 2026-07-13 (Round 3, after Round-2 live test): STAGE 11 CHAT HEADS FIXED <<<
 Human live-tested Round 2: names/continue/message text all render correctly (proving the 231/217
 child remap below landed on the right components), but NPC and player chat HEAD models still
@@ -302,8 +744,18 @@ migration artifact to remove).
   re-confirmed with a dedicated test, but strongly implied working** by later live-testing
   sessions (chat/commands were usable enough for testers to report on other bugs). Low priority to
   explicitly re-verify.
-- **Object/NPC/player/ground-item clicks + movement (part of Milestone 4): CONFIRMED working
-  live.**
+- **Object/NPC/ground-item clicks + movement (part of Milestone 4): CONFIRMED working live.**
+- **Player-to-player right-click options (Attack/Follow/Trade with/Fight/Invite): the menu text
+  itself was never ported to RSProt (`sendPlayerAction`/`SetPlayerOp` — a gap missed by the original
+  Phase D packet inventory, not a regression) — found and fixed 2026-07-18 (STAGE 15). The `OpPlayer`
+  click dispatch this codebase previously believed "confirmed working" for players specifically was
+  never actually exercisable, since the client had no server-assigned option text to click on. The
+  first live test that same day then surfaced two further, separate bugs (STAGE 16): Follow
+  self-cancelling every tick (`Player.isLocal()` always false for RSProt players) and manual walking
+  never cancelling an in-progress Follow/Trade chase (`RsProt.onWalk` missing the
+  `resetActions(...)` call its legacy counterpart already makes — also why Trade with felt like a
+  stuck toggle). All four bugs (STAGE 15 + 16) are now code-complete, pending live-client
+  verification — see Section 6d.**
 - **Inventory item display (part of Milestone 4): CONFIRMED working live** (items land in correct
   slots).
 - **Bank interface: DONE** — stages/STAGE-04 fixed the stale 184-era InterfaceType root-child slots;
@@ -421,8 +873,14 @@ before doing anything else — nothing downstream matters until this passes.
   skipped for any player with a session.
 - [x] Phase E — `MoveGameClick`/`MoveMinimapClick` routed to the real pathfinder; `ClientCheat`
   (`::commands`) and `MessagePublic` (public chat) routed and working.
-- [x] Object / NPC / player / ground-item single-click actions (options 1-5, or 1-8 for player) —
-  **live-confirmed working** 2026-07-08.
+- [x] Object / NPC / ground-item single-click actions (options 1-5) — **live-confirmed working**
+  2026-07-08.
+- [~] Player single-click actions (options 1-8, `OpPlayer` → `PlayerActionHandler`) — the *dispatch*
+  path was wired in the same Milestone 4 round and is correct, but this bullet previously
+  overclaimed "live-confirmed working" for players specifically: no player-option text was ever
+  actually reaching the client (see Section 6d / STAGE 15, 2026-07-18), so the rev-228 client had
+  nothing to click and this path could not physically have been exercised before that fix. Corrected
+  here rather than left standing next to the new fix.
 - [x] Walking/movement — **live-confirmed working**.
 - [x] Inventory item display (`UpdateInvFull`/`UpdateInvPartial`) — **live-confirmed working**,
   items land in their own slot (was a real bug — 2-arg vs 3-arg `InventoryObject.pack`, fixed).
@@ -478,6 +936,48 @@ bubbles, face-entity, face-angle, forced-text, forced-movement, move/teleport sp
   clearly had working chat/commands (testers were reporting bugs via what appears to be normal
   chat-adjacent interaction), so this is very likely fine. Low priority — just confirm the "You
   must set a name..." overlay never appears on a fresh login, and move on.
+
+### 6d. Player-to-player interaction options (Attack, Follow, Trade with, Fight, Invite)
+- VERIFIED IN CODE: `PacketSender.sendPlayerAction()` (line ~674) now branches to RSProt's
+  `SetPlayerOp(id, priority, op)` before falling through to the legacy path. Fixed 2026-07-18 —
+  this entire area was previously unported (not just under-tested like 6a/6b), found via a fresh
+  human report + code audit rather than a live-test round.
+- **First live test (same day) found three separate bugs — see STAGE 16 — all now fixed in code:**
+  (A) Follow silently self-cancelled every tick (`Player.isLocal()` always false for RSProt players, a
+  legacy-`PlayerUpdater` dependency that's never populated for this transport); (B) manual walking
+  never cancelled an in-progress Follow/Trade chase (`RsProt.onWalk` was missing the same
+  `resetActions(true,true,true)` call the legacy `WalkHandler` already makes before every route —
+  this is also why Trade with felt like a "stuck toggle"). A follow-up re-test confirmed Follow was
+  fixed ("almost looks correct") but found (C) Trade still looked like it was following indefinitely
+  and never sent the trade-request message — traced to `TargetRoute.afterMovement0` trusting a
+  `withinDistance` flag that wasn't reliably kept in sync with the entity's actual arrival, fixed by
+  always re-checking the real position instead of only doing so for one sub-case. A/B are
+  high-confidence confirmed root causes; C is the more speculative of the three (a TEMP
+  `[TARGETROUTE]` diagnostic was added alongside it since static tracing couldn't fully rule out a
+  deeper cause). **None of the three have been live-client-tested against this exact code yet** —
+  re-run the test procedure below fresh.
+- **Test procedure**: log in as two characters. Right-click one from the other and confirm "Follow"
+  and "Trade with" both appear (assigned unconditionally at login, `Player.start()`) and work —
+  Follow should now actually path after and keep pace with the target, and Trade with should walk
+  adjacent, have the OTHER player receive "X wishes to trade with you." in their chatbox, and then
+  stop moving — not keep chasing. Watch the server console for the TEMP `[TARGETROUTE]` line when
+  Trade/Invite/dialogue-adjacency completes an approach; it prints `withinDistance`/`reachable`/
+  position/finish-tile every time, which will confirm or disprove Bug C's fix directly. Also confirm
+  neither Follow nor Trade with prevents a subsequent manual walk click from taking over immediately.
+  Then enter whatever PVP-flagged context this codebase gates
+  Attack behind — see the `setAction(1, PlayerAction.ATTACK)` call sites in `SafeZone.java`,
+  `Wilderness.java`, `Citadel.java`, `House.java`, `FFAClanWars.java`, `CombatRoom.java`,
+  `PVPInstance.java` — and confirm "Attack" appears and initiates combat against the other player. If
+  either citadel/recruiting-board content is reachable, "Invite" is worth a quick check too
+  (`Citadel.java`, `RecruitingBoard.java`). Also worth a passing check that walking away mid-combat or
+  mid-skilling-action still behaves as expected, since `onWalk` now runs `resetActions` for RSProt
+  players the same way the legacy client always has.
+- Known low-confidence detail, not a guess but unverified live: the `priority`/`top` flag (whether
+  an option sits above "Walk here") is a direct passthrough of each `PlayerAction` enum constant's
+  existing `top` value (`ATTACK`/`FIGHT` = true, others = false) — same values the legacy 184 client
+  already used, so this is expected to just work, but hasn't been watched on a real rev-228 client.
+- Full detail: HANDOFF.txt "STAGE 15 — Player-to-Player Interaction Options (SetPlayerOp Bridge)" and
+  "STAGE 16 — Player-to-Player Follow/Trade Movement Bugs".
 
 ---
 
@@ -657,6 +1157,14 @@ exact section headers (search for the `##`/`###` heading text):
   3 also contains Section 6a's coordinate-fix discovery (filed there because that's the session
   that found it, even though the fix belongs to Milestone 1's code).
 - "Protocol & Cache Dump Logging (2026-07-08)" — Section 4/5's diagnostic infrastructure.
+- "STAGE 15 — Player-to-Player Interaction Options (SetPlayerOp Bridge)" — Section 6d: why
+  Attack/Follow/Trade with/Fight/Invite never appeared in the right-click menu, and the
+  `sendPlayerAction` → `SetPlayerOp` fix.
+- "STAGE 16 — Player-to-Player Follow/Trade Movement Bugs" — Section 6d: why Follow did nothing
+  (`Player.isLocal()` always false for RSProt players), why Trade with looked like a stuck, toggling
+  imitation of Follow (`RsProt.onWalk` never cancelled an in-progress chase), and (Bug C, more
+  speculative, has a TEMP `[TARGETROUTE]` diagnostic) why Trade with still didn't complete/notify
+  even after A/B were fixed (`TargetRoute.afterMovement0`'s stale `withinDistance` check).
 
 MIGRATION.txt is a shorter roll-up of the same milestones with less blow-by-blow narrative — use
 it if you want the summary-of-the-summary rather than HANDOFF's full detail.

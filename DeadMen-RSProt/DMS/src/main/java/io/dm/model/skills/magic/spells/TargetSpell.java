@@ -1,5 +1,6 @@
 package io.dm.model.skills.magic.spells;
 
+import io.dm.deadman.content.sigils.Sigils.*;
 import io.dm.model.combat.AttackStyle;
 import io.dm.model.combat.AttackType;
 import io.dm.model.combat.CombatUtils;
@@ -160,8 +161,21 @@ public class TargetSpell extends Spell {
             double percentageBonus = entity.getCombat().getBonus(EquipmentStats.MAGIC_DAMAGE);
             if(percentageBonus > 0)
                 maxDamage *= (1D + percentageBonus * 0.01);
-            if(r != null)
-                r.remove();
+
+            boolean remove = true;
+            if(r != null) {
+                if (entity instanceof Player) {
+                    Player player = (Player) entity;
+                    if (player.hasSigil(Tier1.SIGIL_OF_THE_METICULOUS_MAGE)) {
+                        if (!Tier1.SIGIL_OF_THE_METICULOUS_MAGE.get().proc()) {
+                            remove = false;
+                            player.sendFilteredMessage("Your Sigil of the Meticulous Mage saves you some runes.");
+                        }
+                    }
+                }
+                if (remove)
+                    r.remove();
+            }
         }
 
         Hit hit = new Hit(entity, AttackStyle.MAGIC, AttackType.ACCURATE)

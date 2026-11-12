@@ -154,6 +154,9 @@ public class CommandHandler implements Incoming {
                 new GroupCommands().process(player, args);
                 return true;
 
+            case "pet":
+                new PetCommands().process(player, args);
+                return true;
 
 
 

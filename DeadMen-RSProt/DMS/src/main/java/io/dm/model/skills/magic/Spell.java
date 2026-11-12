@@ -88,4 +88,9 @@ public class Spell {
         };
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName();
+    }
+
 }

@@ -630,6 +630,51 @@ targeting, gated by `UseOnComponent` (bit 16) + `ComponentTargetable` (bit 21) t
   `ComponentTargetable` pairing is the pattern to try, not `UseOnInventory`.
 - **Compiles clean** (`./gradlew :DMS:compileJava`, 2026-07-11).
 
+## RESOLVED THIS ROUND — Round 12 (2026-07-17) — regression found after Round 11's "STAGE COMPLETE"
+### resolveRawIndex's raw idx3 was still UNCONFIRMED (see Round 1-3's own caveat) and turned out wrong
+Every item tested through Round 11 (whip, Armadyl godsword) only ever populated raw indices 1, 2,
+and 4 — nothing had ever exercised index 3, so `resolveRawIndex`'s `index+2` formula for idx3 (predicting
+op=5) was an untested extrapolation, flagged as such in the code comment the whole time. Custom sigil
+items (26002/26003, Sigil of the Meticulous Mage — human-reported: "Attune" works, "Unattune" always
+prints examine text instead; same symptom on the Rigorous Ranger sigil) were the first to populate
+idx3, and finally exercised it live. `DMS/PROTOCOL_DUMP.txt` (2026-07-17 ~18:01):
+```
+packet=If3Button interface=149 component=0 option=6 slot=0 item=26002
+packet=ItemOptionMismatch reason=unhandled item=26002 receivedOption=6 dropOption=-2 equipOption=-2
+  inventoryOptions=[null, null, Inspect, Unattune, Destroy]
+```
+"Unattune" (raw idx3) sent `option=6`, not the `5` the formula predicted. `ItemOptionMismatch` firing
+means `rawIndex` came back `-1` (option 6 wasn't recognized at all), which sends every Unattune click
+straight to the bottom `item.examine(player)` fallback — exactly the reported symptom. Meanwhile the
+SAME log confirms idx2 ("Inspect") still correctly resolves at op=4 (clicked earlier in the same
+session, no mismatch logged) and idx4 ("Destroy", occupying the conventional "Drop" slot for an
+item that can't be dropped) still resolves at the fixed op=7 (also no mismatch) — so idx1/idx2/idx4
+are unaffected, only idx3 was ever wrong. Conclusion: op=5 is apparently reserved/skipped entirely
+(joining the already-reserved 1/8), and idx3 sits one op number higher, at op=6, than the plain
+`index+2` formula assumed.
+**Fix**: `TabInventory.resolveRawIndex()` — added `if(option == 6) return 3;` alongside the existing
+`option == 7 -> 4` fixed case, and narrowed the generic `index = option - 2` formula's valid range
+from idx 0-3 down to idx 0-2 (so option=5 now correctly falls through to -1/reserved instead of being
+misassigned to idx3). Updated both the method's javadoc and the longer reasoning comment in `click()`
+with this new evidence so a future round doesn't have to re-derive it or re-flag idx3 as unconfirmed.
+### Two more bugs found in the sigil files themselves while investigating, unrelated to op-numbering
+- `SigilOfTheRigorousRanger.java`'s "Unattune" `ItemAction` checked
+  `p.hasSigil(Sigils.Tier1.SIGIL_OF_THE_METICULOUS_MAGE)` instead of
+  `SIGIL_OF_THE_RIGOROUS_RANGER` — a copy-paste leftover from the Mage sigil file (which has the
+  correct self-referential check). Would have silently no-opped Unattune for anyone without the Mage
+  sigil ALSO attuned, even after the dispatch fix above. Fixed to check its own sigil.
+- `SigilOfTheMenacingMage.java` (tier2) — not reported broken by the human, found by inspection since
+  it shares the exact same Attune/Unattune registration shape. Its "Unattune" handler checked the
+  correct sigil (`Tier2.SIGIL_OF_THE_MENACING_MAGE`) but then called `p.unattune(unattuned)`, passing
+  the UNATTUNED item id (26078) where `Player.unattune(int attunedId)` requires the ATTUNED id
+  (26077). `Player.sigils[]` only ever stores attuned ids (set by `attune()`), so `unattune`'s
+  internal search would never find a match and would always hit its `"Unable to Unattune "` message
+  fallback instead of actually unattuning. Fixed to pass `attuned`.
+- **Compiles clean** (`./gradlew :DMS:compileJava`, 2026-07-17). **NOT yet live-tested** — next
+  session should re-run Unattune on the Meticulous Mage and Rigorous Ranger sigils (the two reported
+  broken), and ideally exercise attune+unattune on the Menacing Mage sigil too since that path was
+  never reported broken but was clearly never actually working.
+
 ## KEY FILES TOUCHED THIS SESSION (for orientation)
 - `DMS/src/main/java/io/dm/model/inter/handlers/TabInventory.java` — `click()` rewritten around
   `resolveRawIndex()`; debug `sendFilteredMessage`/`sendMessage` calls intentionally left in
@@ -723,7 +768,12 @@ one narrow change (add one option string, no id/count changes) — a genuinely g
 compression-type preservation, non-item archives, etc.) is a bigger undertaking than was needed here.
 
 ## WRAP-UP
-STAGE COMPLETE as of Round 11 (2026-07-11), HUMAN-CONFIRMED LIVE. Findings here (especially
+STAGE COMPLETE as of Round 11 (2026-07-11), HUMAN-CONFIRMED LIVE — Round 12 (2026-07-17) reopened it
+briefly to fix a genuine gap in `resolveRawIndex` (raw idx3's op-number was never actually exercised
+until then; see Round 12 above) but did not change the stage's overall completion status, just
+corrected the formula. NOT yet re-confirmed live after Round 12 — treat idx3-bearing items
+(Unattune-style custom options) as the next thing to verify, not idx1/2/4 which remain solid.
+Findings here (especially
 `resolveRawIndex`'s formula, the now-closed unknown-opcode desync bug class, and the final access-mask
 bit breakdown) apply directly to Stages 06 and 08 — see the NON-GOALS note above. Note the correction
 in Round 6: there is no real "op=9 is Use" fixed op tied to cache content — that was Round 4's

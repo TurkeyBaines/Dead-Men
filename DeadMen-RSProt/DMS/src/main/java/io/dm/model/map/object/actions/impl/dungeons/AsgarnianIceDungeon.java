@@ -19,7 +19,7 @@ public class AsgarnianIceDungeon {
         /**
          * Skeletal Wyvern entrance
          */
-        ObjectAction.register(10596, 3055, 9560, 0, "enter", (player, obj) -> {
+        ObjectAction.register(10596, 3055, 9561, 0, "enter", (player, obj) -> {
             if (player.wyvernWarning) {
                 player.dialogue(new MessageDialogue("STOP! The creatures in this cave are VERY dangerous. Are you sure you want to enter?"),
                         new OptionsDialogue(

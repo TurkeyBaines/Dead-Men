@@ -1,10 +1,12 @@
 package io.dm.network.incoming.handlers.commands;
 
 import io.dm.Server;
+import io.dm.cache.Color;
 import io.dm.cache.NPCDef;
 import io.dm.deadman.tournament.gas.GasArea;
 import io.dm.deadman.tournament.mutators.impl.StaticGasMutator;
 import io.dm.model.entity.player.Player;
+import io.dm.model.inter.InterfaceType;
 import io.dm.model.inter.dialogue.NPCDialogue;
 import io.dm.model.inter.dialogue.OptionsDialogue;
 import io.dm.model.inter.dialogue.PlayerDialogue;
@@ -37,6 +39,10 @@ public class TestCommands {
 
             case "diag":
                 diag(p, args);
+                break;
+
+            case "dmm":
+                dmm(p, args);
                 break;
         }
     }
@@ -202,6 +208,26 @@ public class TestCommands {
                 );
                 break;
 
+        }
+    }
+
+    public void dmm(Player p, String... args) {
+        switch (args[1]) {
+            case "show":
+                p.openInterface(InterfaceType.MAIN, 911);
+                break;
+
+            case "mage":
+                p.getPacketSender().sendString(911, 9, "Meticulous Mage");
+                p.getPacketSender().sendString(911, 57,
+                        "This is some " + Color.RED.wrap("interesting") + " information about this " + Color.RED.wrap("Sigil.") +
+                                "<br><br>" +
+                                "Magic Accuracy: " + Color.RED.wrap("+40") +
+                                "<br><br>" +
+                                Color.RED.wrap("50% Chance") + " of " + Color.RED.wrap("saving runes") + " or " + Color.RED.wrap("staff charges") + " when using Magic."
+                        );
+                p.getPacketSender().sendString(911, 61, "25,000 Coins");
+                break;
         }
     }
 

@@ -18,8 +18,15 @@ public class TabMagic {
         InterfaceHandler.register(Interface.MAGIC_BOOK, h -> {
 
             for(SpellBook book : SpellBook.values()) {
-                for(int i = 0; i < book.spells.length; i++)
-                    h.actions[book.spellIdOffset + i] = createAction(book, book.spells[i]);
+                System.out.println("====== " + book.name + " (components " + book.spellIdOffset
+                        + "-" + (book.spellIdOffset + book.spells.length - 1) + ") =====");
+                for(int i = 0; i < book.spells.length; i++) {
+                    Spell spell = book.spells[i];
+                    int component = book.spellIdOffset + i;
+                    System.out.println("action[" + component + "]: " + (spell == null ? "<empty slot>" : spell));
+                    if(spell != null)
+                        h.actions[component] = createAction(book, spell);
+                }
             }
             h.actions[184] = (DefaultAction) (player, option, slot, itemId) -> {
                 if(slot == 0)

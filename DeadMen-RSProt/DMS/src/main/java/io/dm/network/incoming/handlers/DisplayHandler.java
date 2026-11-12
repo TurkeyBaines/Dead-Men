@@ -51,7 +51,7 @@ public class DisplayHandler implements Incoming {
         //ps.sendInterface(50, 165, 27, 0); //welcome screen pt2
 
         ps.sendInterface(320, 165, 9, 1);
-        ps.sendInterface(Interface.NOTICEBOARD, 165, 10, 1);
+        ps.sendInterface(Interface.QUEST_TAB, 165, 10, 1);
         ps.sendInterface(399, 629, 2, 1);
         ps.sendInterface(149, 165, 11, 1);
         ps.sendInterface(387, 165, 12, 1);

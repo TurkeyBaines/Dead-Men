@@ -63,11 +63,21 @@ public class Region {
         byte[] mapData = getMapData();
         if(mapData != null) {
             InBuffer mapIn = new InBuffer(mapData);
+            // FIX (Stage 13, 2026-07-14): opcode and overlay-id are BOTH 2-byte fields in this cache
+            // generation, not 1-byte — confirmed against the Avexiis/RSPSi fork's `loadTerrain` decoder
+            // (github.com/Avexiis/RSPSi, MapRegion.java), which the human visually verified renders
+            // bridge flags and blocked water correctly against this exact stock cache. The OLD 1-byte
+            // opcode read (still present in that same fork as `decodeOldMapData`, byte-identical to what
+            // this method used to do) matches a legacy cache generation, not this one. Round 1 of this
+            // investigation (see stages/STAGE-13-clipping-and-bridges.txt) only widened the overlay-id
+            // read while leaving the opcode read at 1 byte — a half-fix that desyncs the stream worse,
+            // which is why it made things worse elsewhere when tried. Widening BOTH together keeps the
+            // stream aligned.
             for(int z = 0; z < 4; z++) {
                 for(int x = 0; x < 64; x++) {
                     for(int y = 0; y < 64; y++) {
                         for(; ; ) {
-                            int i = mapIn.readByteUnsafe() & 0xFF;
+                            int i = mapIn.readUnsignedShort();
                             if(i == 0)
                                 break;
                             if(i == 1) {
@@ -75,7 +85,7 @@ public class Region {
                                 break;
                             }
                             if(i <= 49)
-                                mapIn.skipByte();
+                                mapIn.skip(2);
                             else if(i <= 81)
                                 tileData[z][x][y] = (byte) (i - 49);
                         }
@@ -119,7 +129,18 @@ public class Region {
             InBuffer landIn = new InBuffer(landscapeData);
             int objectId = -1;
             for(; ; ) {
-                int increment = landIn.readSmart();
+                // FIX (Stage 14b, 2026-07-14): the object-id gap between successive locs is encoded
+                // as an accumulating "smart2"-style value (each 32767 chunk means "add 32767 and keep
+                // reading"), not a single plain smart. Confirmed against Avexiis/RSPSi's real decoder
+                // (`Buffer.readUnsignedIntSmartShortCompat`/`readUSmartInt`, both used for this exact
+                // outer id-offset loop in `unpackObjects`/`decodeConstructedLandscapes`) — this
+                // codebase already has the matching accumulator (`InBuffer.readSmart2()`), it just
+                // wasn't used here. Any region with an object-id gap >= 32767 (common once high,
+                // sparsely-placed modern object ids are involved) desynced every read for the rest of
+                // the region once the plain `readSmart()` misread the multi-chunk encoding as a
+                // terminator/short value — explains the "~84 regions" ArrayIndexOutOfBounds/buffer-
+                // overrun class of boot errors.
+                int increment = landIn.readSmart2();
                 if(increment == 0)
                     break;
                 objectId += increment;
@@ -132,6 +153,11 @@ public class Region {
                     int localX = (positionHash >> 6) & 0x3f;
                     int localY = positionHash & 0x3f;
                     int height = positionHash >> 12;
+                    // Defensive clamp matching the real client's own decoder (RSPSi's
+                    // `unpackObjects`: `if (height >= 4) height = 3;`) — a legitimate belt-and-braces
+                    // guard in the real client, not a workaround invented here.
+                    if(height >= 4)
+                        height = 3;
                     int objectHash = landIn.readByteUnsafe() & 0xFF;
                     int type = objectHash >> 2;
                     int direction = objectHash & 0x3;

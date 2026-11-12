@@ -2,6 +2,429 @@
 Target: Revision 228 (Aligning with AlterRSPS reference).
 Cache: 'cache-oldschool-live-en-b228-2025-02-05-11-45-05-openrs2' in Cache228/cache/ + Cache228/xteas.json.
 
+## STAGE 12 — Legacy transport cleanup (Milestone 5), Increment 1: bot audit + dead legacy-login pathway removed (2026-07-19)
+- **STARTED OUT OF ORDER, DELIBERATELY, WITH USER SIGN-OFF.** Stage 12's own gate says "do not start
+  until Stages 02-11 are ALL marked DONE" — as of this session Stage 07 (object interactions) and
+  Stage 10 (player FX) are both still `IN PROGRESS, NOT DONE` (Stage 10 has a fix from 2026-07-19
+  that hasn't been live-tested at all; Stage 07's root cause is still unconfirmed). Flagged this to
+  the human explicitly before touching anything; they asked for the bot audit first, then deletion
+  only where the audit proves it's safe — not a blanket override. Every deletion below is scoped to
+  code proven unreachable by both real players AND AI bots; nothing touched here overlaps with what
+  Stages 07/10 are still investigating (their diagnostics live in `ObjectActionHandler`/`RouteFinder`/
+  `RsProt.java`'s RSProt-side bridges and `Player.localPlayers()` — all explicitly on this stage's
+  KEEP list, none of it touched).
+- **BOT AUDIT — the "critical constraint" section's premise needed checking first, and the answer was
+  more favorable than expected: AI bots are not currently spawned by anything in this codebase.**
+  Grepped for every constructor call: `new AIPlayer(...)` has zero call sites anywhere in the repo;
+  `PlayerBot.create(...)` has zero call sites anywhere in the repo. Both classes exist as real,
+  intended scaffolding (four bot scripts under `model/entity/player/ai/scripts/` — `MeleeBot`,
+  `GoblinKiller`, `EmoteScript`, `AIScript` — reference `AIPlayer` as their host type) but nothing in
+  the current codebase actually spawns one: no admin command, no panel button, no boot-time seed.
+  This doesn't relax the constraint (bots are clearly meant to come back), but it does mean there is
+  currently zero live behavior anywhere that this session's changes could visibly break.
+- **Independently of the above, traced exactly what a bot WOULD execute if spawned, and confirmed it
+  never touches the legacy wire protocol at all — only shared game logic already on the KEEP list:**
+  - `AIPlayer`/`PlayerBot` both construct their `Player` with a stub `Channel` (`ArtificialChannel`/
+    `PlayerBot`'s own private inner `EmptyChannel` — NOT the same class as `kronos-api`'s
+    `io.dm.api.netty.EmptyChannel`, which turned out to be an orphaned, zero-caller duplicate, see
+    below) whose every method is a no-op returning `null`/`false`. Neither bot type ever gets bytes
+    written to a real socket.
+  - Bots never go through packet DECODE at all — `AIPlayer.java`'s `handleDialogue`/
+    `handleInterfaceAction`/`handleObjectInteraction` call `ActionButtonHandler.handleAction(...)`/
+    `ObjectActionHandler.handleAction(...)` **directly**, the exact same `handleAction` entry points
+    Milestone 4 wired RSProt's real incoming messages into. This confirms Stage 12's own scope note
+    ("KEEP the handler game logic — `handleAction` methods are RSProt's dispatch targets") is doubly
+    correct: they're also the bots' dispatch target. Only the InBuffer-parsing opcode-table entry
+    points (`handle(Player, InBuffer, int)` per handler, fed by `IncomingDecoder`/`Incoming.java`) are
+    bot-unreachable, matching real players.
+  - Bots DO depend on shared, non-network game logic: `Player.process()`/`processEvent()`
+    (`CoreWorker.logic()` drives this for every online player regardless of transport), `Movement`/
+    `RouteFinder`, `Combat`, `Config.load`, `LoginInfo` (kronos-api — constructed directly by both
+    `AIPlayer.init()` and `PlayerBot.create0()`, and separately by `RsProt.doLogin()` for real
+    players — genuinely shared, matches this stage's own KEEP note about `LoginInfo`). None of this
+    was touched.
+- **Traced the legacy real-player login/transport chain and found it's a single unbroken dead chain,
+  not just "replaced" — `kronos-api`'s `NettyServer.start(...)` (the only thing that ever binds a
+  legacy Netty listener socket) has ZERO callers anywhere in the repo.** `Server.java`'s own comment
+  at the RSProt startup call confirms this was already known: "Network (RSProt, rev 236). Replaces
+  the legacy NettyServer/LoginDecoder stack." Walked the chain forward from that fact:
+  `NettyServer` → (never started) → `LoginDecoder` (only ever handed to `NettyServer.start` as the
+  pipeline decoder class, zero other references) → `PlayerLogin` (only ever constructed inside
+  `LoginDecoder.handle()`) → `PlayerFile.loadPlayer(PlayerLogin)`/`PlayerFile.load(PlayerLogin)` (only
+  ever called from `PlayerLogin` itself) → `login_set.deny(PlayerLogin)`/`isAllowed(PlayerLogin)`
+  (only ever called from `PlayerLogin.success()`) → `LoginWorker` (its `.add(...)` only ever called
+  from `LoginDecoder.handle()`; `.get(...)` has zero callers anywhere) → `LoginRequest` (kronos-api,
+  abstract base class, `PlayerLogin` was its only subclass anywhere in the repo). Every link in this
+  chain is unreachable once the first link (`NettyServer.start`) is confirmed uncalled — not a
+  guess, each step verified by grepping for actual constructor/method calls, not just class references
+  in comments. RSProt's real login path (`RsProt.doLogin` → `PlayerFile.loadForRsProt`, already
+  separate and untouched) never went through any of this.
+  - Bonus find: `kronos-api`'s `io.dm.api.netty.EmptyChannel.java` had ZERO references anywhere in the
+    repo, not even one — `PlayerBot.java` has its own private nested class with the same name/shape
+    that shadows it locally, so the top-level one was already fully orphaned before this session,
+    unrelated to the RSProt migration.
+- **DELETED (Increment 1, this session) — all confirmed zero-caller or exclusively-fed-by-something-
+  already-deleted:**
+  - `kronos-api/src/main/java/io/dm/api/netty/NettyServer.java`
+  - `kronos-api/src/main/java/io/dm/api/netty/EmptyChannel.java` (the orphaned duplicate, not
+    `PlayerBot`'s own nested class, which is untouched)
+  - `DMS/src/main/java/io/dm/network/LoginDecoder.java`
+  - `DMS/src/main/java/io/dm/model/entity/player/PlayerLogin.java`
+  - `DMS/src/main/java/io/dm/process/LoginWorker.java`
+  - `kronos-api/src/main/java/io/dm/api/protocol/login/LoginRequest.java`
+  - Trimmed (not deleted — both classes have other live responsibilities): `PlayerFile.java` lost
+    `loadPlayer(PlayerLogin)`/`load(PlayerLogin)` (its `loadForRsProt` and `save` are untouched and
+    are the only loaders anything still calls); `login_set.java` lost `deny(PlayerLogin)`/
+    `isAllowed(PlayerLogin)` but KEEPS `setActive(...)` (still called at boot, `Server.java:123` —
+    this class's data-loading/active-set-selection role is real and live, only its enforcement hook
+    was exclusively wired to the dead `PlayerLogin.success()` path). Noting as a pre-existing,
+    NOT-caused-by-this-session gap: this means a configured `login_set` restriction (allowed
+    groups/names) currently has no enforcement point at all for RSProt logins — it was already
+    silently unenforced before this session (its only caller was already-dead `PlayerLogin`), this
+    change just makes that explicit by removing the vestigial method rather than fixing the gap
+    (out of Stage 12's "deletion only" scope per its own NON-GOALS).
+  - `Server.java`: removed the now-dead `LoginWorker.start()` call + both now-unused imports
+    (`io.dm.api.netty.NettyServer`, `io.dm.process.LoginWorker`, `io.dm.network.LoginDecoder`).
+- **NOT touched this increment (deliberately, next increments):** `IncomingDecoder.java`/
+  `Incoming.java` (the opcode-table dispatch — `Incoming.load()` still runs at boot and populating an
+  unused table isn't harmful, just needs the same careful per-handler pass Stage 12's own STEPS
+  describe); the ~15+ handlers' `handle(Player, InBuffer, int)` opcode-entry-points (KEEP their
+  `handleAction` siblings); `PacketSender.java`'s remaining legacy `OutBuffer` bodies for
+  already-`queueRsprot`-ported methods (its `write(OutBuffer)` and `sendLogin` already explicitly
+  no-op for `player instanceof AIPlayer`, so these are very likely also safe, but not yet
+  individually audited method-by-method this session); found but NOT fixed (out of scope, flagging
+  for whoever does the `sendLogout`/bot cleanup pass): `PacketSender.sendLogout()`'s legacy fallback
+  branch only guards on `player.getChannel() == null` (not `instanceof AIPlayer` like `write()`/
+  `sendLogin()` do) — since `AIPlayer`'s channel is the non-null `ArtificialChannel`, a real
+  `forceLogout()` call on a spawned `AIPlayer` (e.g. `World.removePlayers()` during a system-update
+  countdown) would fall through to `player.getChannel().writeAndFlush(...).addListener(...)`, and
+  `ArtificialChannel.writeAndFlush(...)` returns `null` — `.addListener` on that NPEs. Currently
+  unreachable (bots aren't spawned, per the audit above) but worth fixing whenever bots come back
+  online or Stage 12 continues into `PacketSender.java`.
+- **Verified: `./gradlew :DMS:compileJava` → `BUILD SUCCESSFUL`** after all deletions/trims above,
+  full recompile (not cached — `kronos-api`/`DMS` both rebuilt). NOT live-tested (no client this
+  session, same standing constraint as every other stage) — but this increment removed code that was
+  provably unreachable from any live path (real player or bot) before AND after the change, so a
+  behavioral live-test isn't really meaningful for it the way it is for Stages 07/10's in-flight
+  fixes; the compile + call-graph audit above is the actual evidence of safety here.
+- **Stage 12 is NOT closed.** This is Increment 1 of an open-ended multi-increment stage (see its own
+  STEPS: "one package/area per commit"). `stages/STAGE-12-legacy-cleanup.txt`'s STATUS line updated
+  to reflect this — still not DONE, and still technically gated on Stages 07/10 for the *rest* of the
+  work (the incoming-decode/PacketSender increments are less obviously safe than this one and
+  deserve the same live-smoke-test discipline once those stages close).
+- Files touched: see the DELETED/trimmed list above.
+
+## STAGE 10 — Player FX verification, Round 2: projectiles never sent — `Player.localPlayers()` (2026-07-19)
+- **Reported symptom (human, live):** animations play correctly (Stage 14's old "[ANIM] still
+  unexplained" note is stale, no longer a live concern), but projectiles do not work at all.
+- **Root cause: `Player.localPlayers()` shared the exact bug class Stage 16's Bug A already fixed
+  for its sibling method `isLocal(Player)`, but was never itself touched.** Every
+  `PacketSender.sendProjectile` call is reached through `Projectile.java`'s `send(...)` overloads,
+  which pick their outgoing player list via `regionBased ? entity.getPosition().getRegion().players
+  : entity.localPlayers()`. `regionBased` defaults `false` and is only set `true` for 6 specific
+  Inferno/Fight Caves boss projectiles (`TzKalZuk`/`JalZek`/`JalXil`/`JalMejJak`/`TokXil`/`KetZek`)
+  — every ordinary player-cast ranged/magic attack (`PlayerCombat.java`, 7 call sites, all plain
+  `new Projectile(...).send(player, target)`) goes through `entity.localPlayers()` where `entity` is
+  the casting `Player`. `Player.localPlayers()` (pre-fix) was `return updater.localIterator();` —
+  reading the legacy `PlayerUpdater.local[]`/`localCount` fields, which are populated ONLY by
+  `PlayerUpdater.process()`/`.init()`, which `CoreWorker.update()` gates behind
+  `player.getSession() == null` — never true for a real RSProt player, exactly the same root cause
+  Stage 16 documented for `isLocal`. Stage 16's fix only patched `isLocal` (`PlayerMovement`'s one
+  call site); `localPlayers()` is a separate method with many more callers and was never patched.
+  Net effect: for every RSProt-connected caster, `localPlayers()` silently returned an empty
+  iterable, so `Projectile.send`'s `for (Player p : players)` loop ran zero times —
+  `PacketSender.sendProjectile` was never called at all, for anyone including the caster. This is a
+  harder failure than Stage 10 Round 1's two fixes (which were wrong-field-value bugs on an already-
+  sent packet) — here the packet never left the server in the first place.
+- **Fix applied in `Player.localPlayers()` (`Player.java`):** when `getSession() != null`, scan
+  `World.players` (refreshed every tick independently of `PlayerUpdater`) with the same membership
+  rule `isLocal()`'s existing RSProt fallback already uses — self-inclusive (`p == this`, matching
+  `PlayerUpdater.init()`'s `local[player.getIndex()] = true`) plus `p.isOnline() && !p.isHidden() &&
+  p.getPosition().isWithinDistance(getPosition())` for everyone else. Legacy/AI-bot players
+  (`getSession() == null`) are untouched — identical `updater.localIterator()` as before.
+- **`NPC.localPlayers()` confirmed unaffected** — a separate, already-correct `List<Player>` field
+  maintained bidirectionally by `PlayerNPCUpdater.syncLocalNpcs()` (a Stage 03 follow-up bridge), so
+  NPC/boss-side player-targeting is not part of this bug.
+- **Wider blast radius, fixed for free by the same change, not individually re-audited this round:**
+  every other caller of `localPlayers()` on a real RSProt `Player` receiver shared this exact bug —
+  `Retribution.java`, `DragonCrossbow.java`'s special, `TargetSpell.java`'s multi-target/multi-combat
+  splash logic (`target.localPlayers()` when `target` is a player), `ActiveVolcano.java`, and others
+  grepped during this investigation (~15 call sites total across the codebase). None individually
+  verified this round — the fix is structural, not per-call-site, so they should all now behave
+  correctly as a side effect, but that's inference, not confirmation.
+- **Status: fix applied, compiles clean (`./gradlew :DMS:compileJava`, 2026-07-19, `BUILD
+  SUCCESSFUL`, full rebuild verified, not just cached). NOT yet live-client-tested** — no
+  client/RSProx available this session. Full detail: `stages/STAGE-10-player-fx-verification.txt`
+  "ROUND 2 FINDINGS".
+- Files touched: `DMS/src/main/java/io/dm/model/entity/player/Player.java` (`localPlayers()`, ~15
+  lines added).
+
+## STAGE 16 — Player-to-Player Follow/Trade Movement Bugs (2026-07-18)
+- **Reported symptom (human, first live test of STAGE 15's `SetPlayerOp` fix):** right-clicking
+  another player and choosing "Follow" does nothing; choosing "Trade with" instead produces a rough,
+  stuck imitation of what Follow should look like, and it behaves like a toggle — the character isn't
+  freed to move normally again until "Trade with" is clicked a second time.
+- **Two separate, unrelated root causes found and fixed — not one bug with two symptoms this time.**
+
+### Bug A — Follow silently self-cancels every tick (`Player.isLocal`)
+- `PlayerMovement.process()`'s `following` handling (`PlayerMovement.java:156-174`, pre-existing,
+  unmigrated legacy game logic — unchanged by this port) gates on
+  `if(!following.isOnline() || !player.isLocal(following))`: if that's true, it immediately runs
+  `player.faceNone(false); following = null;` before ever computing a route. `Player.isLocal(Player p)`
+  (`Player.java:851-853`, pre-fix) read `updater.local[p.getIndex()]` — a boolean array belonging to
+  the legacy 184 `PlayerUpdater` bit-packed GPI protocol, populated ONLY by
+  `PlayerUpdater.process()`/`.init()` (`PlayerUpdater.java`). `CoreWorker.update()`
+  (`CoreWorker.java:138-141`) only calls `player.getUpdater().process()` `if(player.getSession() ==
+  null)` — by design, since RSProt's own `playerInfoProtocol`/`driveUpdate()` replaces the legacy GPI
+  entirely for real players (Phase C). Net effect: for every RSProt-connected player, `updater.local[]`
+  is never written to (stays default `false` all session), so `isLocal(...)` always returns `false`
+  regardless of actual distance — the `following` block treats every followed target as permanently
+  "out of view" and clears itself the very same tick it was set, before a single step toward them is
+  ever queued. This is why Follow looked like it did nothing: the click correctly reached
+  `PlayerAction.FOLLOW`'s consumer (confirmed — STAGE 15's `SetPlayerOp`/`OpPlayer` bridge is not at
+  fault; its id/op round-trip was independently re-verified this session against the
+  `osrs-228-model` sources jar's own KDoc for both `SetPlayerOp` and `OpPlayer` — both use the same
+  stable 1-8 "id"/"op" convention, not a display-order-dependent value), it just never survived past
+  that same tick.
+- **Fix applied in `Player.isLocal(Player p)` (`Player.java`):** when `getSession() != null` (a real
+  RSProt player), skip the legacy `updater.local[]` lookup entirely and fall back to a direct
+  proximity check — `p.isOnline() && !p.isHidden() && p.getPosition().isWithinDistance(getPosition())`
+  — the exact same three-part condition `PlayerUpdater.isVisible(Player)` already uses to decide
+  local-list membership in the first place (`PlayerUpdater.java:239-242`), so the semantic (default
+  14-tile radius via `Position.isWithinDistance`) matches what "local" has always meant here, just
+  computed directly instead of read from a structure that's never populated for this transport.
+  Legacy/AI-bot players (`getSession() == null`) are completely untouched — identical
+  `updater.local[]` read as before. `isLocal` has exactly one caller in the whole codebase (grepped to
+  confirm) — `PlayerMovement.java:157` — so this fix is scoped precisely to the Follow symptom.
+
+### Bug B — manual walking never cancelled Follow/Trade's in-progress chase (`RsProt.onWalk`)
+- Separately, once *either* Follow (after Bug A's fix) or Trade with (already reachable pre-fix, via
+  `PlayerAction.TRADE`'s `TargetRoute.set(p1, p2, 1, () -> { trade().request(p2); ... })`,
+  `PlayerAction.java:19-25`) is active, clicking elsewhere to walk manually never stopped it — the
+  character kept getting pulled back toward the other player every tick, matching the human's "toggle,
+  had to click Trade again to move" report exactly.
+- **Root cause: `RsProt.java`'s `onWalk` — the single bridge behind both `MoveGameClick` and
+  `MoveMinimapClick` (`RsProt.java:160-165`) — never called `resetActions`, unlike its legacy
+  counterpart.** The legacy `WalkHandler.handle()` (`WalkHandler.java:41`, opcodes 98/91, still used
+  for AI bots) calls `player.resetActions(true, true, true);` as the FIRST thing it does, before
+  reading the destination and routing — and `resetActions(true, true, true)`
+  (`Player.java:1417-1433`) is exactly what clears `movement.following = null` and calls
+  `TargetRoute.reset(this)` (alongside closing interfaces / stopping the current combat swing / the
+  current skilling event — all real OSRS "walking interrupts what you were doing" behavior).
+  `RsProt.onWalk` was ported as a thin one-line bridge straight to `routeAbsolute(...)` and never
+  picked up this call — so on RSProt, walking never interrupted an in-progress Follow/Trade-approach
+  (or, for that matter, a skilling action or combat swing either; those symptoms simply hadn't been
+  reported yet, since Follow/Trade's STAGE 15 fix is what first made this reachable/noticeable at all
+  in the same session). Same "legacy entry point does X, the RSProt thin-bridge was never given the
+  same X" shape as most of this project's other bridge gaps (see e.g. Milestone 4's `sendInterface`/
+  access-mask history).
+- **Fix applied in `RsProt.java`'s `onWalk`:** added `p.resetActions(true, true, true);` immediately
+  before `p.getRouteFinder().routeAbsolute(destX, destY);` — the identical call, in the identical
+  position (before routing), that `WalkHandler.handle()` already makes. Covers both `MoveGameClick`
+  and `MoveMinimapClick` since both route through this one method. The legacy 184/AI-bot path
+  (`WalkHandler.java`) is untouched.
+- **Why this explains "Trade looks like a bad Follow":** `PlayerAction.TRADE`'s `TargetRoute` chase
+  (`TargetRoute.beforeMovement0`, called from `Player.process()` every tick while a target is set,
+  `Player.java:1573-1575`) recomputes a fresh path toward the other player every single tick until
+  adjacent — visibly similar to Follow, but jerkier, since it's a one-shot "walk next to X then run a
+  callback" mechanic being asked to track a moving target, not a real continuous-follow algorithm.
+  That part is pre-existing, unmigrated `io.dm.model.map.route.routes.TargetRoute` behavior — this
+  session did not change how the chase itself moves, only restored the ability to walk away from it.
+- **Status: both fixes code-complete, compile clean (`./gradlew :DMS:compileJava`, 2026-07-18,
+  `BUILD SUCCESSFUL`).** NOT yet live-client-tested — no client/RSProx available this session. Next
+  step for whoever picks this up: repeat the STAGE 15 test script (two characters, right-click →
+  Follow, confirm the character actually paths after and keeps pace; right-click → Trade with,
+  confirm the trade request fires once adjacent and no longer keeps dragging the character back if
+  you then click to walk away); also worth a quick sanity check that walking away from a normal
+  skilling action or mid-combat still behaves the same as it always did on the legacy client, since
+  `resetActions` now runs for RSProt walk clicks the same way it always has for legacy ones.
+- Files touched: `DMS/src/main/java/io/dm/model/entity/player/Player.java` (`isLocal`, ~6 lines),
+  `DMS/src/main/java/io/dm/network/rsprot/RsProt.java` (`onWalk`, ~1 line + comment).
+
+### Bug C — Trade's arrival check trusted a value that isn't reliably kept in sync (`TargetRoute.afterMovement0`)
+- **Reported symptom (human, continued live test after Bugs A/B above):** trading someone still
+  looks like it's following them indefinitely, and the other player never receives the "wishes to
+  trade with you" message — Follow (Bug A) was confirmed working by this point ("almost looks
+  correct"), isolating this as a separate, Trade-specific problem. Both test characters were
+  stationary, ruling out a moving-target explanation.
+- **Structural bug found in `TargetRoute.afterMovement0` (`TargetRoute.java:133-145`):** the
+  success/failure decision reads the `withinDistance` field, but that field gets written from three
+  different places with different timing — `beforeMovement0` (start of tick, pre-movement, only ever
+  true if already exactly adjacent before this tick's own step), `RouteFinder.allowStep`'s call into
+  `TargetRoute.allowStep` (mid-step, during `movement.process()`, evaluated against the step's
+  candidate position *before* clipping/occupancy/`Wilderness.stopFollowing` gets a chance to reject
+  that same step), and — until this fix — a final re-sync in `afterMovement0` itself that only ever
+  ran `if(abs)`, i.e. only for the NPC-with-`walkTo` case. For the far more common case this method
+  actually exists to serve — walking up to a live entity (Trade with/Invite's `PlayerAction`
+  consumers, `NPCActionHandler`'s dialogue-adjacency, `InterfaceOnEntityHandler`'s item-on-player/npc
+  adjacency — every caller of `TargetRoute.set(entity, target, finishAction)` in the codebase, grepped
+  to confirm) — `withinDistance` was trusted as whatever it was last set to by the mid-step update,
+  with no authoritative recheck against where the entity actually ended up once `isAtDestination()`
+  goes true. Any step that gets provisionally marked "this arrives" by `TargetRoute.allowStep` but is
+  then rejected by a later check in the SAME `RouteFinder.allowStep` call (clipping, `Wilderness.
+  stopFollowing`, etc.) leaves a stale value sitting in the field with nothing to correct it before
+  `afterMovement0` reads it.
+- **Fix applied:** `afterMovement0` now always recomputes `withinDistance = route.finished(entity.
+  getPosition())` right before deciding success vs. `outOfReach()`, instead of only doing so `if(abs)`
+  — the exact same direct, position-based ground-truth check the `abs` branch already trusted, just no
+  longer gated to that one sub-case. This can only make the check more accurate (it now always
+  reflects reality at decision time), and doesn't touch the `else if(!withinDistance)` "Combat" branch
+  (`finishAction == null`, used by `PlayerCombat.java`'s ranged/melee targeting) at all.
+- **Added a TEMP `[TARGETROUTE]` diagnostic** at the same spot (entity/target name, `withinDistance`,
+  `route.reachable`, current position, and the tracked finish tile) — static analysis of
+  `TargetRoute`/`RouteFinder`/`Movement.step()` couldn't fully rule out, without a live client, whether
+  the fix above is the complete story or whether arrival is additionally being blocked somewhere
+  earlier (which would mean `afterMovement0` never runs at all, and this fix alone wouldn't be
+  enough). The next live test's console output shows directly whether `afterMovement0` is even being
+  reached, and if so, with what `withinDistance`/`reachable` values — remove once Trade/Invite/
+  dialogue-adjacency are confirmed reliably completing on arrival.
+- **Status: fix + diagnostic code-complete, compiles clean (`./gradlew :DMS:compileJava`, 2026-07-18,
+  `BUILD SUCCESSFUL`). NOT independently confirmed live** — flagged as the more speculative of this
+  session's three fixes (Bugs A and B are each a direct, confirmed root cause; this one is the most
+  likely explanation found via static trace, but should be treated as "leading hypothesis + fix +
+  instrumentation" rather than "confirmed root cause" until the `[TARGETROUTE]` line is actually seen
+  firing on a real approach).
+- Files touched: `DMS/src/main/java/io/dm/model/map/route/routes/TargetRoute.java`
+  (`afterMovement0`, ~10 lines incl. diagnostic).
+
+## STAGE 15 — Player-to-Player Interaction Options (SetPlayerOp Bridge) (2026-07-18)
+- **Reported symptom (human):** right-clicking another player shows only "Walk here", two identical
+  "Lookup `<name>` (level-N)" entries, and "Cancel" — no "Attack", "Follow", or "Trade with", despite
+  all of these being long-standing, fully-implemented game logic on the legacy 184 side.
+- **Root cause: `PacketSender.sendPlayerAction(String name, boolean top, int option)` was never
+  ported to RSProt — the single shared method behind every player-option menu slot.**
+  `Player.setAction(int option, PlayerAction action)` (`Player.java:763`) is the one call site that
+  assigns what each of a player's 8 right-click-on-other-players slots shows: `Player.start()` sets
+  slot 2 = Follow and slot 3 = Trade with on every login (`Player.java:1297-1299`), and
+  `SafeZone`/`Wilderness`/`PVPInstance`/`Citadel`/`House`/`FFAClanWars`/`CombatRoom`/
+  `RecruitingBoard` conditionally set slot 1 = Attack/Fight or Invite when entering a PVP-flagged
+  area or minigame — real OSRS behavior (Attack only shows where combat is actually allowed), not a
+  bug. Every one of those calls funnels through `packetSender.sendPlayerAction(...)`
+  (`PacketSender.java:674`, pre-fix), which — unlike `sendStat`/`sendRunEnergy`/`sendWeight` sitting
+  immediately above it in the same file, both correctly branched — had no `queueRsprot(...)` call at
+  all. It went straight to the legacy `OutBuffer`/`sendVarBytePacket(80)` path, which silently no-ops
+  for RSProt players via `write()`'s existing null-channel guard (`PacketSender.java:42-48`). Since
+  Milestone 3 already fixed `Player.start()` to fire at the right point in the RSProt login sequence
+  (after the session + game frame exist), the Follow/Trade assignment calls were always running at
+  the correct time — they simply had no RSProt packet to become. This method was never in Phase D's
+  "Ported Packets" inventory (see the list earlier in this file, now corrected) — a genuine gap in
+  the original port, not a regression.
+  - The duplicate "Lookup `<name>`" text corroborates this precisely: `grep -r "Lookup" DMS/src`
+    returns zero hits anywhere in this codebase — that string is not server-sent, it's the real
+    rev-228 client's own hardcoded placeholder for a right-click slot it was never told anything
+    about, and both empty Follow/Trade slots fell back to the same placeholder text.
+- **RSProt equivalent confirmed directly from the `osrs-228-model` sources jar** (extracted to
+  inspect, not decompiled/guessed): `net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp(id:
+  Int, priority: Boolean, op: String?)`. Its own KDoc: *"Set player op packet is used to set the
+  right-click option on all players to a specific option ... id: the id of the option to change, a
+  value in range of 1 to 8 (inclusive) ... priority: whether the option should get priority over the
+  'Walk here' option ... op: the option string to set, or null if removing an op."* A field-for-field
+  match with the legacy method's `(option, top, name)`: same 1-8 range (matches `Player.actions[8]`
+  and `PlayerActionHandler`'s 8 opcodes exactly — no scaling needed), same priority-over-Walk-here
+  semantics, same per-slot-assignment model.
+- **Fix applied in `PacketSender.sendPlayerAction` (`PacketSender.java:674`):** added the standard
+  `if (queueRsprot(new SetPlayerOp(option, top, op))) return;` guard ahead of the existing legacy
+  path, matching this file's established per-method pattern exactly. One deliberate translation: the
+  legacy path signals "clear this slot" with the literal text `"null"` (`Player.java:769`, an
+  old-client sentinel convention), but RSProt's own KDoc calls for a real `null` for the same
+  purpose — so the new branch maps `"null".equals(name) ? null : name` instead of forwarding the
+  sentinel string as literal display text. The legacy `OutBuffer`/opcode-80 path is completely
+  untouched — AI bots and any other legacy-184 connection get byte-identical output to before.
+- **Why this also fixes Attack (and Fight/Invite), not just Follow/Trade:** `PlayerAction.ATTACK`/
+  `FIGHT`/`INVITE` are assigned through this exact same `setAction` → `sendPlayerAction` path, just
+  conditionally (only inside PVP-flagged areas/minigames), so they were equally silently dropped for
+  RSProt connections and are fixed by this one change. No PVP/combat logic was touched — `Stage 14`'s
+  combat-migration work (hitsplat ids, animations) is unrelated and unchanged; this fix only restores
+  the client's ability to see and click the option in the first place, the same "packet reached the
+  client but nothing ever told it to render/enable this" shape as Milestone 4's original
+  access-mask bugs for inventory/equipment.
+- **Incoming side was already correct — not touched.** `OpPlayer` (options 1-8) has been wired since
+  Milestone 4 (`RsProt.java:500`, `onPlayerAction`; re-confirmed present and correct this session):
+  it dispatches straight to `PlayerActionHandler.handleAction`, which resolves the target via
+  `World.getPlayer(targetIndex)` and invokes `PlayerAction.consumer`, with the same
+  `isLocked`/`resetActions` guard duplication pattern documented for the other three entity-action
+  bridges. The reason this path was never exercised live is exactly the bug above: the rev-228
+  client will not emit an `OpPlayer` packet for a slot it was never told exists — the same "no
+  access mask/op text, no outgoing click" rule Milestone 4 Round 2 already documented for inventory
+  items — so Attack/Follow/Trade could not physically have been clicked even though the server-side
+  handler has been ready and waiting since Milestone 4.
+- **Status: code-complete, compiles clean (`./gradlew :DMS:compileJava`, 2026-07-18). NOT yet
+  live-client-tested** — no client/RSProx available this session. Next step for whoever picks this
+  up: boot server + RSProx, log in as two characters, right-click one from the other, and confirm
+  Follow and Trade with both appear and work; then get into whatever PVP-flagged context this
+  codebase already uses (see the `setAction(1, PlayerAction.ATTACK)` call sites above —
+  `SafeZone`/`Wilderness`/`Citadel`/`House`/`FFAClanWars`/`CombatRoom`/`PVPInstance`) and confirm
+  Attack appears and initiates combat. If Attack's priority-ordering looks wrong (it should sit
+  right at/above Walk here, not buried below), that's the `priority`/`top` flag — already a direct
+  passthrough of each `PlayerAction` enum constant's existing `top` value, not new logic here, but
+  worth a first check if something looks off.
+- Files touched: `DMS/src/main/java/io/dm/network/PacketSender.java` (`sendPlayerAction`, ~5 lines
+  added, legacy path untouched).
+
+## STAGE 14 — Combat Migration (2026-07-14)
+- **Reported symptom (human, live-tested):** attacks dispatch, but no NPC animations, no player
+  animations, no visible hitsplat when the player damages an NPC (XP is still granted, so damage
+  IS computed server-side), and damage the NPC deals to the player renders as a "very weird
+  hitsplash."
+- **Root cause found and fixed: `HitType` enum ordinal used directly as RSProt's real hitsplat id.**
+  `RsProt.pushMaskUpdates`/`pushNpcMaskUpdates` (`DMS/src/main/java/io/dm/network/rsprot/RsProt.java`)
+  called `ext.addHitMark(-1, type, type, damage, delay)` where `type = hits.splatType(i)` —
+  literally `HitType.values()[ordinal].ordinal()` (`DMS/src/main/java/io/dm/model/combat/HitType.java`:
+  BLOCKED=0, DAMAGE=1, POISON=2, DISEASE1=3, DISEASE2=4, VENOM=5, HEAL=6). RSProt's `addHitMark`
+  `selfType`/`otherType` parameters are NOT a small semantic enum RSProt owns — they're arbitrary
+  real OSRS cache `HitsplatID` config ids, confirmed against RuneLite's `HitsplatID.java` (a stable,
+  revision-independent reference for these specific ids): `DAMAGE_ME=16`, `DAMAGE_OTHER=17`,
+  `BLOCK_ME=12`, `BLOCK_OTHER=13`, `POISON=65`, `DISEASE=4`, `DISEASE_BLOCKED=3`, `VENOM=5`, `HEAL=6`,
+  `CORRUPTION=0`. This codebase's ordinal 1 (`DAMAGE`, the single most common hit in the game) had no
+  corresponding real hitsplat id at all — the client silently rendered nothing, exactly matching "no
+  visible damage to NPC" (XP still granted because that's computed independently of the visual
+  splat). Ordinal 0 (`BLOCKED`) coincidentally landed on real id 0, which is `CORRUPTION` — an
+  unrelated, bizarre-looking splat — matching "weird hitsplash" reported for hits landing on the
+  player (a blocked/0-damage hit is the `BLOCKED` type). Ordinals 5 (`VENOM`→5) and 6 (`HEAL`→6)
+  happened to coincidentally match their real ids, which is presumably why not *everything* combat
+  related looked broken.
+- **Fix applied:** added `rsprotSelfSplat`/`rsprotOtherSplat` int fields to every `HitType` enum
+  constant (real ids, see mapping below), and two new accessor methods on `HitsUpdate`
+  (`splatRsProtSelfType(index)`/`splatRsProtOtherType(index)`) that look up the mask's stored
+  ordinal through `HitType.values()[...]` and return the real id pair. `RsProt.java`'s two
+  `addHitMark` call sites (player + NPC bridge) now call these instead of passing the raw ordinal
+  twice. The legacy 184 wire format (`HitsUpdate.send()`, used for AI bots / anything without an
+  RSProt session) is completely untouched — it still packs the same ordinal it always did; only the
+  RSProt bridge's translation changed.
+  - Mapping used: `BLOCKED`→(self=12, other=13), `DAMAGE`→(16, 17), `POISON`→(65, 65),
+    `DISEASE1`→(4, 4), `DISEASE2`→(3, 3), `VENOM`→(5, 5), `HEAL`→(6, 6). POISON/DISEASE/VENOM/HEAL
+    have no distinct "me" (viewing yourself get hit) vs "other" (viewing someone else get hit)
+    variant in the real id table, so the same id is reused for both — only BLOCKED/DAMAGE have real
+    "me"/"other" pairs (`BLOCK_ME`/`BLOCK_OTHER`, `DAMAGE_ME`/`DAMAGE_OTHER`).
+  - `hits.hpBarType` (the actual hp-bar sprite, a *different* real id space than the hitsplat type
+    above) was deliberately left untouched. Several bosses set it explicitly (`Necrominion`=8,
+    `AbyssalSire`/`TzKalZuk`/`Glod`/`Ketian`/`SkotizoPVPEvent`=2, `CorruptedScavengerChamber`/
+    `IceDemonChamber`=7, `GreatOlm`'s claws=1/8) — these read like they were already tuned against
+    real per-boss bar styles by whoever built this content, and no equivalent hard evidence of a
+    mismatch was found (unlike the hitsplat case, where RuneLite's `HitsplatID.java` gave a concrete,
+    checkable ground truth). Per this project's own standing "don't guess without a real source"
+    rule (see the Interface.BANK id discussion elsewhere in this file), left alone rather than
+    reworked on a hunch.
+- **Animations — still unexplained, NOT fixed this round.** Both player and NPC animation bridging
+  (`ext.setSequence(anim.id, anim.delay)` in the same two methods) were audited and found
+  structurally identical to the hits bridge that's now confirmed to at least partially work (same
+  `hasUpdate(false)`/`setSent(true)` lifecycle, same tick ordering — both run in `driveUpdate()`'s
+  per-player/per-npc mask-push pass, before `playerInfoProtocol.update()`/`npcInfoProtocol.update()`
+  gather the snapshot). `setSequence`'s call signature (`id`, `delay` in client cycles) matches the
+  `osrs-228-model` sources jar exactly (`PlayerAvatarExtendedInfo.kt` KDoc). No RSProt-side
+  null-check, thread-check, or gating specific to animations (vs. hits) was found in the surrounding
+  code. Since this bridge has never been live-tested at all before this session (see THE_PLAN.txt
+  Section 6b's original note), the actual cause is still open — could be a real, not-yet-found bug
+  in this bridge, or could be a sequence-id-vs-cache mismatch, or something else entirely. Added a
+  TEMP `[ANIM]` console print at both call sites (prints entity identity + sequence id/delay
+  whenever the branch fires) so the next live combat test shows directly whether the branch even
+  fires, and with what values — that's the fastest way to narrow this down further. Remove the print
+  once root-caused.
+- **Status: PARTIALLY FIXED.** Hitsplat id translation is a confirmed, high-confidence fix (real
+  ids from a stable community reference, not a guess) — pending live confirmation like everything
+  else in this project. Animation symptom is still open; the `[ANIM]` diagnostic is the next lead.
+  Compiles clean (`./gradlew :DMS:compileJava`, 2026-07-14).
+
 ## Core RSProt Signatures (From javap)
 - RebuildNormal(zoneX, zoneZ, worldArea, XteaProvider)
 - RebuildLogin(zoneX, zoneZ, worldArea, XteaProvider, PlayerInfo)
@@ -54,7 +477,7 @@ s.queue(new RebuildLogin(x>>3, z>>3, -1, xtea, player.playerInfo));
 - UpdateInvFull / UpdateInvPartial: CombinedId hardcoded to -1 (unbound) to bypass positive combined ID crashes on container refreshes.
 
 ## Current Phase D Packet Status & Missing Ports
-- Ported Packets: sendMessage (MessageGame), sendVarp (VarpSmall/Large dirty-tracked), sendStat (UpdateStatV2), sendRunEnergy (UpdateRunEnergy), sendInterface/removeInterface (IfOpenSub/IfCloseSub), sendString (IfSetText), setHidden (IfSetHide), sendAccessMask (IfSetEvents), sendClientScript (RunClientScript), sendLogout (Logout.INSTANCE), sendGameFrame (IfOpenTop), sendItem (IfSetObject), sendSystemUpdate (UpdateRebootTimer), sendWeight (UpdateRunWeight), sendSoundEffect/sendMusic (SynthSound/MidiSongV2), sendHintIcon (HintArrow), sendGraphics (MapAnim), sendCreateObject (LocAddChangeV2), sendRemoveObject (LocDel), sendGroundItem (ObjAdd), sendProjectile (MapProjAnim), sendAreaSound (SoundArea) — the last six are zone-scoped, wrapped in 'UpdateZonePartialEnclosed' via the new 'queueZonePayload()' helper (see "Milestone 1 Fix" below).
+- Ported Packets: sendMessage (MessageGame), sendVarp (VarpSmall/Large dirty-tracked), sendStat (UpdateStatV2), sendRunEnergy (UpdateRunEnergy), sendInterface/removeInterface (IfOpenSub/IfCloseSub), sendString (IfSetText), setHidden (IfSetHide), sendAccessMask (IfSetEvents), sendClientScript (RunClientScript), sendLogout (Logout.INSTANCE), sendGameFrame (IfOpenTop), sendItem (IfSetObject), sendSystemUpdate (UpdateRebootTimer), sendWeight (UpdateRunWeight), sendSoundEffect/sendMusic (SynthSound/MidiSongV2), sendHintIcon (HintArrow), sendGraphics (MapAnim), sendCreateObject (LocAddChangeV2), sendRemoveObject (LocDel), sendGroundItem (ObjAdd), sendProjectile (MapProjAnim), sendAreaSound (SoundArea) — the last six are zone-scoped, wrapped in 'UpdateZonePartialEnclosed' via the new 'queueZonePayload()' helper (see "Milestone 1 Fix" below); sendPlayerAction (SetPlayerOp) — the player-to-player right-click option slots (Attack/Follow/Trade with/Fight/Invite), missed entirely by the original Phase D inventory above until found and fixed in "STAGE 15" below.
 - Remaining Missing Ports:
   1) Player Update Masks: FIXED (code-complete, not yet live-client-verified) — see "Milestone 2 Fix" below.
   2) Chatbox Gate: FIXED (code-complete, not yet live-client-verified) — see "Milestone 3 Fix" below.
@@ -1319,6 +1742,43 @@ s.queue(new RebuildLogin(x>>3, z>>3, -1, xtea, player.playerInfo));
   2026-07-11). **NOT yet live-tested.**
 - Full detail: `stages/STAGE-05-inventory-actions.txt`'s "RESOLVED THIS ROUND — Round 9" section.
 
+## STAGE 05 — Inventory item actions execute, Round 12 (2026-07-17)
+- **Stage 05 was marked COMPLETE as of Round 11 (2026-07-11, see
+  stages/STAGE-05-inventory-actions.txt) — this is a regression/gap found afterward in the same
+  `resolveRawIndex` mechanism, not a reopening of unrelated work. HANDOFF's own summary log never
+  separately recorded Rounds 10-11 by number (it jumped straight from Round 9 to Stage 06); the
+  detail file is the authoritative round count for this stage, hence this entry is numbered 12, not
+  10, to stay consistent with it.**
+- **Human reported custom sigil items (26002/26003, Sigil of the Meticulous Mage): "Attune" works,
+  "Unattune" always misfires as Examine. Also reported the Rigorous Ranger sigil's Unattune broken
+  the same way.**
+- **Root cause: raw index 3 — flagged UNCONFIRMED in `resolveRawIndex`'s comment since Round 3 because
+  no previously-tested item ever populated it — turned out not to follow the idx+2 formula.** These
+  sigil items were the first with a populated idx3 ("Unattune") AND idx4 ("Destroy" instead of the
+  usual "Drop") simultaneously. `DMS/PROTOCOL_DUMP.txt` (2026-07-17 ~18:01) shows item 26002,
+  `inventoryOptions=[null, null, Inspect, Unattune, Destroy]`, clicking "Unattune" (raw idx3) sends
+  `receivedOption=6`, not the `5` the idx+2 formula predicts — logged as `ItemOptionMismatch`, which
+  is exactly what sends it to the bottom `item.examine(player)` fallback. idx1/idx2/idx4 all still
+  check out exactly as previously confirmed (whip/AGS), so this isn't a wrong theory, just a genuine
+  gap: op=5 is apparently reserved/skipped (same class as 1/8) and idx3 sits at op=6 instead.
+- **Fix (`TabInventory.java`)**: `resolveRawIndex` now special-cases `option==6 -> 3` (alongside the
+  existing `option==7 -> 4` fixed case) and narrows the generic `index = option-2` formula to idx0-2
+  only. Comment above `click()` and `resolveRawIndex`'s javadoc both updated with the new evidence so
+  a future round doesn't have to re-derive this.
+- **Two more bugs found and fixed while in this code, same feature, not dispatch-related:**
+  - `SigilOfTheRigorousRanger.java`'s "Unattune" handler checked
+    `p.hasSigil(Sigils.Tier1.SIGIL_OF_THE_METICULOUS_MAGE)` — copy-pasted from the Mage sigil file and
+    never updated, so it was gated on the wrong sigil entirely. Now checks
+    `SIGIL_OF_THE_RIGOROUS_RANGER`.
+  - `SigilOfTheMenacingMage.java` (tier2, not reported by the human but same shape, caught in passing)
+    — its "Unattune" handler correctly checked its own sigil but then called `p.unattune(unattuned)`,
+    passing the unattuned item id where `Player.unattune(int attunedId)` requires the attuned id.
+    Since `Player.sigils[]` only ever stores attuned ids (set by `attune()`), this lookup could never
+    match and would always hit the `"Unable to Unattune "` fallback message. Now passes `attuned`.
+- Compiles clean (`./gradlew :DMS:compileJava`, 2026-07-17). **NOT yet live-tested** — next tester
+  should re-run Unattune on the Meticulous Mage and Rigorous Ranger sigils, and ideally also attune +
+  unattune the Menacing Mage sigil since that path was never reported broken but was clearly untested.
+
 ## STAGE 06 — Unequip from worn-equipment tab (2026-07-11)
 - **Root-caused with hard evidence from `DMS/PROTOCOL_DUMP.txt`, not another guessed access-mask bit.**
   The stage brief's own binary fork ("does an `If3Button` line show up for unequip clicks?") was
@@ -1982,3 +2442,230 @@ wider.
   OptionsDialogue.open" diagnostic is still in place, not touched this round.
 - No live client this session (same constraint as every prior Stage 11 round) — pending the
   human's next live test via the updated TEST SCRIPT step 1 in the stage file.
+
+## Boot Memory & OOM Fix (2026-07-18)
+- **Reported symptom:** server consumes 8GB+ RAM, boots in 20+ seconds. User asked for RAM fixed
+  first, boot time second.
+- **Method:** booted the server for real (`./gradlew :DMS:run`, `world_stage=DEV` skips the SQL
+  requirement, no client needed) and read the FULL boot log end to end rather than just the
+  "Started server" summary line — this project's own boot sequence catches exceptions per-class
+  (`PackageLoader`) and per-region/per-interface, so a real, severe failure can be completely
+  invisible unless you actually look. Found a literal `java.lang.OutOfMemoryError: Java heap space`
+  at `InterfaceHandler.<init>` (`InterfaceHandler.java:53`), thrown while `PackageLoader` was
+  loading `SigilPurchaseScreen.class` — silently caught and logged as one more
+  `[main] ERROR rollingErrorFileLogger - Package Failure: ...` line among many, indistinguishable at
+  a glance from the many other benign/expected `Package Failure` lines this project's boot log
+  already contains (custom content ids missing from stock Cache228, etc. — see the 2026-07-12
+  update in THE_PLAN.txt).
+- **Root cause: `SigilPurchaseScreen.java`'s static block indexes `h.actions[element.component]`
+  for every enum constant, including 23 placeholder constants that use the no-arg constructor
+  (`SPECIALISED_STRIKES()`, `METICULOUS_MAGE()`, `RUTHLESS_RANGER()`, etc. — sigils that don't have
+  a purchase-screen mapping authored yet) — the no-arg constructor sets `component = -1`.
+  `h.actions[-1]` throws `ArrayIndexOutOfBoundsException`. `InterfaceHandler.register(int, int,
+  Consumer)` (added 2026-07-12, see THE_PLAN.txt Section 9 "RESOLVED 2026-07-12") catches exactly
+  this exception and retries with `handler.actions.length * 2` — a correct, working fix for its
+  ORIGINAL bug class (a real interface's true 228 child count exceeding the legacy-cache-derived
+  size the array was first allocated at, e.g. interface 215's real 12 vs code writing up to index
+  13 — one retry, doubles 12→24, succeeds). But doubling an array's SIZE can never turn index -1
+  into a valid index — that's not a "too small" problem, it's a "wrong index entirely" problem — so
+  every single boot, this call site retried the SAME failing consumer forever: array size 1, 2, 4,
+  8, 16... doubling exponentially, each failed attempt discarding the previous (undersized) array
+  but still paying for the allocation + GC of the one that just failed, until the array allocation
+  itself finally exceeded whatever `-Xmx` ceiling was configured and threw `OutOfMemoryError`. This
+  fully explains BOTH reported symptoms from one bug: the RAM cost is the sequence of
+  exponentially-growing failed allocations (and the GC pressure/pause time they generate) on every
+  single boot, and the extra wall-clock time is that same GC churn.
+- **This also explains why `-Xmx` had apparently been bumped to 8g** (`DMS/build.gradle`,
+  `applicationDefaultJvmArgs`) — raising the ceiling doesn't fix a doubling-forever loop, it just
+  gives it more room to run before finally failing, so someone almost certainly hit this OOM at a
+  lower `-Xmx` at some point and "fixed" it by raising the ceiling rather than finding the actual
+  bug — the loop still burns through gigabytes of allocation/GC every boot regardless of where the
+  ceiling sits, it just takes correspondingly longer to hit a higher one.
+- **Fix 1 (the actual bug) — `SigilPurchaseScreen.java`:** the static block now skips any element
+  with `component < 0` instead of indexing with it. `SigilSelectionScreen.java` (the sibling file,
+  same package, added in the same uncommitted batch of sigil work) was checked for the identical
+  pattern and does NOT have it — its three registered indices (6, 11, 16) are all real, positive
+  component ids with no placeholder-constant equivalent, so it was left untouched.
+- **Fix 2 (defense-in-depth, not just this one call site) — `InterfaceHandler.java`:** `register`'s
+  retry loop now has a hard ceiling, `MAX_ACTIONS_SIZE = 100_000` (real Cache228 interfaces top out
+  around 567 real components — interface 162, the chatbox, per `CACHE_INTERFACE_DUMP.txt` — so this
+  leaves enormous headroom without permitting runaway growth). Once a retry would exceed it, `register`
+  throws a clear `IllegalStateException` naming the interface id and the last size it tried, instead
+  of continuing to double. This is caught by the exact same `PackageLoader` per-class try-catch that
+  already handles every other static-init failure in this codebase, so a genuinely broken
+  registration still fails gracefully (that one class's content doesn't load, logged as a
+  `Package Failure` line same as before) — it just can no longer consume gigabytes of heap doing so.
+  **71 files call `InterfaceHandler.register` across this codebase; none of the other 70 were
+  individually audited for a similar negative-index bug** (out of scope for a RAM-focused pass with
+  that many call sites) — this fix protects all of them generically against the *consequence* of
+  that bug class (unbounded OOM) without needing to find every possible instance of the cause.
+- **Fix 3 — `DMS/build.gradle`:** `applicationDefaultJvmArgs`'s `-Xmx8g` → `-Xmx4g`. Measured real
+  usage via `jcmd <pid> GC.heap_info` (forced a `GC.run` first so the number reflects live data, not
+  garbage awaiting collection) after a full, real boot with zero players connected, both before and
+  after the two fixes above: **before** the OOM literally exhausted whatever ceiling was configured
+  (confirmed live in this session at the pre-fix `-Xmx8g`); **after**, steady state is ~1.96GB used /
+  ~3.5GB committed — measured twice, on two independent boots, consistent both times. 4g leaves
+  roughly double that as headroom for live players (this measurement is boot-time/zero-player
+  baseline only — nobody has measured live multiplayer memory growth, that's a separate future
+  question if RAM creeps up again under real load).
+- **Verified via 3 full headless boots** (`./gradlew :DMS:run`, `world_stage=DEV`, no client
+  needed): boot 1 (before any fix) — `OutOfMemoryError` present, 44667ms boot. Boot 2 (after fixes
+  1+2, still at the old `-Xmx8g`) — zero `OutOfMemoryError` occurrences, no `SigilPurchaseScreen`
+  package-failure line, 29473ms boot. Boot 3 (after fix 3 also landed, `-Xmx4g`) — zero
+  `OutOfMemoryError`, 26096ms boot, ~1.96GB/~3.47GB heap via `jcmd`. `TabMagic.class` still fails to
+  load (`NullPointerException: book.spells[i] is null`) in every boot including both post-fix ones —
+  **pre-existing, unrelated to this fix, not investigated or touched this round** (a spellbook-data
+  issue, nothing to do with `InterfaceHandler`/memory).
+- **Boot time: improved (44.7s → 26-29s) as a side effect of fixing the OOM's own GC churn, but NOT
+  separately investigated or optimized — still "over 20 seconds" per the original report.** Per the
+  user's own explicit priority ("preference on RAM saving first, before time saving"), this session
+  stopped once RAM was fixed and verified. `CacheInterfaceDumper.dump()`, `ItemOptionDumper.dump()`,
+  and `ObjectDef`'s per-boot opcode audit (`OBJECT_DEF_OPCODE_DUMP.txt`) all run unconditionally on
+  every single boot — migration-era diagnostic tooling (see THE_PLAN.txt Section 4/5, Stage 05
+  Round 4) that's still useful for ongoing debugging but has a real, unmeasured per-boot cost. Region
+  loading (`region_keys.java`'s `fromJson`) also fully decodes every real region's terrain +
+  landscape (object placement) data eagerly at boot rather than lazily per-region-visited — a
+  plausible next lead if boot time is revisited, but NOT confirmed as a bottleneck this round (no
+  profiling done, this is an architectural observation from reading the code, not a measurement).
+  **Do not assume either of these is "the" boot-time cost without measuring first** — this session's
+  own lesson (guessing at RAM/time causes vs. reading the actual boot log) applies equally to a
+  future time-focused pass.
+- Files touched: `DMS/src/main/java/io/dm/deadman/content/sigils/SigilPurchaseScreen.java`,
+  `DMS/src/main/java/io/dm/model/inter/InterfaceHandler.java`, `DMS/build.gradle`. Full summary:
+  THE_PLAN.txt's 2026-07-18 update section (top of file).
+
+## Boot Time Fix (2026-07-18, part 2)
+- **Follow-up question, same session**: human asked whether the ~1641 JSON data files (5.3MB total
+  under `DMS/data/`) were a boot-time bottleneck, and whether they could be loaded some other way
+  (e.g. from the cache instead of flat files). Rather than guess, added a temporary per-phase timer
+  around every step of `Server.main()` (each wrapped in `System.out.println("[TIMING] ... " +
+  (System.currentTimeMillis() - _t) + "ms")`) and, once the biggest phase was identified, a
+  per-class timer inside `PackageLoader.findClasses` (`if (_cls_dt > 20) System.out.println(...)`)
+  to find which specific classes were slow. **All instrumentation was removed once used** — `git
+  diff` on `Server.java` for this round nets to zero; `DataFile.java` and `PackageLoader.java` kept
+  only their real fixes, not the timers.
+- **Finding: JSON parsing was never the bottleneck.** The real ~1641 files parse in well under 2
+  seconds combined (confirmed via a per-`DataFile`-class timer: `npc_combat` 775 files ~726ms,
+  `npc_drops` 704 files ~235ms, `npc_spawns` 123 files ~199ms, `item_info` 1 file ~590ms, `teleports`
+  1 file ~127ms). The actual costs were elsewhere, in code that had nothing to do with JSON:
+- **`PackageLoader.load("io.dm")` was 16.5s of the ~26.6s boot (the single largest phase by far).**
+  Per-class instrumentation showed only 29 of 1683 classes took more than 20ms each, totaling ~14.8s
+  — the other ~1650 classes together took about 2.5s. Two real, distinct causes in the worst
+  offenders:
+  1. **`ItemID`/`NpcID`/`ObjectID` (`DMS/src/main/java/io/dm/cache/`, 11297/8322/19390 lines,
+     39,009 total): ~5.2s combined (ObjectID ~3.3s, ItemID ~1.3s, NpcID ~0.7s) for zero benefit.**
+     These are auto-generated (`/* This file is automatically generated. Do not edit. */`) files of
+     nothing but `public static final int NAME = value;` constants — grepped, confirmed zero static
+     blocks in any of the three. Every reference to one of these constants anywhere else in the
+     codebase (97 files use them) is a compile-time-constant field access that javac already inlines
+     as a literal into the referencing class's own bytecode per JLS 13.4.9 — nothing at runtime
+     actually needs `ItemID`/`NpcID`/`ObjectID` loaded. `PackageLoader`'s blanket `Class.forName`
+     scan (whose whole purpose, per its own existing doc comment, is "ensures all static blocks
+     load" for content self-registration) was force-loading them anyway — parsing/verifying a class
+     file with tens of thousands of constant-pool entries is genuinely expensive work, just entirely
+     pointless here. **Fix**: `PackageLoader.java` gained a class-level exclusion list
+     (`EXCLUDED_CLASSES`/`isExcludedClass`, alongside the existing package-level
+     `EXCLUDED_PACKAGES`/`isExcluded` — these three classes live in `io.dm.cache`, a package full of
+     OTHER classes like `ItemDef`/`ObjectDef` that genuinely must load, so a package-level exclusion
+     wasn't an option), wired into both the jar-scanning and directory-scanning branches of
+     `findClasses`.
+  2. **`Door.java`: ~5.2s alone — the single most expensive class-load in the whole boot.** Its
+     static block calls `ObjectDef.forEach` to find every door/gate object, then for each one calls
+     `findOppositeId(def)` — which did a full linear scan of `ObjectDef.LOADED.values()` (tens of
+     thousands of objects) to find that door's open/closed counterpart by matching name + several
+     other fields. With (per the boot's own object counts) several thousand door/gate objects each
+     scanning tens of thousands of candidates, this was a genuine O(doors × totalObjects) algorithm,
+     not a fixed cost. **Fix** (`Door.java`): build a `Map<String, List<ObjectDef>>` grouping every
+     loaded object by exact name ONCE before the door-registration loop (name equality was always
+     `findOppositeId`'s first, primary filter — matching `Objects.equals(def.name, originalDef.name)`
+     exactly), then have `findOppositeId` look up only that name's small candidate bucket (door/gate
+     variants come in small families — open/closed pairs, recolors — not spread across the whole
+     object namespace) instead of scanning everything. Every other check `findOppositeId` already
+     performed (`render0x2`, `modelIds`, `modelTypes`, `modifiedModelColors`, `verticalFlip`,
+     `options`) is unchanged, just run against a far smaller candidate list — matching results are
+     identical, only the search strategy changed.
+  3. **The SAME "scan every ObjectDef/NPCDef for a name match" pattern turned out to be the shared
+     implementation behind every by-name registration overload in the codebase, not just Door.java's
+     own bespoke logic.** `ObjectAction.register(String objectName, ...)` (3 overloads),
+     `ItemObjectAction.register(String objectName, ...)` / `register(int itemId, String objectName,
+     ...)`, `NPCAction.register(String npcName, ...)` (3 overloads), and
+     `ItemNPCAction.register(String npcName, ...)` / `register(int itemId, String npcName, ...)` —
+     8 overloads total across 4 interfaces — all called `ObjectDef.forEach`/`NPCDef.forEach` with an
+     `equalsIgnoreCase` check, i.e. a full linear scan per call. `Cooking.java` (~1.8s, the third
+     most expensive class) was the clearest single-class evidence of this: its static block calls
+     `ItemObjectAction.register(food.rawID, "range"/"cooking range"/"fire"/"stove"/"sulphur
+     vent"/"cooking pot", ...)` — 6 of 7 calls per `Food` enum constant are by-name — so every food
+     type triggered 6 full scans of the entire object cache. **Fix**: added a cached,
+     case-insensitive name index to both `ObjectDef` and `NPCDef` (`getByName(String)`, built once
+     lazily on first call via a `Map<String, List<XDef>>` keyed by lowercased name, safe to build
+     lazily since `ObjectDef.load()`/`NPCDef.load()` both complete before `PackageLoader.load("io.dm")`
+     ever runs), then repointed all 8 by-name `register(...)` overloads at it instead of the
+     `forEach` scan. This is a general, one-time fix for the whole pattern — it speeds up every
+     current and future by-name registration call site in the codebase, not just the specific
+     classes profiled this session (only `Door.java`/`Cooking.java` were individually investigated;
+     `RaidStorage.java` ~1.0s and `SmeltBar.java` ~0.24s were also in the slow-class list but use the
+     `register(objectId, "optionName", ...)` — by-ID, not by-name — overload, which was already O(1)
+     and wasn't investigated further; whatever else makes them individually slow is unknown and out
+     of scope for this round).
+- **`DataFile.load`: ~6-7s. One real, safe waste removed; the dominant remaining cost is genuine
+  work, not JSON, and was NOT fixed this round.** `DataFile.PackedFile`'s constructor
+  (`DMS/src/main/java/io/dm/data/DataFile.java`) called `JsonUtils.GSON_EXPOSE.toJson(dataFile
+  .fromJson(...))` — re-serializing every parsed data file's result (NPC combat data, spawn lists,
+  ...) back into a JSON string — for every one of ~1641 files. Confirmed via grep that this `.json`
+  field is ONLY ever read by `loadPacked()`, replaying a previously-written `server-data.json` file —
+  but the only code that would ever WRITE that file (`loadUnpacked()`'s own `JsonUtils.toFile(...)`
+  call) is commented out, and `Server.dataOnlyMode` (the other thing that reads the raw form) is a
+  hardcoded `false` with no setter anywhere in the codebase. So in the actual live boot path
+  (`loadUnpacked()`, used whenever `data/` exists, which it always does here) and the in-game
+  `::reload` command (`DataFile.reload`, which only reads `.size()`), this re-serialized value was
+  computed and immediately discarded on every single file, every single boot. **Fix**: `PackedFile`
+  gained a `computePackedJson` constructor parameter (default `false` via the existing 2-arg
+  constructor, so `load(DataFile)`'s call site needed no change) that skips the Gson round-trip
+  unless explicitly requested. **Per-`DataFile`-class instrumentation revealed the real dominant
+  cost inside `DataFile.load` is NOT this, and isn't JSON at all: `region_keys.java` alone measured
+  ~4.1s of DataFile.load's ~5.8-6.6s total (run-to-run variance ±0.5-1s).** `region_keys.fromJson`
+  (see the earlier 2026-07-12 entry — it no longer even reads its own nominal JSON file, it reads
+  `xteas.json` and calls `region.init()` for every one of the game's ~2250 real regions) is doing
+  full binary-cache decompression + terrain/object-placement decoding for the ENTIRE live game world,
+  eagerly, serially, at every single boot — this is genuine, necessary work under the current
+  eager-world-loading architecture (every static object in the whole game is fully in memory the
+  moment the server starts, not loaded on demand per-region-visited), not a bug. **Investigated
+  parallelizing `region.init()` across CPU cores (each region's own terrain+object decode is
+  otherwise self-contained — verified `Region.getTile` only ever touches `this` region's own bounds
+  when called from inside `Region.init()`'s own loops) and rejected it as unsafe without further
+  work, rather than risk a subtle concurrency bug in core world-loading:** `BankActions.markTiles`
+  (`DMS/src/main/java/io/dm/model/item/containers/bank/BankActions.java`, called from inside every
+  region's own object-placement loop whenever a bank object is placed) walks OUTWARD from the bank
+  up to 8 (or 30, under a roof) tiles in each of 4 directions via the STATIC `Tile.get(x,y,z,true)`
+  — which resolves through `Region.get(x,y)`, i.e. it CAN and does reach into a neighboring region
+  when a bank sits within that distance of a region boundary. `Region.getTile`'s lazy allocation
+  (`if (tiles == null) tiles = new Tile[4][64][64];` and the per-slot `if (tile == null) tile =
+  ... = new Tile(this);`) has a plain, unguarded check-then-act race — safe today only because
+  region loading is single-threaded. Running two regions' `init()` concurrently could have one
+  thread's cross-boundary `markTiles` call race against the target region's own `init()` thread,
+  risking lost flags or duplicate `Tile` objects. Fixing this properly would mean adding real
+  synchronization to `Region.getTile` — but that exact method is also the hot per-tick gameplay tile
+  lookup (movement, clipping, everything), so any fix has to not add lock overhead to live tick
+  processing, which is a bigger and riskier piece of work than this session's scope. **Left as a
+  flagged, not-yet-attempted follow-up** — see THE_PLAN.txt's own note on this. Do not parallelize
+  `region.init()` without fixing `Region.getTile`'s thread-safety first.
+- **Verified via 6 full headless boots** (`./gradlew :DMS:run`, `world_stage=DEV`, no client needed;
+  each boot's leftover `io.dm.Server` process was explicitly killed via `Stop-Process`/PowerShell
+  before the next one — a stale process holding port 13302 caused one boot to hang on
+  `BindException: Address already in use`, not a real regression, just a test-harness artifact from
+  not cleaning up the previous run). Total boot time across the session's fixes (this entry plus the
+  OOM entry above, same session): **44.7s (original) → 26.6s (post-OOM-fix only) → 15.6s (post
+  PackageLoader/Door/name-index fixes) → 13.7s (post DataFile fix, final)** — a ~70% reduction
+  overall. `jcmd <pid> GC.heap_info` confirmed RAM is unaffected by this round's changes (still
+  ~1.96GB used, matching the OOM-fix entry's numbers) — these were all CPU-bound boot-time fixes, not
+  memory ones, exactly matching what the human asked for as the secondary priority.
+- Files touched: `kronos-api/src/main/java/io/dm/api/utils/PackageLoader.java`,
+  `DMS/src/main/java/io/dm/cache/ObjectDef.java` (new `getByName`), `DMS/src/main/java/io/dm/cache/
+  NPCDef.java` (new `getByName`), `DMS/src/main/java/io/dm/model/map/object/actions/impl/Door.java`,
+  `DMS/src/main/java/io/dm/model/map/object/actions/ObjectAction.java`,
+  `DMS/src/main/java/io/dm/model/entity/npc/NPCAction.java`,
+  `DMS/src/main/java/io/dm/model/item/actions/ItemObjectAction.java`,
+  `DMS/src/main/java/io/dm/model/item/actions/ItemNPCAction.java`,
+  `DMS/src/main/java/io/dm/data/DataFile.java`. `Server.java` touched during investigation
+  (temporary timers) but reverted to its exact prior state — no net change. Full summary:
+  THE_PLAN.txt's 2026-07-18 (part 2) update section.

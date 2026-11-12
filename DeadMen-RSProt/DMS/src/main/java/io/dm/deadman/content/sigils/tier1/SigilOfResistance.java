@@ -3,11 +3,17 @@ package io.dm.deadman.content.sigils.tier1;
 import io.dm.deadman.content.sigils.Sigil;
 import io.dm.deadman.content.sigils.Sigils;
 import io.dm.model.entity.player.Player;
+import io.dm.model.item.actions.ItemAction;
 
 public class SigilOfResistance extends Sigil {
     @Override
     public String name() {
-        return Sigils.Tier1.SIGIL_OF_RESISTANCE.name();
+        return "Sigil of Resistance";
+    }
+
+    @Override
+    public String shortName() {
+        return "Resistance";
     }
 
     @Override
@@ -17,12 +23,12 @@ public class SigilOfResistance extends Sigil {
 
     @Override
     public int unattuned() {
-        return 0;
+        return 28490;
     }
 
     @Override
     public int attuned() {
-        return 0;
+        return 28489;
     }
 
     @Override
@@ -31,5 +37,10 @@ public class SigilOfResistance extends Sigil {
 
 
         return true;
+    }
+
+    public SigilOfResistance() {
+        ItemAction.registerInventory(unattuned(), "Attune", attune());
+        ItemAction.registerInventory(attuned(), "Unattune", unattune());
     }
 }

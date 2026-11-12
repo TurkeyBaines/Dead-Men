@@ -140,13 +140,36 @@ public abstract class DataFile {
         final String json;
 
         PackedFile(DataFile dataFile, File unpackedFile) throws IOException {
+            this(dataFile, unpackedFile, false);
+        }
+
+        /**
+         * PERFORMANCE (2026-07-18): {@code computePackedJson} lets callers skip re-serializing
+         * the parsed result back into a JSON string via Gson. That string ({@link #json}) is only
+         * ever read by {@link #loadPacked()}, replaying a previously-written
+         * {@code server-data.json} — but the write path that would produce that file
+         * ({@code loadUnpacked()}'s own commented-out {@code JsonUtils.toFile(...)} call) has been
+         * dead code for a while, so in practice nothing ever reads {@code server-data.json} either.
+         * {@link #load(DataFile)} (used by both {@code loadUnpacked()}, the live boot path since
+         * this project's {@code data/} folder always exists, and the in-game {@code ::reload}
+         * command) never used the returned {@code json} field for anything beyond the discarded
+         * {@code packedFiles} list — every one of ~1640 JSON data files was paying for a full Gson
+         * re-serialization of its own parsed object graph (NPC combat data, spawn lists, ...)
+         * purely to build a value nobody read. Measured cost: real work
+         * ({@code dataFile.fromJson(...)}, actually building the game's NPC/spawn/item data) plus
+         * this wasted step together were ~7s of a ~26s boot (see git history) — skipping the waste
+         * is the safe part of that; the real parse work is unchanged and still runs every time.
+         */
+        PackedFile(DataFile dataFile, File unpackedFile, boolean computePackedJson) throws IOException {
             loaderClass = dataFile.getClass().getName();
             fileName = unpackedFile.getName().replace(".json", "");
 
+            String rawJson = JsonUtils.fromFile(unpackedFile);
             if (Server.dataOnlyMode) {
-                json = JsonUtils.fromFile(unpackedFile);
+                json = rawJson;
             } else {
-                json = JsonUtils.GSON_EXPOSE.toJson(dataFile.fromJson(unpackedFile, fileName, JsonUtils.fromFile(unpackedFile)));
+                Object parsed = dataFile.fromJson(unpackedFile, fileName, rawJson);
+                json = computePackedJson ? JsonUtils.GSON_EXPOSE.toJson(parsed) : null;
             }
         }
 

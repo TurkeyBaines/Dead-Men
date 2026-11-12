@@ -36,6 +36,9 @@ public class Purgatory {
 
     }
 
+    public boolean contains(Player player) {
+        return bounds.inBounds(player.getPosition());
+    }
 
     private void registerPortal() {
         ObjectAction.register(31947, "Enter", (p, o) -> {
@@ -49,30 +52,15 @@ public class Purgatory {
 
             p.startEvent((e) -> {
                 p.lock(LockType.MOVEMENT);
-                int xDiff = centre.getX() - p.getPosition().getX();
-                int yDiff = centre.getX() - p.getPosition().getX();
-                while (xDiff != 0 && yDiff != 0) {
-                    p.getMovement().force(
-                            (xDiff == 0 ? 0 : xDiff > 0 ? -1 : 1),
-                            (yDiff == 0 ? 0 : xDiff > 0 ? -1 : 1),
-                            0,
-                            0,
-                            10,
-                            0,
-                            Direction.NORTH
-                    );
-                    xDiff = centre.getX() - p.getPosition().getX();
-                    yDiff = centre.getY() - p.getPosition().getY();
-
-                    System.out.println("xDiff:" + xDiff + " | yDiff:" + yDiff);
-                    e.delay(2);
-                }
+                p.getMovement().forceWalkTo(centre);
+                e.delay(5);
                 p.animate(11876);
                 e.delay(2);
                 p.animate(11877);
-                e.delay(2);
+                e.delay(4);
                 p.getMovement().teleport(Deadman.getCitadel().getRandomSpawnPoint());
-                p.animate(-1);
+                p.animate(11274);
+                e.delay(8);
                 p.unlock();
             });
         });

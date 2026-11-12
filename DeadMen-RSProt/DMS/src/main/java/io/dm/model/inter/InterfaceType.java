@@ -19,18 +19,33 @@ public enum InterfaceType {
             new Component(164, 16),
             false
     ),
-    INVENTORY( // AlterRSPS INVENTORY destination: fixed=83, resize=79, resizeList=75 (this is the
-               // "swap the inventory tab slot" destination — matches FIXED_FRAME_PANES' own {149,83}
-               // entry for the inventory tab itself, confirming the value)
-            new Component(548, 83),
-            new Component(161, 79),
-            new Component(164, 75),
+    INVENTORY( // The side-modal slot that overlays the tab area (bank/shop/trade side panel).
+               // Stage 04 originally used the inventory TAB PANE's own slot (548:83 etc., the
+               // FIXED_FRAME_PANES {149,83} entry): opening a side panel there EVICTED the 149 sub
+               // and left the sidebar blank on client-side modal close. The first replacement
+               // (2026-07-18) took AlterRSPS's TAB_AREA values verbatim (fixed=77/74/70) — but a
+               // component dump of THIS cache (scratchpad IfDump over Cache228 idx 3, 2026-07-19)
+               // shows 548:77 is a background GRAPHIC, so subs opened there never rendered at all
+               // (live symptom: bank opened with no side inventory, deposits impossible). The real
+               // slot in this cache is the contentType-1354 layer inside each frame's tab-area
+               // container (548:78 under container 16, 161:74 under 73, 164:71 under 96 — same
+               // 190x261 geometry as the tab panes). Corroborated externally: RuneLite's
+               // interfaces.toml (runelite-parent-1.10.24, whose 548/161/164 component maps match
+               // this cache's dump on every named child: minimap=8/21, inventory pane=83,
+               // 161:73/79/96/97, 164:76/93/94/95/96) names 548:78 "bank_container" — the slot the
+               // real game's bank side panel occupies in fixed mode — and Alter's own resize value
+               // (161:74) is this same ct1354 layer. The tab pane (149) is never touched, so the
+               // client restores the sidebar itself the instant the side sub closes — no server
+               // round-trip, matching real OSRS.
+            new Component(548, 78),
+            new Component(161, 74),
+            new Component(164, 71),
             false
     ),
     INVENTORY_OVERLAY( // same destination as INVENTORY above, just with the overlay flag set
-            new Component(548, 83),
-            new Component(161, 79),
-            new Component(164, 75),
+            new Component(548, 78),
+            new Component(161, 74),
+            new Component(164, 71),
             true
     ),
     SOCIAL_TAB( // AlterRSPS SOCIAL destination: fixed=89, resize=85, resizeList=81
@@ -149,17 +164,6 @@ public enum InterfaceType {
     public void close(Player player) {
         Component component = getComponent(player);
         player.getPacketSender().removeInterface(component.parentId, component.childId);
-    }
-
-    /**
-     * Re-opens [id] into this type's slot with the game-frame pane setting (overlay=1), exactly as
-     * {@code RsProt.openFrame}'s FIXED_FRAME_PANES loop does at login — used to restore a permanent
-     * tab pane (e.g. the inventory, 149) after a temporary interface that had replaced it closes.
-     * On the rev-228 IF3 frame an emptied child stays empty; nothing client-side restores the tab.
-     */
-    public void openTab(Player player, int id) {
-        Component component = getComponent(player);
-        player.getPacketSender().sendInterface(id, component.parentId, component.childId, 1);
     }
 
     private Component getComponent(Player player) {

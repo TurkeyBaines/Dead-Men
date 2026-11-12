@@ -3,6 +3,7 @@ package io.dm.model.entity.shared.masks;
 import io.dm.Server;
 import io.dm.api.buffer.OutBuffer;
 import io.dm.model.combat.Hit;
+import io.dm.model.combat.HitType;
 import io.dm.model.entity.shared.UpdateMask;
 
 import java.util.ArrayList;
@@ -89,6 +90,16 @@ public class HitsUpdate extends UpdateMask {
 
     public int splatType(int index) {
         return splats.get(index).type;
+    }
+
+    /** RSProt-only: real HitsplatID for this splat as seen by the entity it's on ("me" variant). */
+    public int splatRsProtSelfType(int index) {
+        return HitType.values()[splats.get(index).type].rsprotSelfSplat;
+    }
+
+    /** RSProt-only: real HitsplatID for this splat as seen by other observers ("other" variant). */
+    public int splatRsProtOtherType(int index) {
+        return HitType.values()[splats.get(index).type].rsprotOtherSplat;
     }
 
     public int splatDamage(int index) {

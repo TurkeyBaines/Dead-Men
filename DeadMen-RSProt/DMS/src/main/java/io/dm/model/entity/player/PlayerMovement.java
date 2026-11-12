@@ -130,6 +130,11 @@ public class PlayerMovement extends Movement {
         player.sendMessage("I can't reach that!");
     }
 
+    public void forceWalkTo(Position position) {
+        player.getRouteFinder().routeAbsolute(position.getX(), position.getY());
+        stepType = StepType.FORCE_WALK;
+    }
+
     /**
      * Processing
      */

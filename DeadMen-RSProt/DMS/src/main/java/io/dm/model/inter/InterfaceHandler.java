@@ -69,6 +69,15 @@ public class InterfaceHandler {
     }
 
     /**
+     * Sane upper bound on {@link #actions}' size. Growth beyond this means the consumer is
+     * indexing with something that isn't a real (undersized-array) child id — most likely a
+     * negative index, which doubling can never fix — not that the real interface has more
+     * components than this. The largest real Cache228 interface seen so far (interface 162,
+     * the chatbox) has ~567 components; this leaves a wide margin without allowing runaway growth.
+     */
+    private static final int MAX_ACTIONS_SIZE = 100_000;
+
+    /**
      * {@code InterfaceDef.COUNTS[interfaceId]} is now read straight from the stock cache (see
      * {@link InterfaceDef#load}), so it's the real component count for whatever's actually
      * loaded — but plenty of registrations here still hardcode childIds from whatever cache this
@@ -78,6 +87,15 @@ public class InterfaceHandler {
      * backing array whenever the consumer overruns it — every registration seen so far just
      * assigns {@code h.actions[n] = ...} with no other observable side effect, so re-running the
      * same consumer against a fresh, larger handler is safe.
+     *
+     * <p>Guarded against a real incident (2026-07-18): a negative index (an enum constant left
+     * with a default/placeholder {@code component = -1}) throws the same
+     * {@link ArrayIndexOutOfBoundsException} this catches, but doubling an array's size can never
+     * turn -1 into a valid index — so a negative-index bug used to retry forever, doubling toward
+     * an {@code OutOfMemoryError} instead of failing. Once {@link #actions}' size would exceed
+     * {@link #MAX_ACTIONS_SIZE}, this now throws a clear, immediate exception instead — caught by
+     * {@code PackageLoader}'s existing per-class try-catch, same as any other static-init failure,
+     * just without burning gigabytes of heap first.
      */
     public static void register(int interfaceId, int minSize, Consumer<InterfaceHandler> consumer) {
         for (;;) {
@@ -87,7 +105,14 @@ public class InterfaceHandler {
                 HANDLERS[interfaceId] = handler;
                 return;
             } catch (ArrayIndexOutOfBoundsException e) {
-                minSize = handler.actions.length * 2;
+                int nextSize = handler.actions.length * 2;
+                if (nextSize > MAX_ACTIONS_SIZE) {
+                    throw new IllegalStateException("InterfaceHandler.register(" + interfaceId
+                            + ") consumer keeps overrunning actions[] (last tried size "
+                            + handler.actions.length + ") - likely a negative or bogus index, not "
+                            + "an undersized array; refusing to keep doubling toward an OutOfMemoryError", e);
+                }
+                minSize = nextSize;
             }
         }
     }

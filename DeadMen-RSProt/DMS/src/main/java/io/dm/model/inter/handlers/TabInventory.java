@@ -84,15 +84,21 @@ public class TabInventory {
         // null,null,Drop]: Wield idx1->op3, Drop idx4->op7) and Armadyl godsword (opts=[null,Wield,
         // Dismantle,null,Drop]: Wield idx1->op3, Dismantle idx2->op4, Drop idx4->op7 — SAME op7 as
         // the whip's Drop despite an extra populated slot before it, ruling out a content-dependent
-        // formula). Fits purely positionally: raw slots 0-3 -> op = index+2, and slot 4 (always
-        // "Drop" by convention) is a fixed op=7 — same idea as Examine already being fixed at
-        // op=10 regardless of array length. Indices 0 and 3 are still UNCONFIRMED (never populated
-        // in a tested item yet). See stages/STAGE-05-inventory-actions.txt and HANDOFF.txt's
-        // "STAGE 05" section. This also explains the "Wield dismantled the item" bug: the OLD
-        // actions[] lookup used raw `option-1` as the array index uncorrected, so option=3 (really
-        // Wield, raw index 1) collided with whatever sat at raw index 2 (Dismantle) purely by
-        // coincidence of the numbers. resolveRawIndex() below is now used consistently for
-        // actions[]/drop/equip so that coincidence can't happen again.
+        // formula). Fits purely positionally: raw slots 0-2 -> op = index+2, slot 4 (always "Drop"
+        // by convention) is a fixed op=7 — same idea as Examine already being fixed at op=10
+        // regardless of array length. Index 3 was flagged UNCONFIRMED here for a long time (never
+        // populated in a tested item) until the sigil items (26002/26003, Sigil of the Meticulous
+        // Mage) finally exercised it live (2026-07-17): opts=[null,null,Inspect,Unattune,Destroy] —
+        // "Unattune" at raw idx3 sent op=6, NOT op=5 as the idx+2 formula would predict (see
+        // DMS/PROTOCOL_DUMP.txt ~18:01, receivedOption=6). idx1/idx2/idx4 all still check out
+        // exactly as before, so op=5 is apparently reserved/skipped entirely (same class as the
+        // already-reserved 1/8) and idx3 jumps to op=6 instead. See
+        // stages/STAGE-05-inventory-actions.txt and HANDOFF.txt's "STAGE 05" section. This also
+        // explains the "Wield dismantled the item" bug: the OLD actions[] lookup used raw
+        // `option-1` as the array index uncorrected, so option=3 (really Wield, raw index 1)
+        // collided with whatever sat at raw index 2 (Dismantle) purely by coincidence of the
+        // numbers. resolveRawIndex() below is now used consistently for actions[]/drop/equip so
+        // that coincidence can't happen again.
         int rawIndex = resolveRawIndex(option);
 
         ItemDef real = Cache228ItemDefs.get(itemId);
@@ -194,17 +200,19 @@ public class TabInventory {
 
     /**
      * Reverses the real 228 client's op-numbering (see the comment in {@link #click}) back to a
-     * raw {@code inventoryOptions} array index: slots 0-3 use {@code op = index + 2}, slot 4
-     * (conventionally "Drop") is a fixed {@code op = 7}. Returns -1 for any op that doesn't map to
-     * a known array slot — either genuinely unobserved/reserved (1, 6, 8), or a fixed op handled
-     * separately before this is ever called: 9 is "Use" (always available on every item,
-     * independent of cache text) and 10 is Examine.
+     * raw {@code inventoryOptions} array index: slots 0-2 use {@code op = index + 2}, slot 3 is a
+     * fixed {@code op = 6}, and slot 4 (conventionally "Drop") is a fixed {@code op = 7}. Returns
+     * -1 for any op that doesn't map to a known array slot — either genuinely unobserved/reserved
+     * (1, 5, 8), or a fixed op handled separately before this is ever called: 9 is "Use" (always
+     * available on every item, independent of cache text) and 10 is Examine.
      */
     private static int resolveRawIndex(int option) {
         if(option == 7)
             return 4;
+        if(option == 6)
+            return 3;
         int index = option - 2;
-        return index >= 0 && index <= 3 ? index : -1;
+        return index >= 0 && index <= 2 ? index : -1;
     }
 
     public static void drag(Player player, int fromSlot, int toSlot) {

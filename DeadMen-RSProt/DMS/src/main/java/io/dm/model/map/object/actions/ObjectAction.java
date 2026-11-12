@@ -42,24 +42,18 @@ public interface ObjectAction {
      */
 
     static void register(String objectName, int option, ObjectAction action) {
-        ObjectDef.forEach(def -> {
-            if(def.name.equalsIgnoreCase(objectName))
-                register(def.id, option, action);
-        });
+        for (ObjectDef def : ObjectDef.getByName(objectName))
+            register(def.id, option, action);
     }
 
     static void register(String objectName, String optionName, ObjectAction action) {
-        ObjectDef.forEach(def -> {
-            if(def.name.equalsIgnoreCase(objectName))
-                register(def.id, optionName, action);
-        });
+        for (ObjectDef def : ObjectDef.getByName(objectName))
+            register(def.id, optionName, action);
     }
 
     static void register(String objectName, Consumer<ObjectAction[]> actionsConsumer) {
-        ObjectDef.forEach(def -> {
-            if(def.name.equalsIgnoreCase(objectName))
-                register(def.id, actionsConsumer);
-        });
+        for (ObjectDef def : ObjectDef.getByName(objectName))
+            register(def.id, actionsConsumer);
     }
 
     /**
@@ -83,12 +77,30 @@ public interface ObjectAction {
      */
 
     static void register(GameObject obj, int option, ObjectAction action) {
+        // FIX (2026-07-14, Rev Caves crash investigation): a hardcoded (objectId, x, y, z) that
+        // doesn't resolve to a real placed object in this stock cache (stale/wrong coordinate,
+        // content ported from a different reference) used to NPE here and take the ENTIRE calling
+        // class's static initializer down with it - losing every OTHER registration in that class
+        // too, not just the bad one. Same class of bug already fixed elsewhere in this codebase for
+        // NPC.setCombat()/Tile.occupy() (see THE_PLAN.txt's 2026-07-12 update) - degrade gracefully,
+        // don't crash the loader. Concretely: RevCaves.java's south-exit door (objectId 31557 @
+        // 3194,10055,0) doesn't exist in Cache228, which previously crashed RevCaves's <clinit>
+        // before its 5 jump-pillar registrations (all independently confirmed correct against real
+        // cache data) ever ran.
+        if(obj == null) {
+            System.err.println("[ObjectAction] register(option) called with no object (stale coordinate?) - skipped");
+            return;
+        }
         if(obj.actions == null)
             obj.actions = new ObjectAction[5];
         obj.actions[option - 1] = action;
     }
 
     static boolean register(GameObject obj, String optionName, ObjectAction action) {
+        if(obj == null) {
+            System.err.println("[ObjectAction] register(\"" + optionName + "\") called with no object (stale coordinate?) - skipped");
+            return false;
+        }
         int option = obj.getDef().getOption(optionName);
         if(option == -1)
             return false;
@@ -97,6 +109,10 @@ public interface ObjectAction {
     }
 
     static void register(GameObject obj, Consumer<ObjectAction[]> actionsConsumer) {
+        if(obj == null) {
+            System.err.println("[ObjectAction] register(actionsConsumer) called with no object (stale coordinate?) - skipped");
+            return;
+        }
         ObjectAction[] actions = new ObjectAction[5 + 1];
         actionsConsumer.accept(actions);
         obj.actions = Arrays.copyOfRange(actions, 1, actions.length);

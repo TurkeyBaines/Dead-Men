@@ -25,7 +25,7 @@ public class InterfaceCommands {
                 print(p, args);
                 break;
 
-            case "sendstring":
+            case "sendstring": case "sendstr":
                 sendString(p, args);
                 break;
         }
@@ -33,7 +33,7 @@ public class InterfaceCommands {
 
     private void show(Player p, String... args) {
         if (args.length == 2)
-            p.openInterface(InterfaceType.WILDERNESS_OVERLAY, Integer.parseInt(args[1]));
+            p.openInterface(InterfaceType.MAIN, Integer.parseInt(args[1]));
         else if (args.length == 3)
             if (args[1].equalsIgnoreCase("cont"))
                 p.startEvent(e -> {
@@ -82,6 +82,9 @@ public class InterfaceCommands {
             text = sb.toString();
         }
 
+        System.out.println("interface: " + inter);
+        System.out.println("component: " + comp);
+        System.out.println("text: " + text);
         p.getPacketSender().sendString(inter, comp, text);
     }
 

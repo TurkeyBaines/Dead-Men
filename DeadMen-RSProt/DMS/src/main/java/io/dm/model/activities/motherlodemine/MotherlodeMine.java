@@ -62,10 +62,10 @@ public class MotherlodeMine { //why do we have two motherlode mine classes? Remo
 
 
     public static final GameObject WHEEL_1 = Tile.getObject(BROKEN_WHEEL, 3743, 5668, 0);
-    public static final GameObject STRUT_1 = Tile.getObject(BROKEN_STRUT, 3742, 5669, 1);
+    public static final GameObject STRUT_1 = Tile.getObject(BROKEN_STRUT, 3742, 5669, 0);
 
     public static final GameObject WHEEL_2 = Tile.getObject(BROKEN_WHEEL, 3743, 5662, 0);
-    public static final GameObject STRUT_2 = Tile.getObject(BROKEN_STRUT, 3742, 5663, 1);
+    public static final GameObject STRUT_2 = Tile.getObject(BROKEN_STRUT, 3742, 5663, 0);
 
     public static final Bounds[] UPPER_LEVEL_VEINS = {
             new Bounds(3732, 5670, 3763, 5684, 0),

@@ -3,6 +3,7 @@ package io.dm.model.entity.player;
 import com.google.gson.annotations.Expose;
 import io.dm.deadman.Deadman;
 import io.dm.deadman.content.sigils.Sigil;
+import io.dm.deadman.content.sigils.SigilPurchaseScreen;
 import io.dm.deadman.content.sigils.Sigils;
 import io.dm.deadman.content.sigils.Sigils.*;
 import io.dm.deadman.tournament.team.Group;
@@ -73,6 +74,10 @@ import java.util.function.Consumer;
 import static io.dm.cache.ItemID.*;
 
 public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlayer {
+
+    public int selectedSigilShopIndex = -1;
+    public String selectedSigilShopName = null;
+    public int selectedSigilShopPrice = -1;
 
     public Shop viewingShop;
 
@@ -590,17 +595,10 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
             activeHandler.closedAction.accept(this, -1);
         type.close(this);
         activeInterfaceHandlers[type.ordinal()] = null;
-        // Stage 11 Round 2: INVENTORY/INVENTORY_OVERLAY share the inventory tab's frame slot
-        // (548:83 fixed), so anything opened through them (world switcher, bank/shop side view,
-        // looting bag, ...) REPLACES the inventory pane (149). On the rev-228 IF3 frame the child
-        // just stays empty after the close — the 184 client used to restore the tab itself — so
-        // re-open the inventory pane the same way RsProt.openFrame does at login.
-        if(type == InterfaceType.INVENTORY || type == InterfaceType.INVENTORY_OVERLAY) {
-            InterfaceType.INVENTORY.openTab(this, io.dm.model.inter.Interface.INVENTORY);
-            // Same mask RsProt.openFrame sends at login (Stage 05's final inventory mask) — a
-            // freshly re-opened sub does not retain the previous instance's IfSetEvents.
-            getPacketSender().sendAccessMask(io.dm.model.inter.Interface.INVENTORY, 0, 0, 27, 3407870);
-        }
+        // (Stage 11's INVENTORY tab-restore hack used to live here: side panels once opened into
+        // the inventory tab pane's own slot, evicting 149. INVENTORY/INVENTORY_OVERLAY now target
+        // the TAB_AREA side-modal slot — see InterfaceType — so the tab pane is never touched and
+        // the client restores the sidebar itself the moment the side sub closes.)
     }
 
     public void closeInterfaces() {
@@ -845,10 +843,37 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
     private PlayerUpdater updater;
 
     public Iterable<Player> localPlayers() {
+        if (getSession() != null) {
+            // Same root cause as isLocal()'s RSProt branch below: updater.local[]/localCount are
+            // only ever written by PlayerUpdater.process()/.init(), which CoreWorker.update() gates
+            // behind getSession() == null - never for real RSProt players - so updater.localIterator()
+            // silently yields zero players forever for this entity. Every caller of localPlayers()
+            // (Projectile.send's non-regionBased path, Retribution, DragonCrossbow, TargetSpell,
+            // boss/NPC AI targeting, ...) would then loop over nothing - e.g. a player-cast ranged/
+            // magic projectile reaching zero PacketSender.sendProjectile calls and rendering for
+            // nobody, including the caster. Fall back to the same proximity scan isLocal() uses,
+            // built from World.players (already refreshed every tick independently of PlayerUpdater)
+            // instead of the never-populated legacy local-list.
+            List<Player> local = new ArrayList<>();
+            for (Player p : World.players) {
+                if (p != null && (p == this || (p.isOnline() && !p.isHidden()
+                        && p.getPosition().isWithinDistance(getPosition())))) {
+                    local.add(p);
+                }
+            }
+            return local;
+        }
         return updater.localIterator();
     }
 
     public boolean isLocal(Player p) {
+        if (getSession() != null) {
+            // RSProt players never run the legacy PlayerUpdater (CoreWorker.update() only calls
+            // getUpdater().process() when getSession() == null), so updater.local[] is never
+            // populated and would always read false here. Fall back to the same proximity check
+            // PlayerUpdater.isVisible() uses to decide local-list membership in the first place.
+            return p.isOnline() && !p.isHidden() && p.getPosition().isWithinDistance(getPosition());
+        }
         return updater.local[p.getIndex()];
     }
 
@@ -1269,6 +1294,10 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
 
         if (sigils == null) {
             sigils = new int[] {-1, -1, -1};
+        }
+
+        if (utc == null) {
+            utc = "None";
         }
 
     }
@@ -1780,20 +1809,23 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
         return Deadman.getGroups().getGroup(this, groupID);
     }
 
-    public int getSigil(int slot) {
-        return sigils[slot];
-    }
-
     public boolean hasSigil(Tier1 sigil) {
         for (int i : sigils)
-            if (i == sigil.getUnattuned())
+            if (i == sigil.getAttuned())
                 return true;
         return false;
     }
 
     public boolean hasSigil(Tier2 sigil) {
         for (int i : sigils)
-            if (i == sigil.getUnattuned())
+            if (i == sigil.getAttuned())
+                return true;
+        return false;
+    }
+
+    public boolean hasSigil(Tier3 sigil) {
+        for (int i : sigils)
+            if (i == sigil.getAttuned())
                 return true;
         return false;
     }
@@ -1807,38 +1839,72 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
         return empty > 0;
     }
 
-    public boolean attune(int unattunedId) {
-        if (!canAttune())
-            return false;
+    public void attune(int unattunedId) {
+        Sigil sigil = Sigils.get(unattunedId);
+        if (sigil == null) return;
+        if (!canAttune()) return;
 
         for (int i = 0; i < 3; i++)
             if (sigils[i] == -1) {
-                sigils[i] = unattunedId;
-                return true;
+                sigils[i] = sigil.attuned();
+                break;
             }
 
-        return false;
+        startEvent(e -> {
+            lock(LockType.FULL);
+            animate(807);
+            e.delay(2);
+            getInventory().remove(sigil.unattuned(), 1);
+            getInventory().add(sigil.attuned(), 1);
+            unlock();
+        });
+
     }
 
-    public boolean unattune(int attunedId) {
-        int unattunedId = attunedId + 1;
+    public void unattune(int attunedId) {
+        Sigil sigil = Sigils.get(attunedId);
+        if (sigil == null)
+            return;
+
+        boolean found = false;
+        int index = -1;
         for (int i = 0; i < 3; i++)
-            if (sigils[i] == unattunedId) {
-                sigils[i] = -1;
-                return true;
+            if (sigils[i] == attunedId) {
+                index = i;
+                found = true;
             }
 
-        return false;
+        if (!found) { sendMessage("Unable to Unattune " + Sigils.get(attunedId).name()); return; }
+
+        sigils[index] = -1;
+
+        startEvent(e -> {
+            lock(LockType.FULL);
+            animate(775);
+            e.delay(4);
+            getInventory().remove(sigil.attuned(), 1);
+            getInventory().add(sigil.unattuned(), 1);
+            unlock();
+        });
+
     }
 
-    public boolean reset() {
+    public Sigil getSigil(int index) {
+        return Sigils.get(sigils[index]);
+    }
+    public int getSigilID(int index) {
+        return sigils[index];
+    }
+
+    public boolean resetSigils() {
         for (int i = 0; i < 3; i++)
             sigils[i] = -1;
         return true;
     }
 
-    public boolean remove(int slot) {
+    public boolean removeSigil(int slot) {
         sigils[slot] = -1;
         return true;
     }
+
 }

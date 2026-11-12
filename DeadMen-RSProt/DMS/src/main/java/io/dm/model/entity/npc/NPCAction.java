@@ -40,24 +40,18 @@ public interface NPCAction {
      */
 
     static void register(String npcName, int option, NPCAction action) {
-        NPCDef.forEach(def -> {
-            if(def.name.equalsIgnoreCase(npcName))
-                register(def.id, option, action);
-        });
+        for (NPCDef def : NPCDef.getByName(npcName))
+            register(def.id, option, action);
     }
 
     static void register(String npcName, String optionName, NPCAction action) {
-        NPCDef.forEach(def -> {
-            if(def.name.equalsIgnoreCase(npcName))
-                register(def.id, optionName, action);
-        });
+        for (NPCDef def : NPCDef.getByName(npcName))
+            register(def.id, optionName, action);
     }
 
     static void register(String npcName, Consumer<NPCAction[]> actionsConsumer) {
-        NPCDef.forEach(def -> {
-            if(def.name.equalsIgnoreCase(npcName))
-                register(def.id, actionsConsumer);
-        });
+        for (NPCDef def : NPCDef.getByName(npcName))
+            register(def.id, actionsConsumer);
     }
 
     /**

@@ -16,7 +16,10 @@ import io.dm.model.entity.player.Player;
 import io.dm.model.item.actions.ItemNPCAction;
 import io.dm.model.item.loot.LootTable;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -48,6 +51,29 @@ public class NPCDef {
 
     public static NPCDef get(int id) {
         return cached.get(id);
+    }
+
+    private static Map<String, List<NPCDef>> NAME_INDEX;
+
+    /**
+     * Case-insensitive lookup of every loaded NPC sharing {@code name}, backed by an index built
+     * once (on first call) and cached — {@link #cached} never changes after boot. Mirrors {@link
+     * io.dm.cache.ObjectDef#getByName(String)} (see its doc for the full rationale) — every by-name
+     * {@code NPCAction.register}/{@code ItemNPCAction.register} overload used to instead
+     * linear-scan the entire {@link #cached} map on every single call.
+     */
+    public static List<NPCDef> getByName(String name) {
+        if (NAME_INDEX == null) {
+            Map<String, List<NPCDef>> index = new HashMap<>();
+            for (NPCDef def : cached.values()) {
+                if (def != null && def.name != null)
+                    index.computeIfAbsent(def.name.toLowerCase(), k -> new ArrayList<>()).add(def);
+            }
+            NAME_INDEX = index;
+        }
+        if (name == null)
+            return Collections.emptyList();
+        return NAME_INDEX.getOrDefault(name.toLowerCase(), Collections.emptyList());
     }
 
 

@@ -7,11 +7,9 @@ import io.dm.data.DataFile;
 import io.dm.model.World;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerGroup;
-import io.dm.model.entity.player.PlayerLogin;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Stream;
 
 public class login_set extends DataFile {
 
@@ -34,14 +32,6 @@ public class login_set extends DataFile {
         @Expose public PlayerGroup[] allowed_groups;
         @Expose public String[] allowed_names;
         @Expose public Response deny_response;
-
-        private boolean isAllowed(PlayerLogin login) {
-            if(allowed_groups == null || Stream.of(allowed_groups).mapToInt(g -> g.id).anyMatch(id -> login.info.groupIds.contains(id)))
-                return true;
-            if(allowed_names == null || Stream.of(allowed_names).anyMatch(name -> name.equalsIgnoreCase(login.info.name)))
-                return true;
-            return false;
-        }
 
     }
 
@@ -67,13 +57,6 @@ public class login_set extends DataFile {
             else
                 System.err.println("Login set \"" + name + "\" does not exist!");
         }
-    }
-
-    public static boolean deny(PlayerLogin login) {
-        if(ACTIVE_SET == null || ACTIVE_SET.isAllowed(login))
-            return false;
-        login.deny(ACTIVE_SET.deny_response);
-        return true;
     }
 
 }

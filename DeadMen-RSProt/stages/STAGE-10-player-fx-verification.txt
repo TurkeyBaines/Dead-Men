@@ -1,6 +1,10 @@
 STAGE 10 — Player FX & zone FX live verification (and fixes)
-STATUS: IN PROGRESS — code pre-audit complete + 2 real bugs fixed 2026-07-13; pending human
-        live-test (run the TEST SCRIPT below). Compiles clean.
+STATUS: IN PROGRESS — code pre-audit complete + 2 real bugs fixed 2026-07-13; a 3rd real bug (the
+        most severe of the three — total, not cosmetic, failure) found and fixed 2026-07-19: see
+        "ROUND 2 FINDINGS" below. Pending human live-test (run the TEST SCRIPT below). Compiles
+        clean. Animations were separately confirmed working live by the human this session (the
+        [ANIM] diagnostic from Stage 14/HANDOFF is stale/no longer a live concern, but was left in
+        place — out of this round's scope to remove).
 DEPENDS ON: Stage 00; ideally after 02/03/05 so there's enough working gameplay to trigger FX.
 Follow the RULES in stages/README.txt.
 
@@ -57,6 +61,61 @@ Audited and confirmed CORRECT (no change made — do not "fix" these on a hunch)
 - setSequence/setSpotAnim/setSay/setMoveSpeed/setTempMoveSpeed: verified against KDoc tables;
   1=walk/2=run/127=teleport all match.
 - MapAnim (sendGraphics): direct 1:1, delay in client cycles both sides.
+
+## ROUND 2 FINDINGS (2026-07-19) — projectiles never rendered at all: Player.localPlayers() root cause
+Human reported (live) that FX are largely fine — animations play correctly, contradicting Stage
+14/HANDOFF's old "[ANIM] still unexplained" note (that diagnostic is now stale; left in place only
+because removing temp diagnostics is out of this round's narrow scope) — but projectiles do not
+work at all.
+1. Traced every `PacketSender.sendProjectile` call site (`Projectile.java`'s five `send(...)`
+   overloads). All of them build the outgoing player list via
+   `Iterable<Player> players = regionBased ? entity.getPosition().getRegion().players :
+   entity.localPlayers();`. `regionBased` defaults to `false` and is only flipped on for 6 specific
+   Inferno/Fight Caves boss projectiles (`TzKalZuk`/`JalZek`/`JalXil`/`JalMejJak`/`TokXil`/`KetZek`,
+   all via `.regionBased()`) — every ordinary player-cast ranged/magic projectile
+   (`PlayerCombat.java` lines 277/297/418/472/473/509/515, all plain `new Projectile(...).send(player,
+   target)` with no `.regionBased()` call) goes through `entity.localPlayers()` instead, where
+   `entity` is the casting `Player`.
+2. `Player.localPlayers()` (`Player.java`, pre-fix) was `return updater.localIterator();` — reading
+   the exact same legacy `PlayerUpdater.local[]`/`localCount` bookkeeping that Stage 16's Bug A
+   already found and fixed for the sibling method `isLocal(Player)`: `local[]`/`localCount` are only
+   ever written by `PlayerUpdater.process()`/`.init()`, which `CoreWorker.update()` gates behind
+   `getSession() == null` — never true for a real RSProt player. Stage 16 fixed `isLocal` with a
+   proximity fallback but never touched `localPlayers()`, a completely separate method with the
+   exact same underlying data dependency and a much bigger blast radius (every caller, not just
+   `PlayerMovement`'s one `isLocal` call site). Net effect: for every RSProt-connected caster,
+   `localPlayers()` silently returned an empty iterable, so `Projectile.send`'s `for (Player p :
+   players)` loop ran zero times — `PacketSender.sendProjectile` was never even called, for anyone,
+   including the caster themselves. Not a field-mapping/visual bug like the two Round 1 fixes; the
+   packet plain never left the server.
+3. **Fix applied in `Player.localPlayers()` (`Player.java`):** when `getSession() != null`, build the
+   local list by scanning `World.players` (already refreshed every tick independently of
+   `PlayerUpdater`, not the broken legacy structure) with the identical membership rule
+   `PlayerUpdater.isVisible()`/`isLocal()`'s own fallback already use — self-inclusive
+   (`p == this`, matching `PlayerUpdater.init()`'s `local[player.getIndex()] = true`) plus
+   `p.isOnline() && !p.isHidden() && p.getPosition().isWithinDistance(getPosition())` for everyone
+   else. Legacy/AI-bot players (`getSession() == null`) are untouched — identical
+   `updater.localIterator()` as before.
+4. **Confirmed `NPC.localPlayers()` is a separate, already-correct implementation** — a plain `List
+   <Player>` field maintained bidirectionally by `PlayerNPCUpdater.syncLocalNpcs()` (a Stage 03
+   follow-up bridge, unaffected by this bug), so NPC/boss-cast projectiles using `npc.localPlayers()`
+   (none currently do directly, but other NPC AI does) were never in scope here.
+5. **Wider blast radius than just projectiles, not yet independently confirmed/fixed beyond the fix
+   above already covering them for free:** every other caller of `(player-or-generic-entity)
+   .localPlayers()` where the receiver is a real RSProt `Player` shared this exact bug and is fixed
+   by the same change — `Retribution.java`, `DragonCrossbow.java`'s special, `TargetSpell.java`'s
+   multi-target/multi-combat splash-onto-nearby-players logic (`target.localPlayers()` when `target`
+   is a player), `ActiveVolcano.java`, and any other of the ~15 call sites grepped under "Something
+   that doesn't work" during this investigation. None of these were individually re-audited this
+   round (out of scope — the fix is structural/shared, not per-call-site), but they should all now
+   behave correctly as a side effect.
+6. Compiles clean (`./gradlew :DMS:compileJava`, 2026-07-19, `BUILD SUCCESSFUL`, full rebuild not
+   just cached). NOT yet live-client-tested — no client/RSProx available this session (same
+   standing constraint as every other stage). Next step: repeat this stage's TEST SCRIPT item 5
+   (targeted combat spell / bow / thrown weapon at an NPC) — the projectile should now actually
+   leave the server; if it still doesn't render, the field-mapping fixes from Round 1
+   (sourceIndex/dropOffRange) plus this round's send-loop fix together should have closed every
+   currently-known gap, so a fresh finding would be needed.
 
 ## TEST SCRIPT (human, next live session — in this order)
 1. Emote from the emote tab -> animation plays once (NOT repeating every 0.6s — a per-tick

@@ -136,8 +136,20 @@ public class TargetRoute {
              * Interactions
              */
             entity.faceNone(true);
-            if(abs)
-                withinDistance = route.finished(entity.getPosition());
+            // Was `if(abs) withinDistance = route.finished(...)` — only the NPC-walkTo case ever
+            // re-synced against the post-movement position; the far more common case (walking up to
+            // a live entity, e.g. Trade with/Invite/dialogue-adjacency) trusted whatever `withinDistance`
+            // beforeMovement0/allowStep last left it as, which isn't guaranteed to reflect where the
+            // entity actually ended up this tick. Always re-check against the real current position.
+            withinDistance = route.finished(entity.getPosition());
+            // TEMP diagnostic (STAGE 16 follow-up, 2026-07-18): confirm on the next live test whether
+            // this now fires finishAction, and if not, why — remove once trade/invite/etc. are
+            // confirmed reliably completing on arrival.
+            System.out.println("[TARGETROUTE] " + (entity.player != null ? entity.player.getName() : entity.npc.getId())
+                    + " arrived, target=" + (target.player != null ? target.player.getName() : target.npc.getId())
+                    + " withinDistance=" + withinDistance + " reachable=" + route.reachable
+                    + " pos=" + entity.getAbsX() + "," + entity.getAbsY()
+                    + " finish=" + route.finishX + "," + route.finishY);
             if(withinDistance || (target.npc != null && target.npc.skipReachCheck != null && target.npc.skipReachCheck.test(entity.getPosition())))
                 finishAction.run();
             else if(entity.player != null)

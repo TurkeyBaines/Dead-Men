@@ -1,7 +1,7 @@
 package io.dm.deadman.content.sigils.tier2;
 
 import io.dm.deadman.content.sigils.Sigil;
-import io.dm.deadman.content.sigils.Sigils;
+import io.dm.deadman.content.sigils.Sigils.*;
 import io.dm.model.World;
 import io.dm.model.combat.Hit;
 import io.dm.model.entity.npc.NPC;
@@ -15,6 +15,11 @@ public class SigilOfTheMenacingMage extends Sigil {
     @Override
     public String name() {
         return "Sigil of the Menacing Mage";
+    }
+
+    @Override
+    public String shortName() {
+        return "Menacing Mage";
     }
 
     @Override
@@ -88,39 +93,8 @@ public class SigilOfTheMenacingMage extends Sigil {
         return true;
     }
 
-    static {
-        final int unattuned = 26078, attuned = 26077;
-
-        ItemAction.registerInventory(unattuned, "Attune", ((p, i) -> {
-            if (!p.getInventory().contains(unattuned))
-                return;
-
-            if (p.canAttune()) {
-                if (p.attune(unattuned)) {
-                    int slot = i.getSlot();
-                    p.getInventory().remove(i);
-                    Item item = new Item(attuned, 1);
-                    item.setSlot(slot);
-                    p.getInventory().add(item);
-                }
-            }
-        }));
-
-        ItemAction.registerInventory(attuned, "Unattune", ((p, i) -> {
-            if (!p.getInventory().contains(attuned)) {
-                return;
-            }
-
-            if (p.hasSigil(Sigils.Tier2.SIGIL_OF_THE_MENACING_MAGE)) {
-                boolean success = p.unattune(unattuned);
-                if (success) {
-                    int slot = i.getSlot();
-                    p.getInventory().remove(i);
-                    Item item = new Item(unattuned, 1);
-                    item.setSlot(slot);
-                    p.getInventory().add(item);
-                }
-            }
-        }));
+    public SigilOfTheMenacingMage() {
+        ItemAction.registerInventory(unattuned(), "Attune", attune());
+        ItemAction.registerInventory(attuned(), "Unattune", unattune());
     }
 }

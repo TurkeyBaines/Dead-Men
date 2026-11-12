@@ -49,6 +49,22 @@ public class EntityDirectionUpdate extends UpdateMask {
         return resolvedTarget;
     }
 
+    /**
+     * RSProt-only equivalent of the {@code stage} progression normally driven by {@link #reset()},
+     * which only runs once {@link #isSent()} is true — a flag the RSProt bridge deliberately never
+     * sets for this mask (see {@code RsProt.pushMaskUpdates}/{@code pushNpcMaskUpdates}). Without
+     * this, a temporary face (e.g. an NPC facing the player during dialogue via {@code faceTemp})
+     * would never auto-revert on RSProt clients, since {@code Entity.resetUpdates()} never touches
+     * it. Call once per tick, unconditionally, for every RSProt-connected entity.
+     */
+    public void tickTemporary() {
+        if(stage == 1) {
+            stage = 2;
+        } else if(stage == 2) {
+            remove(false);
+        }
+    }
+
     /** Returns true (once) if the logical face target changed since the last call. */
     public boolean consumeResolvedUpdate() {
         if(!resolvedDirty)
