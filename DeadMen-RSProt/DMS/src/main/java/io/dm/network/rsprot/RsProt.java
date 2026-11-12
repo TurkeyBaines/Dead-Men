@@ -1497,8 +1497,20 @@ public final class RsProt {
             boolean valid = item != null && io.dm.cache.ItemDef.isValid(item.getId());
             ext.setWornObj(i, valid ? item.getId() : -1, -1, -1);
         }
-        // Default idle/walk/run anims (Alter's DEFAULT_ANIM_SET). Weapon-specific overrides = TODO.
-        ext.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824);
+        // E1: weapon/custom render animations (stand, turn, walk, back, left, right, run), same
+        // order as RSProt's setBaseAnimationSet. Missing/-1 entries fall back to Alter's
+        // DEFAULT_ANIM_SET so a partial render array (e.g. an NPC transform's) never leaves a hole.
+        final int[] defaultAnims = {808, 823, 819, 820, 821, 822, 824};
+        int[] renders = ap.resolveRenders(player);
+        int[] anims = defaultAnims.clone();
+        if (renders != null) {
+            for (int i = 0; i < anims.length && i < renders.length; i++) {
+                if (renders[i] != -1) {
+                    anims[i] = renders[i];
+                }
+            }
+        }
+        ext.setBaseAnimationSet(anims[0], anims[1], anims[2], anims[3], anims[4], anims[5], anims[6]);
         // Body colours (5: hair, torso, legs, shoes, skin).
         for (int i = 0; i < 5; i++) {
             ext.setColour(i, ap.colors[i]);
@@ -1506,10 +1518,10 @@ public final class RsProt {
         ext.setName(player.getName());
         ext.setCombatLevel(Math.max(3, io.dm.model.combat.CombatUtils.getCombatLevel(player)));
         ext.setMale(ap.isMale());
-        ext.setOverheadIcon(-1);
+        ext.setOverheadIcon(ap.getPrayerIcon());   // E2
         ext.setSkullIcon(ap.getSkullIcon());
-        ext.transformToNpc(-1);
-        ext.setHidden(false);
+        ext.transformToNpc(ap.getNpcId());          // E3
+        ext.setHidden(player.isHidden());           // E4
     }
 
     // ------------------------------------------------------------------ JS5 cache serving (unchanged)

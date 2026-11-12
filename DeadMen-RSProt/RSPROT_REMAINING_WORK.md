@@ -88,10 +88,10 @@ Wired today (21): MoveGameClick, MoveMinimapClick, ClientCheat, MessagePublic, O
 ## E. Avatar / appearance / FX gaps (RP.syncAppearance, pushMaskUpdates)
 | # | Gap | Evidence |
 |---|---|---|
-| E1 | Weapon render animations: setBaseAnimationSet(808,823,...) hardcoded; legacy Appearance uses WeaponType.renderAnimations / setCustomRenders | RP 1364, Appearance.java 182-184 |
-| E2 | Overhead prayer icon never bridged: setOverheadIcon(-1) hardcoded; Appearance.prayerIcon has 16 content setters | RP 1372 |
-| E3 | Player->NPC transform never bridged: transformToNpc(-1) hardcoded; Appearance.npcId/setNpcId used by content | RP 1374 |
-| E4 | Player hidden flag never bridged: setHidden(false) hardcoded; Entity.hidden / PL.setHidden(true) at 1435 exist | RP 1375 |
+| E1 | Weapon render animations: setBaseAnimationSet(808,823,...) hardcoded; legacy Appearance uses WeaponType.renderAnimations / setCustomRenders | RP 1364, Appearance.java 182-184 — DONE 2026-11-12 (pending live-test) |
+| E2 | Overhead prayer icon never bridged: setOverheadIcon(-1) hardcoded; Appearance.prayerIcon has 16 content setters | RP 1372 — DONE 2026-11-12 (pending live-test) |
+| E3 | Player->NPC transform never bridged: transformToNpc(-1) hardcoded; Appearance.npcId/setNpcId used by content | RP 1374 — DONE 2026-11-12 (pending live-test) |
+| E4 | Player hidden flag never bridged: setHidden(false) hardcoded; Entity.hidden / PL.setHidden(true) at 1435 exist | RP 1375 — DONE 2026-11-12 (pending live-test) |
 | E5 | Hit-source tinting (sourceIndex -1) — documented accepted gap | RP pushMaskUpdates |
 | E6 | NPC head icons (NpcHeadIconSpecific / avatar headicon) not bridged — 7 NPC masks only | RP.pushNpcMaskUpdates |
 | E7 | World-entity info allocated per player but never used — harmless | RP driveUpdate step 2 |

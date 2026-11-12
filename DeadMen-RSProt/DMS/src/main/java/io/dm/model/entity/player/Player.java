@@ -961,6 +961,15 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
         return masks;
     }
 
+    /** E4: flag the appearance mask so the RSProt bridge re-pushes the hidden state. */
+    @Override
+    public void setHidden(boolean hidden) {
+        super.setHidden(hidden);
+        if (appearance != null) {
+            appearance.update();
+        }
+    }
+
     public Appearance getAppearance() {
         return appearance;
     }

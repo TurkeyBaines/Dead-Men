@@ -1,3 +1,9 @@
+## STAGE 17+ — E1-E4 avatar bridges (2026-11-12)
+- syncAppearance now bridges: weapon/custom render anims (Appearance.resolveRenders -> setBaseAnimationSet, -1 entries fall back to 808/823/819-822/824), Appearance.prayerIcon -> setOverheadIcon, Appearance.npcId -> transformToNpc, Entity.hidden -> setHidden. Player.setHidden override flags the appearance mask so changes are pushed.
+- Files: network/rsprot/RsProt.java, model/entity/shared/masks/Appearance.java, model/entity/player/Player.java. Compile green; NOT live-tested.
+- Test: wield a whip/scimitar/2h (walk/stand anims change), toggle protect from melee (overhead icon), ::npc-transform style content (player turns into NPC, anims follow), admin hide.
+- Assumption: legacy render array order == RSProt order (ready, turn, walk, back, left, right, run) and legacy prayerIcon index == 228 headicon index (unverified).
+
 ## STAGE 17+ — C8 world-map teleport; C7/C12 deliberately no-op (2026-11-12)
 - RsProt.start(): incoming Teleport -> new TeleportHandler.teleport(p,x,z,level) (same admin/dev + Interface.WORLD_MAP(595) gate as legacy). Compile green; NOT live-tested (world map must be opened as admin; 228 world map interface id 595 assumed unchanged).
 - C7 Idle / C12 MapBuildComplete left on the no-op path on purpose (see work file rows).
