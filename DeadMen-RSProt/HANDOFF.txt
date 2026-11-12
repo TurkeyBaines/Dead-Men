@@ -1,3 +1,6 @@
+## STAGE 17+ — A18 decision recorded, blocked on ids (2026-11-12)
+- Owner chose the stock XP lamp interface. SkillLamp still opens custom interface 134 (Kronos cache, not stock 228) with child ids 3-26; not changed because the stock 240 component ids (skill buttons, confirm) and how the selection is reported are unconfirmed (rule 4: no guessing). PacketSender.sendSkillinterface is already a no-op stub. Need: a listing of interface 240's components from a trusted 228 source, then SkillLamp can be re-pointed (open 240, register its handler, remove the sendSkillinterface calls).
+
 ## STAGE 17+ — A16 / A17 / A22 decisions applied (2026-11-12)
 - A16: PacketSender.sendWidget -> for RSProt players a game message ("<name> (m:ss): <description>." / "<name> has ended."); legacy packet kept for non-RSProt.
 - A17: custom teleport interface (583) removed: PacketSender.sendTeleports, teleports.open/selectCategory/selectSubcategory/selectTeleport + the InterfaceHandler 583 registration, PlayerAttributes.teleportCategoryIndex/teleportSubcategoryIndex. Kept: teleports data (Category/Subcategory/Teleport, used by PVPInstance + SlayerTask), teleports.previous/teleport/teleportStart.

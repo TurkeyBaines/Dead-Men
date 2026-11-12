@@ -29,7 +29,7 @@ Legend: callers = call sites outside PacketSender.java.
 | A15 | sendUrl | 87 | 3 | UrlOpen | — DONE 2026-11-12 (pending live-test) |
 | A16 | sendWidget | 91 (custom 184) | 12 | no 228 equivalent — rebuild as interface/cs2 | custom popup widgets — DONE 2026-11-12 (decision: chat messages only; pending live-test) |
 | A17 | sendTeleports | 89 (custom 184) | 3 | no 228 equivalent — rebuild teleport UI | teleport interface — DONE 2026-11-12 (decision: custom teleport interface 583 removed entirely; data + teleports.previous/teleport kept) |
-| A18 | sendSkillinterface | 95 (custom, body commented) | 2 | none | custom skill guide |
+| A18 | sendSkillinterface | 95 (custom, body commented) | 2 | none | custom skill guide — DECIDED 2026-11-12: use the stock XP lamp interface (240, 28 components in Cache228). BLOCKED on ids: SkillLamp.java still opens custom Interface.SKILL_LAMP=134 with child ids 3-26 from the Kronos cache; stock 240's skill-button/confirm component ids and the selected-skill mechanism cannot be confirmed from RSProt, the cache dump (component counts only) or AlterRSPS (no lamp code). Needs a component listing of 240 (e.g. from a RuneLite cache dump) |
 | A19 | worldHop | 76 (custom) | 0 | none/LogoutTransfer | dead |
 | A20 | refreshGameFrame | 58 | 0 | IfOpenTop | dead |
 | A21 | sendRegion dynamic branch (opcode 71) | 66/71 | PlayerUpdater only (legacy) | RebuildRegion | RP.maybeRebuildRegion only ever sends RebuildNormal; `grep -w RebuildRegion` = 0 hits. Every DynamicMap user (26 files: Inferno, FightCaves, CoX, ToB, Zulrah, Vorkath, Hydra, Skotizo, PestControl, PVMInstance, PVPInstance, House, Versus finals, Karuulm, CanoeStation...) is broken for RSProt players — DONE 2026-11-12 (pending live-test) |
