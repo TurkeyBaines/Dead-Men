@@ -343,6 +343,27 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
     }
 
     private void sendFriends(SocialMember... friends) {
+        if (getSession() != null) {
+            // B1: UpdateFriendList. sendNewName() must run first: it can reset worldId via resend().
+            java.util.List<net.rsprot.protocol.game.outgoing.social.UpdateFriendList.Friend> list = new java.util.ArrayList<>();
+            if (friends != null) {
+                for (SocialMember friend : friends) {
+                    if (friend == null) continue;
+                    boolean added = friend.sendNewName();
+                    int rank = friend.rank == null ? -1 : friend.rank.id;
+                    if (friend.worldId > 0) {
+                        list.add(new net.rsprot.protocol.game.outgoing.social.UpdateFriendList.OnlineFriend(
+                                added, friend.playerName, friend.previousPlayerName, friend.worldId, rank, 0,
+                                "", "World " + friend.worldId, 0, 0));
+                    } else {
+                        list.add(new net.rsprot.protocol.game.outgoing.social.UpdateFriendList.OfflineFriend(
+                                added, friend.playerName, friend.previousPlayerName, rank, 0, ""));
+                    }
+                }
+            }
+            getSession().queue(new net.rsprot.protocol.game.outgoing.social.UpdateFriendList(list));
+            return;
+        }
         OutBuffer out = new OutBuffer(friends == null ? 3 : 255).sendVarShortPacket(61);
         if (friends != null) {
             for (SocialMember friend : friends) {
@@ -363,6 +384,19 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
     }
 
     private void sendIgnores(SocialMember... ignores) {
+        if (getSession() != null) {
+            // B2: UpdateIgnoreList.
+            java.util.List<net.rsprot.protocol.game.outgoing.social.UpdateIgnoreList.IgnoredPlayer> list = new java.util.ArrayList<>();
+            if (ignores != null) {
+                for (SocialMember ignore : ignores) {
+                    if (ignore == null) continue;
+                    list.add(new net.rsprot.protocol.game.outgoing.social.UpdateIgnoreList.AddedIgnoredEntry(
+                            ignore.playerName, ignore.previousPlayerName, "", ignore.sendNewName()));
+                }
+            }
+            getSession().queue(new net.rsprot.protocol.game.outgoing.social.UpdateIgnoreList(list));
+            return;
+        }
         OutBuffer out = new OutBuffer(255).sendVarShortPacket(59);
         if (ignores != null) {
             for (SocialMember ignore : ignores) {
@@ -376,16 +410,41 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
         packetSender.write(out);
     }
 
+    /** B1: tells the RSProt client the initial friend list has been sent (clears "Loading friend list"). */
+    public void sendFriendListLoaded() {
+        if (getSession() != null) {
+            getSession().queue(net.rsprot.protocol.game.outgoing.social.FriendListLoaded.INSTANCE);
+        }
+    }
+
     public void sendPrivacy(int privacy) {
+        if (getSession() != null) {
+            // B3: private-chat filter (0 on, 1 friends, 2 off).
+            getSession().queue(new net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat(privacy));
+            return;
+        }
         OutBuffer out = new OutBuffer(2).sendFixedPacket(17).addByte(privacy);
         packetSender.write(out);
     }
 
     public void sendPM(String toUsername, String message) {
+        if (getSession() != null) {
+            // B4: MessagePrivateEcho.
+            getSession().queue(new net.rsprot.protocol.game.outgoing.social.MessagePrivateEcho(toUsername, message));
+            return;
+        }
         packetSender.write(Protocol.outgoingPm(toUsername, message));
     }
 
+    private static final java.util.concurrent.atomic.AtomicInteger PM_COUNTER = new java.util.concurrent.atomic.AtomicInteger();
+
     public void sendReceivePM(String fromName, int fromRank, String message) {
+        if (getSession() != null) {
+            // B5: MessagePrivate. The counter only has to be unique per message (client dedupe key).
+            getSession().queue(new net.rsprot.protocol.game.outgoing.social.MessagePrivate(
+                    fromName, World.id, PM_COUNTER.incrementAndGet() & 0xFFFFFF, fromRank, message));
+            return;
+        }
         OutBuffer out = new OutBuffer(255).sendVarShortPacket(45)
                 .addString(fromName);
         for (int i = 0; i < 5; ++i) {

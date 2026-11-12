@@ -40,12 +40,12 @@ Legend: callers = call sites outside PacketSender.java.
 ## B. Legacy packet writers OUTSIDE PacketSender (bypass queueRsprot entirely)
 | # | Location | What | RSProt target | Callers |
 |---|---|---|---|---|
-| B1 | PL.sendFriends (line ~349, opcode 61) | friends list | UpdateFriendList + FriendListLoaded | sendSocial 7 |
-| B2 | PL.sendIgnores (~369, opcode 59) | ignore list | UpdateIgnoreList | |
-| B3 | PL.sendPrivacy (~383, opcode 17) | privacy settings | ChatFilterSettings / ChatFilterSettingsPrivateChat | 1 |
-| B4 | PL.sendPM (Protocol.outgoingPm) | PM echo to sender | MessagePrivateEcho | 2 |
-| B5 | PL.sendReceivePM (~392, opcode 45) | incoming PM | MessagePrivate | 1 |
-| B6 | social/clan/ClanChat.java (opcodes 86 settings, 48 channel list, 22 message, leave buffer) | clan/friend chat | UpdateFriendChatChannelFull(V2)/SingleUser, MessageFriendChannel | 7 files |
+| B1 | PL.sendFriends (line ~349, opcode 61) | friends list | UpdateFriendList + FriendListLoaded | sendSocial 7 — DONE 2026-11-12 (pending live-test) |
+| B2 | PL.sendIgnores (~369, opcode 59) | ignore list | UpdateIgnoreList | — DONE 2026-11-12 (pending live-test) |
+| B3 | PL.sendPrivacy (~383, opcode 17) | privacy settings | ChatFilterSettings / ChatFilterSettingsPrivateChat | 1 — DONE 2026-11-12 (pending live-test) |
+| B4 | PL.sendPM (Protocol.outgoingPm) | PM echo to sender | MessagePrivateEcho | 2 — DONE 2026-11-12 (pending live-test) |
+| B5 | PL.sendReceivePM (~392, opcode 45) | incoming PM | MessagePrivate | 1 — DONE 2026-11-12 (pending live-test) |
+| B6 | social/clan/ClanChat.java (opcodes 86 settings, 48 channel list, 22 message, leave buffer) | clan/friend chat | UpdateFriendChatChannelFull(V2)/SingleUser, MessageFriendChannel | 7 files — DONE 2026-11-12 (pending live-test) |
 | B7 | PlayerUpdater.java / PlayerNPCUpdater.java (opcodes 4, 36/53) | legacy GPI/NPI | replaced by PlayerInfo/NpcInfo — dead for RSProt | CoreWorker guards session==null |
 | B8 | masks/*.java send() + Appearance.data OutBuffer + ChatUpdate encode | legacy mask encoders | dead for RSProt (bridged in RP.pushMaskUpdates / pushNpcMaskUpdates) | delete in Stage 12 |
 

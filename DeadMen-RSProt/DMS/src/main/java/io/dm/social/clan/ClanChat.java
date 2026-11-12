@@ -35,6 +35,11 @@ public class ClanChat extends ClanContainer {
     }
 
     private void sendSettings(Player player) {
+        if (player.getSession() != null) {
+            // B6: no 228 equivalent of the legacy settings packet (86); the channel name and kick
+            // rank travel in the channel update instead.
+            return;
+        }
         String name = this.clanName == null ? "Chat disabled" : this.clanName;
         int enterRank = this.enterRank == null ? -1 : this.enterRank.id;
         int talkRank = this.talkRank == null ? -1 : this.talkRank.id;
@@ -51,6 +56,11 @@ public class ClanChat extends ClanContainer {
             SocialMember member = this.ccMembers[i];
             Player pMember = World.getPlayer(member.playerName);
             if (pMember == null) continue;
+            if (pMember.getSession() != null) {
+                // B6: 228 has no settings-only update; always resend the full channel.
+                pMember.getSession().queue(this.rsprotChannelUpdate());
+                continue;
+            }
             OutBuffer out = settingsOnly ? this.getSettingsBuffer() : this.getChannelBuffer();
             pMember.getPacketSender().write(out);
         }
@@ -80,7 +90,12 @@ public class ClanChat extends ClanContainer {
         }
         if (newActive == null) {
             this.active.removeClanMember(player.getName());
-            player.getPacketSender().write(this.active.getLeaveBuffer());
+            if (player.getSession() != null) {
+                player.getSession().queue(new net.rsprot.protocol.game.outgoing.friendchat.UpdateFriendChatChannelFullV2(
+                        net.rsprot.protocol.game.outgoing.friendchat.UpdateFriendChatChannelFullV2.LeaveUpdate.INSTANCE));
+            } else {
+                player.getPacketSender().write(this.active.getLeaveBuffer());
+            }
             if (!this.active.isDisabled()) {
                 this.active.update(false);
             }
@@ -209,8 +224,32 @@ public class ClanChat extends ClanContainer {
             SocialMember member = this.ccMembers[i];
             Player pMember = World.getPlayer(member.playerName);
             if (pMember == null) continue;
+            if (pMember.getSession() != null) {
+                // B6: MessageFriendChannel(sender, channelName, worldId, counter, crown, message).
+                pMember.getSession().queue(new net.rsprot.protocol.game.outgoing.friendchat.MessageFriendChannel(
+                        sender.getName(), this.clanName, World.id, CC_COUNTER.incrementAndGet() & 0xFFFFFF, rankId, message));
+                continue;
+            }
             pMember.getPacketSender().write(this.getMessageBuffer(sender.getName(), rankId, message));
         }
+    }
+
+    private static final java.util.concurrent.atomic.AtomicInteger CC_COUNTER = new java.util.concurrent.atomic.AtomicInteger();
+
+    /** B6: full channel snapshot (owner, name, kick rank, member list) for an RSProt client. */
+    private net.rsprot.protocol.game.outgoing.friendchat.UpdateFriendChatChannelFullV2 rsprotChannelUpdate() {
+        java.util.List<net.rsprot.protocol.game.outgoing.friendchat.UpdateFriendChatChannelFull.FriendChatEntry> entries =
+                new java.util.ArrayList<>();
+        for (int i = 0; i < this.ccMembersCount; ++i) {
+            SocialMember member = this.ccMembers[i];
+            entries.add(new net.rsprot.protocol.game.outgoing.friendchat.UpdateFriendChatChannelFull.FriendChatEntry(
+                    member.playerName, World.id, this.getRankId(member.playerName), "World " + World.id));
+        }
+        return new net.rsprot.protocol.game.outgoing.friendchat.UpdateFriendChatChannelFullV2(
+                new net.rsprot.protocol.game.outgoing.friendchat.UpdateFriendChatChannelFullV2.JoinUpdate(
+                        this.owner != null ? this.owner : this.parent.ownerName,
+                        this.clanName != null ? this.clanName : "",
+                        ClanChat.getRankId(this.kickRank), entries));
     }
 
     private OutBuffer getMessageBuffer(String senderName, int rankId, String message) {
