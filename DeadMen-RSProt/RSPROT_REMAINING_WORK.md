@@ -108,7 +108,7 @@ Wired today (21): MoveGameClick, MoveMinimapClick, ClientCheat, MessagePublic, O
 | F7 | Custom Kronos cache content (items >=30000, custom NPCs/objects, noticeboard iface 720, custom head icons, custom map edits) | hidden by ItemDef.isValid guards / commented registrations (TabQuest, Citadel/Overworld areas) | needs a 228 cache repack or removal decision |
 | F8 | Player saves containing custom item ids | existing characters | isValid blanks them client-side; data migration needed |
 | F9 | Double item reader (ItemDef legacy loader + Cache228ItemDefs) now both read stock cache | consolidate | |
-| F10 | DisplayHandler.sendDisplay uses 184 frame 165 layout | whole resizable layout table is 184-era | with C5 |
+| F10 | DisplayHandler.sendDisplay uses 184 frame 165 layout | whole resizable layout table is 184-era | with C5 — DONE 2026-11-12 with C5 (resizable slot table now from AlterRSPS; legacy DisplayHandler.sendDisplay is unreachable for RSProt players) |
 
 ## G. RSProt-side bugs still open / unverified (from stages)
 | # | Item | Status |
