@@ -16,7 +16,6 @@ import io.dm.cache.InterfaceDef;
 import io.dm.cache.Varp;
 import io.dm.event.GameEventProcessor;
 import io.dm.model.World;
-import io.dm.model.content.upgrade.ItemEffect;
 import io.dm.model.entity.Entity;
 import io.dm.model.entity.npc.NPC;
 import io.dm.model.entity.shared.LockType;
@@ -1171,21 +1170,6 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
     public void collectResource(Item resource) {
         for(Item item : player.getEquipment().getItems()) {
             if(item != null && item.getDef() != null) {
-                List<String> upgrades = AttributeExtensions.getEffectUpgrades(item);
-                boolean hasEffect = upgrades != null;
-                if (hasEffect) {
-                    for (String s : upgrades) {
-                        try {
-                            if (s.equalsIgnoreCase("empty"))
-                                continue;
-                            ItemEffect effect = ItemEffect.valueOf(s);
-                            effect.getUpgrade().collectResource(player, resource);
-                        } catch (Exception ex) {
-                            System.err.println("Unknown upgrade { " + s + " } found!");
-                            ex.printStackTrace();
-                        }
-                    }
-                }
             }
         }
     }

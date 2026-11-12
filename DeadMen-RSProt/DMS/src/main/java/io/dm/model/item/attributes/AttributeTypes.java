@@ -14,10 +14,6 @@ public enum AttributeTypes {
     SPAWNED, //Used for items that have been spawned and can't be traded, sold or alched.
     FROM_SHOP,
     AMMO_ID,
-    AMMO_AMOUNT,
-    UPGRADE_1,
-    UPGRADE_2,
-    UPGRADE_3,
-    AUGMENTED //Used for staff of the dead for autocasting ancients.
+    AMMO_AMOUNT
 
 }

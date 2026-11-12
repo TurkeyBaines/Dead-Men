@@ -33,7 +33,7 @@ Legend: callers = call sites outside PacketSender.java.
 | A19 | worldHop | 76 (custom) | 0 | none/LogoutTransfer | dead |
 | A20 | refreshGameFrame | 58 | 0 | IfOpenTop | dead |
 | A21 | sendRegion dynamic branch (opcode 71) | 66/71 | PlayerUpdater only (legacy) | RebuildRegion | RP.maybeRebuildRegion only ever sends RebuildNormal; `grep -w RebuildRegion` = 0 hits. Every DynamicMap user (26 files: Inferno, FightCaves, CoX, ToB, Zulrah, Vorkath, Hydra, Skotizo, PestControl, PVMInstance, PVPInstance, House, Versus finals, Karuulm, CanoeStation...) is broken for RSProt players — DONE 2026-11-12 (pending live-test) |
-| A22 | sendItems/updateItems item-attribute side channel | 49/1 | all containers | n/a — needs ObjCustomise/IfSetText/cs2 approach | Kronos item-upgrade display lost (PS comment line ~503) |
+| A22 | sendItems/updateItems item-attribute side channel | 49/1 | all containers | n/a — needs ObjCustomise/IfSetText/cs2 approach | Kronos item-upgrade display lost (PS comment line ~503) — DONE 2026-11-12 (decision: remove the whole item-upgrade feature; see HANDOFF) |
 | A23 | sendLogin | 2 | legacy only | n/a | dead code, delete |
 | A24 | sendVarp id>=20000 custom-varp filter | 34/42 | Config has 0 ids>=20000 | n/a | dead code |
 

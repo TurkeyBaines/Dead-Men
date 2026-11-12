@@ -15,7 +15,6 @@ import io.dm.model.inter.Widget;
 //import io.dm.model.inter.handlers.BuyCredits;
 import io.dm.model.inter.WidgetInfo;
 import io.dm.model.item.Item;
-import io.dm.model.item.attributes.AttributeExtensions;
 import io.dm.model.map.Position;
 import io.dm.model.map.Region;
 import io.dm.model.map.ground.GroundItem;
@@ -551,13 +550,6 @@ public class PacketSender {
             Item item = items[slot];
             out.addInt(item == null || item.getId() < 0 ? 0 : item.getId() + 1);
             out.addInt(item == null || item.getId() < 0 ? 0 : item.getAmount());
-            String[] attributes = AttributeExtensions.getUpgradesForDisplay(item);
-            out.addByte(attributes == null ? 0 : attributes.length);
-            if (attributes != null) {
-                for (String attribute : attributes) {
-                    out.addString(attribute);
-                }
-            }
         }
         write(out);
     }
@@ -589,13 +581,6 @@ public class PacketSender {
             ShopItem item = items[slot];
             out.addInt(item == null || item.getDisplayId(player) < 0 ? 0 : item.getDisplayId(player) + 1);
             out.addInt(item == null || item.getDisplayId(player) < 0 ? 0 : item.getAmount());
-            String[] attributes = AttributeExtensions.getUpgradesForDisplay(item);
-            out.addByte(attributes == null ? 0 : attributes.length);
-            if (attributes != null) {
-                for (String attribute : attributes) {
-                    out.addString(attribute);
-                }
-            }
         }
         write(out);
     }
@@ -635,13 +620,6 @@ public class PacketSender {
                 out.addSmart(slot);
                 out.addInt(item == null || item.getId() < 0 ? 0 : item.getId() + 1);
                 out.addInt(item == null || item.getId() < 0 ? 0 : item.getAmount());
-                String[] attributes = AttributeExtensions.getUpgradesForDisplay(item);
-                out.addByte(attributes == null ? 0 : attributes.length);
-                if (attributes != null) {
-                    for (String attribute : attributes) {
-                        out.addString(attribute);
-                    }
-                }
             }
         }
         write(out);
@@ -674,13 +652,6 @@ public class PacketSender {
                 out.addSmart(slot);
                 out.addInt(item == null || item.getDisplayId(player) < 0 ? 0 : item.getDisplayId(player) + 1);
                 out.addInt(item == null || item.getDisplayId(player) < 0 ? 0 : item.getAmount());
-                String[] attributes = AttributeExtensions.getUpgradesForDisplay(item);
-                out.addByte(attributes == null ? 0 : attributes.length);
-                if (attributes != null) {
-                    for (String attribute : attributes) {
-                        out.addString(attribute);
-                    }
-                }
             }
         }
         write(out);

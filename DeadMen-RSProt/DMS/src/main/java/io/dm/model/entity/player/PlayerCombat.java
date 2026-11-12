@@ -15,7 +15,6 @@ import io.dm.model.combat.special.magic.StaffOfTheDead;
 import io.dm.model.combat.special.melee.VestasSpear;
 import io.dm.model.combat.special.ranged.DragonThrownaxe;
 import io.dm.model.combat.special.ranged.ToxicBlowpipe;
-import io.dm.model.content.upgrade.ItemEffect;
 import io.dm.model.entity.Entity;
 import io.dm.model.entity.npc.NPC;
 import io.dm.model.entity.shared.listeners.HitListener;
@@ -623,21 +622,6 @@ public class PlayerCombat extends Combat {
             if(item != null && item.getDef() != null) {
                 item.getDef().preDefend(player, item, hit);
                 if (hit.attacker != null && hit.attacker.isNpc()) {
-                    List<String> upgrades = AttributeExtensions.getEffectUpgrades(item);
-                    boolean hasEffect = upgrades != null;
-                    if (hasEffect) {
-                        for (String s : upgrades) {
-                            try {
-                                if (s.equalsIgnoreCase("empty"))
-                                    continue;
-                                ItemEffect effect = ItemEffect.valueOf(s);
-                                effect.getUpgrade().preDefend(player, hit.attacker, item, hit);
-                            } catch (Exception ex) {
-                                System.err.println("Unknown upgrade { " + s + " } found!");
-                                ex.printStackTrace();
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -711,21 +695,6 @@ public class PlayerCombat extends Combat {
             if(item != null && item.getDef() != null) {
                 item.getDef().postDamage(player, item, hit);
                 if (target != null && target.isNpc()) {
-                    List<String> upgrades = AttributeExtensions.getEffectUpgrades(item);
-                    boolean hasEffect = upgrades != null;
-                    if (hasEffect) {
-                        for (String s : upgrades) {
-                            try {
-                                if (s.equalsIgnoreCase("empty"))
-                                    continue;
-                                ItemEffect effect = ItemEffect.valueOf(s);
-                                effect.getUpgrade().postPlayerDamage(player, target, item, hit);
-                            } catch (Exception ex) {
-                                System.err.println("Unknown upgrade { " + s + " } found!");
-                                ex.printStackTrace();
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -816,21 +785,6 @@ public class PlayerCombat extends Combat {
             if(item != null && item.getDef() != null) {
                 item.getDef().preTargetDefend(player, item, hit, target);
                 if (target != null && target.isNpc()) {
-                    List<String> upgrades = AttributeExtensions.getEffectUpgrades(item);
-                    boolean hasEffect = upgrades != null;
-                    if (hasEffect) {
-                        for (String s : upgrades) {
-                            try {
-                                if (s.equalsIgnoreCase("empty"))
-                                    continue;
-                                ItemEffect effect = ItemEffect.valueOf(s);
-                                effect.getUpgrade().preTargetDefend(player, target, item, hit);
-                            } catch (Exception ex) {
-                                System.err.println("Unknown upgrade { " + s + " } found!");
-                                ex.printStackTrace();
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -842,21 +796,6 @@ public class PlayerCombat extends Combat {
             if(item != null && item.getDef() != null) {
                 item.getDef().postTargetDefend(player, item, hit, target);
                 if (target != null && target.isNpc()) {
-                    List<String> upgrades = AttributeExtensions.getEffectUpgrades(item);
-                    boolean hasEffect = upgrades != null;
-                    if (hasEffect) {
-                        for (String s : upgrades) {
-                            try {
-                                if (s.equalsIgnoreCase("empty"))
-                                    continue;
-                                ItemEffect effect = ItemEffect.valueOf(s);
-                                effect.getUpgrade().postTargetDefend(player, target, item, hit);
-                            } catch (Exception ex) {
-                                System.err.println("Unknown upgrade { " + s + " } found!");
-                                ex.printStackTrace();
-                            }
-                        }
-                    }
                 }
             }
         }

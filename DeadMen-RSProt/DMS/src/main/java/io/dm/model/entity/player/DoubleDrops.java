@@ -2,7 +2,6 @@ package io.dm.model.entity.player;
 
 import io.dm.api.utils.Random;
 import io.dm.model.World;
-import io.dm.model.content.upgrade.ItemEffect;
 import io.dm.model.item.Item;
 import io.dm.model.item.attributes.AttributeExtensions;
 
@@ -78,21 +77,6 @@ public class DoubleDrops {
         int gearRolls = 0;
         for(Item item : player.getEquipment().getItems()) {
             if(item != null && item.getDef() != null) {
-                List<String> upgrades = AttributeExtensions.getEffectUpgrades(item);
-                boolean hasEffect = upgrades != null;
-                if (hasEffect) {
-                    for (String s : upgrades) {
-                        try {
-                            if (s.equalsIgnoreCase("empty"))
-                                continue;
-                            ItemEffect effect = ItemEffect.valueOf(s);
-                            gearRolls += effect.getUpgrade().addDoubleDropRolls();
-                        } catch (Exception ex) {
-                            System.err.println("Unknown upgrade { " + s + " } found!");
-                            ex.printStackTrace();
-                        }
-                    }
-                }
             }
         }
         return gearRolls;
