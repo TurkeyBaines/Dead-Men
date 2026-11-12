@@ -1,3 +1,6 @@
+## STAGE 17+ — ::inter sprite test command (2026-11-12)
+- InterfaceCommands: `::inter sprite <childId> <spriteId>` calls PacketSender.sendSprite(629, child, sprite) (script 7849). Compiles; not live-tested.
+
 ## STAGE 17+ — dm_set_sprite client script (2026-11-12)
 - OSRS has no sprite packet (no IfSetGraphic in rsprot 228), so added client script 7849 `dm_set_sprite(component, sprite)` = push_int_local 1, push_int_local 0, if_setgraphic(2105), return. Assembled bytes are identical to stock script 44, which confirms the 228 layout. Packer: tools/clientscript/PackSpriteScript.java (displee rs-cache-library from the gradle cache; usage in its javadoc).
 - Packed into the live <repo>/Cache228/cache (js5_cache_path) on 2026-11-12: only dat2, idx12, idx255 changed; index 12 revision 2283 -> 2284; all 7849 existing scripts keep crc/revision; server FileStore reads 7849 back. Pre-pack backup is in the session scratchpad. Cache binaries NOT committed. Server must be restarted to serve the new reference table; the client redownloads index 12.

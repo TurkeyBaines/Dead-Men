@@ -28,6 +28,28 @@ public class InterfaceCommands {
             case "sendstring":
                 sendString(p, args);
                 break;
+
+            case "sprite":
+                sprite(p, args);
+                break;
+        }
+    }
+
+    private static final int QUEST_LIST_INTERFACE = 629;
+
+    /** ::inter sprite <childId> <spriteId> - sets the sprite of a graphic child of the quest list (629). */
+    private void sprite(Player p, String... args) {
+        if (args.length != 3) {
+            p.sendMessage("Usage: ::inter sprite <childId> <spriteId>");
+            return;
+        }
+        try {
+            int child = Integer.parseInt(args[1]);
+            int sprite = Integer.parseInt(args[2]);
+            p.getPacketSender().sendSprite(QUEST_LIST_INTERFACE, child, sprite);
+            p.sendMessage("Set sprite " + sprite + " on " + QUEST_LIST_INTERFACE + ":" + child);
+        } catch (NumberFormatException e) {
+            p.sendMessage("Usage: ::inter sprite <childId> <spriteId>");
         }
     }
 
