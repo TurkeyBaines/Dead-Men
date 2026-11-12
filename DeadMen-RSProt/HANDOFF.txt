@@ -1,3 +1,6 @@
+## STAGE 17+ — A18 skipped (2026-11-12)
+- Owner chose to skip A18. SkillLamp is unchanged (still opens custom interface 134, likely broken on 228); sendSkillinterface stays a no-op stub.
+
 ## STAGE 17+ — A18 decision recorded, blocked on ids (2026-11-12)
 - Owner chose the stock XP lamp interface. SkillLamp still opens custom interface 134 (Kronos cache, not stock 228) with child ids 3-26; not changed because the stock 240 component ids (skill buttons, confirm) and how the selection is reported are unconfirmed (rule 4: no guessing). PacketSender.sendSkillinterface is already a no-op stub. Need: a listing of interface 240's components from a trusted 228 source, then SkillLamp can be re-pointed (open 240, register its handler, remove the sendSkillinterface calls).
 
