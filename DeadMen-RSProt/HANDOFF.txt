@@ -1,3 +1,8 @@
+## STAGE 17+ — C1-C4 social incoming bridges (2026-11-12)
+- RsProt.start(): listeners for incoming MessagePrivate, FriendListAdd/Del, IgnoreListAdd/Del, FriendChatJoinLeave/Kick/SetRank, SetChatFilterSettings (all added to the registerNoOpsExcept set). They call SocialList.handle(p,name,1..4) and new public static helpers FriendsHandler.privateMessage/rankFriend, ClanHandler.joinLeave/kick, PrivacyHandler.setPrivacy (legacy opcode handlers now delegate to the same helpers).
+- Only the private-chat filter is stored; public/trade filter values are ignored (as legacy). Compile green; boot not run (no server.properties in the worktree); NOT live-tested.
+- Human test: add/remove friend + ignore from the 228 lists, send PM (shown on both ends, muted account blocked), join/leave/kick in a friend chat, change private chat filter (friends see you go offline/online). Watch for IllegalArgumentException on boot (duplicate listener).
+
 ## STAGE 17+ — B1-B6 friends / ignores / privacy / PM / friend chat outgoing (2026-11-12)
 - Player.sendFriends -> UpdateFriendList (OnlineFriend if worldId>0 else OfflineFriend; sendNewName() evaluated first as it can reset worldId), sendIgnores -> UpdateIgnoreList(AddedIgnoredEntry), sendPrivacy -> ChatFilterSettingsPrivateChat, sendPM -> MessagePrivateEcho, sendReceivePM -> MessagePrivate (world=World.id, 24-bit counter, crown=rank). New Player.sendFriendListLoaded() (FriendListLoaded) called from SocialList.process after the lists.
 - ClanChat: channel update -> UpdateFriendChatChannelFullV2(JoinUpdate/LeaveUpdate) (owner, name, kickRank, member entries w/ rank+World.id), message -> MessageFriendChannel; legacy settings packet 86 has no 228 equivalent (skipped for RSProt).

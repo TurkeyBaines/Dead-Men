@@ -53,10 +53,10 @@ Legend: callers = call sites outside PacketSender.java.
 Wired today (21): MoveGameClick, MoveMinimapClick, ClientCheat, MessagePublic, OpLoc, OpNpc, OpObj, OpPlayer, If3Button, OpLocT, OpObjT, OpNpcT, OpPlayerT, IfButtonT, IfButtonD, ResumePauseButton, ResumePCountDialog, ResumePStringDialog, ResumePNameDialog, ResumePObjDialog, CloseModal.
 | # | Packet | Legacy handler it should reach | Impact |
 |---|---|---|---|
-| C1 | MessagePrivate | FriendsHandler (opcode 48 PM) | PMs |
-| C2 | FriendListAdd / FriendListDel / IgnoreListAdd / IgnoreListDel | FriendsHandler | friends/ignore mgmt |
-| C3 | FriendChatJoinLeave / FriendChatKick / FriendChatSetRank | ClanHandler (53/22) | clan chat |
-| C4 | SetChatFilterSettings | PrivacyHandler (21) | privacy toggles |
+| C1 | MessagePrivate | FriendsHandler (opcode 48 PM) | PMs — DONE 2026-11-12 (pending live-test) |
+| C2 | FriendListAdd / FriendListDel / IgnoreListAdd / IgnoreListDel | FriendsHandler | friends/ignore mgmt — DONE 2026-11-12 (pending live-test) |
+| C3 | FriendChatJoinLeave / FriendChatKick / FriendChatSetRank | ClanHandler (53/22) | clan chat — DONE 2026-11-12 (pending live-test) |
+| C4 | SetChatFilterSettings | PrivacyHandler (21) | privacy toggles — DONE 2026-11-12 (pending live-test) |
 | C5 | WindowStatus | DisplayHandler (72) | resizable/fixed switching; login hardcodes fixed 548 (RP.openFrame) |
 | C6 | OpLoc6 / OpNpc6 / OpObj6 | examine (legacy option-6 branches are debug-only) | no examine text for objects/NPCs/ground items |
 | C7 | Idle | idle logout (PL idleTicks logic ~1696 exists) | AFK logout |

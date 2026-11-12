@@ -14,6 +14,11 @@ public class PrivacyHandler implements Incoming {
         int publicSetting = in.readByte();
         int privateSetting = in.readByte();
         int tradeSetting = in.readByte();
+        setPrivacy(player, privateSetting);
+    }
+
+    /** Private-chat filter change. Shared with the RSProt {@code SetChatFilterSettings} bridge. */
+    public static void setPrivacy(Player player, int privateSetting) {
         int oldPrivacy = player.socialList.privacy;
         player.socialList.privacy = privateSetting;
         if (oldPrivacy != privateSetting) {

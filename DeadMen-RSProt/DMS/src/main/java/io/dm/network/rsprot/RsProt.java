@@ -236,6 +236,45 @@ public final class RsProt {
                     builder.addListener(ResumePObjDialog.class,
                             (MessageConsumer<DmNetworkPlayer, ResumePObjDialog>) (player, msg) ->
                                     onObjInput(player, msg));
+                    // C1-C4: social packets -> the legacy FriendsHandler/ClanHandler/PrivacyHandler logic.
+                    builder.addListener(net.rsprot.protocol.game.incoming.messaging.MessagePrivate.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.messaging.MessagePrivate>) (player, msg) -> {
+                                if (player instanceof Player p) {
+                                    io.dm.network.incoming.handlers.FriendsHandler.privateMessage(p, msg.getName(), msg.getMessage());
+                                }
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.social.FriendListAdd.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.social.FriendListAdd>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.social.SocialList.handle(p, msg.getName(), 1);
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.social.FriendListDel.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.social.FriendListDel>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.social.SocialList.handle(p, msg.getName(), 2);
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.social.IgnoreListAdd.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.social.IgnoreListAdd>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.social.SocialList.handle(p, msg.getName(), 3);
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.social.IgnoreListDel.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.social.IgnoreListDel>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.social.SocialList.handle(p, msg.getName(), 4);
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.friendchat.FriendChatJoinLeave.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.friendchat.FriendChatJoinLeave>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.network.incoming.handlers.ClanHandler.joinLeave(p, msg.getName());
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.friendchat.FriendChatKick.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.friendchat.FriendChatKick>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.network.incoming.handlers.ClanHandler.kick(p, msg.getName());
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.friendchat.FriendChatSetRank.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.friendchat.FriendChatSetRank>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.network.incoming.handlers.FriendsHandler.rankFriend(p, msg.getName(), msg.getRank());
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.misc.user.SetChatFilterSettings.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.misc.user.SetChatFilterSettings>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.network.incoming.handlers.PrivacyHandler.setPrivacy(p, msg.getPrivateChatFilter());
+                            });
                     // Everything else is accepted-and-dropped so processIncomingPackets never throws.
                     DmIncomingPackets.INSTANCE.registerNoOpsExcept(builder, java.util.Set.of(
                             MoveGameClick.class, MoveMinimapClick.class,
@@ -245,7 +284,16 @@ public final class RsProt {
                             IfButtonT.class, IfButtonD.class,
                             ResumePauseButton.class, ResumePCountDialog.class,
                             ResumePStringDialog.class, ResumePNameDialog.class,
-                            ResumePObjDialog.class));
+                            ResumePObjDialog.class,
+                            net.rsprot.protocol.game.incoming.messaging.MessagePrivate.class,
+                            net.rsprot.protocol.game.incoming.social.FriendListAdd.class,
+                            net.rsprot.protocol.game.incoming.social.FriendListDel.class,
+                            net.rsprot.protocol.game.incoming.social.IgnoreListAdd.class,
+                            net.rsprot.protocol.game.incoming.social.IgnoreListDel.class,
+                            net.rsprot.protocol.game.incoming.friendchat.FriendChatJoinLeave.class,
+                            net.rsprot.protocol.game.incoming.friendchat.FriendChatKick.class,
+                            net.rsprot.protocol.game.incoming.friendchat.FriendChatSetRank.class,
+                            net.rsprot.protocol.game.incoming.misc.user.SetChatFilterSettings.class));
                     return Unit.INSTANCE;
                 });
         service = svc;
