@@ -74,15 +74,15 @@ Wired today (21): MoveGameClick, MoveMinimapClick, ClientCheat, MessagePublic, O
 ## D. Login / session (RP.doLogin, PlayerFile.loadForRsProt)
 | # | Gap | Evidence |
 |---|---|---|
-| D1 | No ALREADY_LOGGED_IN check — second login of same name creates a second Player | deleted PlayerLogin.java had it (git show HEAD:./DMS/.../PlayerLogin.java line 46); RP.doLogin has no isOnline/getPlayer lookup |
-| D2 | No WORLD_FULL handling (World.players.add result unchecked) | PlayerLogin line 52 had it |
-| D3 | Bans/locks not enforced (IPBans, MACBan, UUIDBan, Punishment banned/locked) | legacy LoginDecoder/PlayerLogin; doLogin only does bcrypt |
+| D1 | No ALREADY_LOGGED_IN check — second login of same name creates a second Player | deleted PlayerLogin.java had it (git show HEAD:./DMS/.../PlayerLogin.java line 46); RP.doLogin has no isOnline/getPlayer lookup — DONE 2026-11-12 (pending live-test) |
+| D2 | No WORLD_FULL handling (World.players.add result unchecked) | PlayerLogin line 52 had it — DONE 2026-11-12 (pending live-test; capped at avatar index 2047) |
+| D3 | Bans/locks not enforced (IPBans, MACBan, UUIDBan, Punishment banned/locked) | legacy LoginDecoder/PlayerLogin; doLogin only does bcrypt — PARTIAL 2026-11-12: IP ban, UUID ban and BANNED group enforced; MAC ban + Punishment locks NOT (no MAC in the 228 LoginBlock) |
 | D4 | login_set allow-list unenforced | HANDOFF Stage 12 increment 1 note |
 | D5 | 2FA dropped — AuthenticatorResponse.NoAuthenticator hardcoded (DmLogin.kt) | legacy LoginDecoder tfa logic lines 121-223 |
 | D6 | Reconnect = full doLogin (new Player object) instead of rebinding to the online player | RP.loginService().reconnect -> doLogin |
-| D7 | Player IP/UUID/MAC not captured — LoginInfo built with null channel -> ipAddress "" and ipAddressInt 0 (LoginInfo.java 48-50); everything using getIp() (mutes, bans, Loggers) gets an empty string | RP.doLogin `new LoginInfo(null, ...)` |
+| D7 | Player IP/UUID/MAC not captured — LoginInfo built with null channel -> ipAddress "" and ipAddressInt 0 (LoginInfo.java 48-50); everything using getIp() (mutes, bans, Loggers) gets an empty string | RP.doLogin `new LoginInfo(null, ...)` — DONE 2026-11-12 (pending live-test; IP from login ctx remoteAddress, UUID hex from LoginBlock) |
 | D8 | Temporary starter kit + Lumbridge override hardcoded in doLogin | RP ~783-795 |
-| D9 | UPDATING/system-update login block (Response.UPDATING) not reproduced | PlayerLogin line 34 |
+| D9 | UPDATING/system-update login block (Response.UPDATING) not reproduced | PlayerLogin line 34 — DONE 2026-11-12 (pending live-test) |
 | D10 | Logout: forceLogout on AIPlayer NPEs (ArtificialChannel.writeAndFlush null) | HANDOFF Stage 12 |
 
 ## E. Avatar / appearance / FX gaps (RP.syncAppearance, pushMaskUpdates)

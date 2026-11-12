@@ -840,6 +840,41 @@ public final class RsProt {
         try {
             // Extract the plaintext password from the block for auth (fresh-connect only; reconnect
             // uses XteaKey and skips auth). In dev mode auth is skipped so a fresh username creates.
+            // D9: system update in progress.
+            if (World.updating) {
+                DmLogin.INSTANCE.reject(rh, LoginResponse.UpdateInProgress.INSTANCE);
+                return;
+            }
+            // D7: capture the remote IP and client UUID from the login connection.
+            String ip = "";
+            try {
+                if (rh.getCtx().channel().remoteAddress() instanceof java.net.InetSocketAddress isa
+                        && isa.getAddress() != null) {
+                    ip = isa.getAddress().getHostAddress();
+                }
+            } catch (Throwable t) {
+                System.out.println("[LOGIN] could not read remote address: " + t);
+            }
+            StringBuilder uuidHex = new StringBuilder();
+            if (block.getUuid() != null) {
+                for (byte b : block.getUuid()) {
+                    uuidHex.append(String.format("%02x", b));
+                }
+            }
+            String uuid = uuidHex.toString();
+            // D3: IP / UUID bans.
+            if (!World.isDev() && (io.dm.api.utils.IPBans.isIPBanned(ip)
+                    || (!uuid.isEmpty() && io.dm.api.utils.UUIDBan.isUUIDBanned(uuid)))) {
+                DmLogin.INSTANCE.reject(rh, LoginResponse.Banned.INSTANCE);
+                System.out.println("[LOGIN] '" + username + "' rejected: ip/uuid ban (" + ip + ")");
+                return;
+            }
+            // D1: already online under this name.
+            if (World.getPlayer(username) != null) {
+                DmLogin.INSTANCE.reject(rh, LoginResponse.Duplicate.INSTANCE);
+                System.out.println("[LOGIN] '" + username + "' rejected: already logged in");
+                return;
+            }
             String password = extractPassword(block);
             player = PlayerFile.loadForRsProt(username, World.isDev() ? null : password);
             if (player == null) {
@@ -847,11 +882,26 @@ public final class RsProt {
                 System.out.println("[LOGIN] '" + username + "' invalid password");
                 return;
             }
+            // D3: account-level ban (BANNED group persisted in the save).
+            if (player.getSavedGroupIds() != null
+                    && player.getSavedGroupIds().contains(PlayerGroup.BANNED.id)) {
+                DmLogin.INSTANCE.reject(rh, LoginResponse.Banned.INSTANCE);
+                System.out.println("[LOGIN] '" + username + "' rejected: banned");
+                return;
+            }
             index = World.players.add(player, 1);
+            // D2: RSProt avatars are indexed 1..2047; the entity list itself grows without bound.
+            if (index >= 2048) {
+                World.players.remove(index);
+                index = -1;
+                DmLogin.INSTANCE.reject(rh, LoginResponse.ServerFull.INSTANCE);
+                System.out.println("[LOGIN] '" + username + "' rejected: world full");
+                return;
+            }
             player.setIndex(index);
 
-            LoginInfo info = new LoginInfo(null, username, password == null ? "" : password, "", "",
-                    null, 0, false, 0, World.id, new int[4]);
+            LoginInfo info = new LoginInfo(ip, username, password == null ? "" : password, "", "",
+                    uuid, World.id, new int[4]);
             info.update(username, "", ListUtils.toList(
                     (World.isDev() ? PlayerGroup.ADMINISTRATOR : PlayerGroup.REGISTERED).id));
             player.init(info);

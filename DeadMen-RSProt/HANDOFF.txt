@@ -1,3 +1,8 @@
+## STAGE 17+ — D1/D2/D3/D7/D9 login checks (2026-11-12)
+- RsProt.doLogin: World.updating -> LoginResponse.UpdateInProgress; remote IP (from rh.getCtx().channel().remoteAddress()) + UUID hex (LoginBlock.getUuid) captured into a new LoginInfo ctor (kronos-api LoginInfo) so Player.getIp()/getUUID() are real; IPBans/UUIDBan (non-dev) and saved BANNED group -> Banned; World.getPlayer(name)!=null -> Duplicate; avatar index >= 2048 -> ServerFull (and the slot is freed).
+- Not done: MAC ban (no MAC in the 228 login block), Punishment locks, D4 login_set (depends on legacy PlayerLogin), D5 2FA, D6 reconnect rebind, D8 starter kit (left on purpose until a real new-player flow exists), D10.
+- Compile green; NOT live-tested (no server.properties in the worktree to boot). Test: log in twice with one name (2nd refused 'already logged in'), banned account refused, ::ip-ban flow now has a non-empty IP (check Loggers/chat logs show the address).
+
 ## STAGE 17+ — E1-E4 avatar bridges (2026-11-12)
 - syncAppearance now bridges: weapon/custom render anims (Appearance.resolveRenders -> setBaseAnimationSet, -1 entries fall back to 808/823/819-822/824), Appearance.prayerIcon -> setOverheadIcon, Appearance.npcId -> transformToNpc, Entity.hidden -> setHidden. Player.setHidden override flags the appearance mask so changes are pushed.
 - Files: network/rsprot/RsProt.java, model/entity/shared/masks/Appearance.java, model/entity/player/Player.java. Compile green; NOT live-tested.

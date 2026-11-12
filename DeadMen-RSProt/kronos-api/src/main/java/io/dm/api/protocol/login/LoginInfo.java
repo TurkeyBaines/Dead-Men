@@ -65,6 +65,24 @@ public class LoginInfo {
         this.macAddress = macAddress;
     }
 
+    /** RSProt players: no Netty channel, but the remote address is known from the login connection (D7). */
+    public LoginInfo(String ip, String name, String password, String email, String macAddress, String uuid, int worldId, int[] keys) {
+        this.channel = null;
+        this.ipAddress = ip == null ? "" : ip;
+        this.ipAddressInt = this.ipAddress.isEmpty() ? 0 : IPAddress.toInt(this.ipAddress);
+        this.name = name;
+        this.password = password;
+        this.email = email;
+        this.uuid = uuid;
+        this.tfaCode = 0;
+        this.tfaTrust = false;
+        this.tfaTrustValue = 0;
+        this.worldId = worldId;
+        this.keys = keys;
+        this.unreadPMs = 0;
+        this.macAddress = macAddress;
+    }
+
     public void update(int userId, String name, String saved, List<Integer> groupIds, int unreadPMs) {
         this.userId = userId;
         this.name = name;
