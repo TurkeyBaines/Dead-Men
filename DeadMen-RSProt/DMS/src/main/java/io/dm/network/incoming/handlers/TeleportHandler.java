@@ -22,7 +22,11 @@ public class TeleportHandler implements Incoming {
         int unknown = in.readLEInt();
         int y = in.readShort();
         int x = in.readLEShortA();
+        teleport(player, x, y, z);
+    }
 
+    /** World-map double-click teleport. Shared with the RSProt {@code Teleport} bridge. */
+    public static void teleport(Player player, int x, int y, int z) {
         if (!(player.isAdmin() || World.isDev()) || !player.isVisibleInterface(Interface.WORLD_MAP))
             return;
 

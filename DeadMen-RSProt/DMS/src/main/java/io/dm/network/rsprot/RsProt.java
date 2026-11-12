@@ -236,6 +236,13 @@ public final class RsProt {
                     builder.addListener(ResumePObjDialog.class,
                             (MessageConsumer<DmNetworkPlayer, ResumePObjDialog>) (player, msg) ->
                                     onObjInput(player, msg));
+                    // C8: admin world-map double-click teleport (gated inside TeleportHandler.teleport).
+                    builder.addListener(net.rsprot.protocol.game.incoming.misc.user.Teleport.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.misc.user.Teleport>) (player, msg) -> {
+                                if (player instanceof Player p && !p.isLocked()) {
+                                    io.dm.network.incoming.handlers.TeleportHandler.teleport(p, msg.getX(), msg.getZ(), msg.getLevel());
+                                }
+                            });
                     // C6: examine (option 6 on locs / npcs / ground items).
                     builder.addListener(net.rsprot.protocol.game.incoming.locs.OpLoc6.class,
                             (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.locs.OpLoc6>) (player, msg) -> {
@@ -307,6 +314,7 @@ public final class RsProt {
                             ResumePauseButton.class, ResumePCountDialog.class,
                             ResumePStringDialog.class, ResumePNameDialog.class,
                             ResumePObjDialog.class,
+                            net.rsprot.protocol.game.incoming.misc.user.Teleport.class,
                             net.rsprot.protocol.game.incoming.locs.OpLoc6.class,
                             net.rsprot.protocol.game.incoming.npcs.OpNpc6.class,
                             net.rsprot.protocol.game.incoming.objs.OpObj6.class,

@@ -1,3 +1,7 @@
+## STAGE 17+ — C8 world-map teleport; C7/C12 deliberately no-op (2026-11-12)
+- RsProt.start(): incoming Teleport -> new TeleportHandler.teleport(p,x,z,level) (same admin/dev + Interface.WORLD_MAP(595) gate as legacy). Compile green; NOT live-tested (world map must be opened as admin; 228 world map interface id 595 assumed unchanged).
+- C7 Idle / C12 MapBuildComplete left on the no-op path on purpose (see work file rows).
+
 ## STAGE 17+ — C16 public chat parity (2026-11-12)
 - ChatHandler.process(player, clan, type, effects, message) extracted from the legacy opcode-32 body (mute/IP-mute/shadow, bad-word filter, clan "/" routing, ::/;; commands, ! admin force-text, Loggers); legacy handle() delegates, RsProt.onPublicChat calls it. SHOW -> avatar setChat as before; SHADOW -> sender-only MessageGame(type 2, name, msg).
 - Assumptions to verify live: MessagePublic.clanType >= 0 means a friends/clan-channel message (else -1); shadow-mute echo format. Files: network/incoming/handlers/ChatHandler.java, network/rsprot/RsProt.java. Compile green; NOT live-tested.

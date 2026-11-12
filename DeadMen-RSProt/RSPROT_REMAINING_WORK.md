@@ -59,12 +59,12 @@ Wired today (21): MoveGameClick, MoveMinimapClick, ClientCheat, MessagePublic, O
 | C4 | SetChatFilterSettings | PrivacyHandler (21) | privacy toggles — DONE 2026-11-12 (pending live-test) |
 | C5 | WindowStatus | DisplayHandler (72) | resizable/fixed switching; login hardcodes fixed 548 (RP.openFrame) |
 | C6 | OpLoc6 / OpNpc6 / OpObj6 | examine (legacy option-6 branches are debug-only) | no examine text for objects/NPCs/ground items — DONE 2026-11-12 (pending live-test; npc/obj text is generic 'It's a <name>.' since Cache228 has no examine text for them) |
-| C7 | Idle | idle logout (PL idleTicks logic ~1696 exists) | AFK logout |
-| C8 | Teleport | TeleportHandler (7) — admin world-map teleport | |
+| C7 | Idle | idle logout (PL idleTicks logic ~1696 exists) | AFK logout — LEFT NO-OP 2026-11-12: legacy idleTicks is movement-based (Player ~1728) and never logs out; the Idle packet is informational |
+| C8 | Teleport | TeleportHandler (7) — admin world-map teleport | — DONE 2026-11-12 (pending live-test) |
 | C9 | ClickWorldMap | (no legacy) | optional |
 | C10 | HiscoreRequest | HiscoreReply | optional |
 | C11 | BugReport / DetectModifiedClient / ReflectionCheckReply / SendPingReply / ConnectionTelemetry | anti-cheat/telemetry | optional |
-| C12 | MapBuildComplete | RegionUpdateHandler (13, empty body) | low |
+| C12 | MapBuildComplete | RegionUpdateHandler (13, empty body) | low — LEFT NO-OP 2026-11-12 (legacy handler body was empty) |
 | C13 | If1Button / IfSubOp | n/a (IF1 obsolete) | confirm unused, leave no-op |
 | C14 | Appearance/character design (legacy opcode 44 AppearanceHandler, Interface.APPEARANCE_CUSTOMIZATION=269, MakeoverMage) | no RSProt packet exists; must be rebuilt as If3Button/varbit flow | makeover mage / new-player design |
 | C15 | ClanChannel*/AffinedClanSettings* | OSRS clans — not a 184 feature | skip |
