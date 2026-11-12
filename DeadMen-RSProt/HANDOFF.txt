@@ -1,3 +1,11 @@
+## STAGE 17+ — A21 RebuildRegion for dynamic maps (2026-11-12)
+- RsProt.maybeRebuildRegion now branches via new sendRebuild(): tile in a Region with dynamicData != null -> RebuildRegion(zoneX, zoneZ, false, dynamicZoneProvider); else RebuildNormal as before.
+- Provider decodes Region.dynamicData[level][zx&7][zz&7] chunkHash (== ReferenceZone packing: rot<<1|y<<3|x<<14|level<<24), null for zones outside the player's own dynamicIndex block / unbuilt; xtea key is the TEMPLATE mapsquare's.
+- Rebuild also forced when static<->dynamic or instance-block changes (new Player.rsprotDynamicIndex); login inside an instance sends RebuildRegion after RebuildLogin.
+- syncRegionTracking only tracks regions of the player's own instance block (neighbouring instances abut in the grid; avoids ground-item/object leaks).
+- Files: network/rsprot/RsProt.java, model/entity/player/Player.java. Compile green; NOT live-tested.
+- Human test: see hand-back (enter Fight Caves/Inferno/POH/Zulrah, expect map renders with correct terrain + no black screen; leave and re-enter; two players in separate instances).
+
 # Dead-Men → RSProt: Technical Handoff & Blueprints (Rev 228)
 Target: Revision 228 (Aligning with AlterRSPS reference).
 Cache: 'cache-oldschool-live-en-b228-2025-02-05-11-45-05-openrs2' in Cache228/cache/ + Cache228/xteas.json.

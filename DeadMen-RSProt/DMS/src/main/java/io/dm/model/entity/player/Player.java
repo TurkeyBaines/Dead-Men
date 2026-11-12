@@ -114,6 +114,8 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
     public net.rsprot.protocol.game.outgoing.info.worldentityinfo.WorldEntityInfo worldEntityInfo;
     /** Zone-base of the last RSProt build area sent to this player (for region-rebuild + npc origin). */
     public int buildAreaZoneX = -1, buildAreaZoneZ = -1;
+    /** {@code Region.dynamicIndex} of the instance block the last RSProt rebuild was built for, -1 = static map. */
+    public int rsprotDynamicIndex = -1;
 
     @Override
     public net.rsprot.protocol.api.Session<io.dm.net.DmNetworkPlayer> getSession() {

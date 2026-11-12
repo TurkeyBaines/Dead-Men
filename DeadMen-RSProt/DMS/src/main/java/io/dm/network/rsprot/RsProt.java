@@ -62,6 +62,8 @@ import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub;
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop;
 import net.rsprot.protocol.game.outgoing.map.RebuildLogin;
 import net.rsprot.protocol.game.outgoing.map.RebuildNormal;
+import net.rsprot.protocol.game.outgoing.map.RebuildRegion;
+import net.rsprot.protocol.game.outgoing.map.util.RebuildRegionZone;
 import net.rsprot.protocol.game.outgoing.map.util.XteaProvider;
 import net.rsprot.protocol.game.outgoing.worldentity.SetActiveWorld;
 import net.rsprot.protocol.loginprot.incoming.util.AuthenticationType;
@@ -791,6 +793,11 @@ public final class RsProt {
             // RebuildLogin carries the GPI init block (built from playerInfo); sent before build areas.
             s.queue(new RebuildLogin(x >> 3, z >> 3, -1, xtea, player.playerInfo));
             setBuildAreas(player, (x >> 3) - 6, (z >> 3) - 6);
+            // A21: RebuildLogin only carries the static map; a player who logs in inside a dynamic
+            // instance needs the RebuildRegion follow-up (legacy sendRegion(true) did the same).
+            if (dynamicIndexAt(x, z) != -1) {
+                sendRebuild(player, x >> 3, z >> 3);
+            }
             // Stage 02 fix: without this, the player is never added to any Region's players list
             // (see syncRegionTracking's own doc), so no ground item ever gets sent to a fresh login.
             syncRegionTracking(player, x >> 3, z >> 3);
@@ -1163,6 +1170,9 @@ public final class RsProt {
     private static void syncRegionTracking(Player p, int zoneX, int zoneZ) {
         p.removeFromRegions();
         int depth = 6;
+        // A21: instance blocks abut each other in the region grid, so a dynamic player must only
+        // track regions of its own block (legacy sendRegion's dynamic branch filtered the same way).
+        int dynIndex = dynamicIndexAt(zoneX << 3, zoneZ << 3);
         for (int xCalc = (zoneX - depth) / 8; xCalc <= (zoneX + depth) / 8; xCalc++) {
             for (int yCalc = (zoneZ - depth) / 8; yCalc <= (zoneZ + depth) / 8; yCalc++) {
                 int regionId = yCalc + (xCalc << 8);
@@ -1170,7 +1180,7 @@ public final class RsProt {
                     continue;
                 }
                 Region r = Region.get(regionId);
-                if (r != null) {
+                if (r != null && (dynIndex == -1 || (r.dynamicData != null && r.dynamicIndex == dynIndex))) {
                     p.addRegion(r);
                 }
             }
@@ -1179,17 +1189,77 @@ public final class RsProt {
     }
 
     /**
-     * Re-centre the 13x13-zone build area + send {@link RebuildNormal} when the player nears the
-     * edge (>=4 zones from centre, ~16-tile margin). Keeps the client's scene loaded as it roams.
+     * {@code Region.dynamicIndex} of the instance block covering tile (x, z), or -1 when that tile is
+     * in a static map (no region, or {@code dynamicData == null}).
+     */
+    private static int dynamicIndexAt(int x, int z) {
+        int regionId = ((x >> 6) << 8) | (z >> 6);
+        if (x < 0 || z < 0 || regionId >= Region.LOADED.length) {
+            return -1;
+        }
+        Region r = Region.LOADED[regionId];
+        return r != null && r.dynamicData != null ? r.dynamicIndex : -1;
+    }
+
+    /**
+     * A21: maps a dynamic-map zone to the template zone the client should render there. Decodes the
+     * legacy {@code DynamicMap} chunk hash {@code (rotation << 1) | (level << 24) | (x << 14) | (y << 3)}
+     * (bit-identical to {@code RebuildRegionZone.ReferenceZone}'s packing) and keys the zone with the
+     * TEMPLATE mapsquare's xtea, not the instance's, which has no map data. Returns {@code null}
+     * (the client's "no zone here" bit) for zones outside the player's own instance block or never built.
+     */
+    private static RebuildRegion.RebuildRegionZoneProvider dynamicZoneProvider(int dynIndex) {
+        return (zoneX, zoneZ, level) -> {
+            int regionId = ((zoneX >> 3) << 8) | (zoneZ >> 3);
+            if (zoneX < 0 || zoneZ < 0 || level < 0 || level > 3 || regionId >= Region.LOADED.length) {
+                return null;
+            }
+            Region r = Region.LOADED[regionId];
+            if (r == null || r.dynamicData == null || r.dynamicIndex != dynIndex) {
+                return null;
+            }
+            int[] chunk = r.dynamicData[level][zoneX & 7][zoneZ & 7];
+            int hash = chunk[0];
+            if (hash == 0 || chunk[1] == 0) {
+                return null;
+            }
+            int rotation = (hash >> 1) & 3;
+            int tmplZ = (hash >> 3) & 2047;
+            int tmplX = (hash >> 14) & 1023;
+            int tmplLevel = (hash >> 24) & 3;
+            return new RebuildRegionZone(tmplX, tmplZ, tmplLevel, rotation,
+                    xtea.provide(((tmplX >> 3) << 8) | (tmplZ >> 3)));
+        };
+    }
+
+    /**
+     * Re-centre the 13x13-zone build area, send {@link RebuildNormal} (static map) or
+     * {@link RebuildRegion} (dynamic instance, A21) and re-sync region tracking.
+     */
+    private static void sendRebuild(Player p, int zoneX, int zoneZ) {
+        int dynIndex = dynamicIndexAt(zoneX << 3, zoneZ << 3);
+        setBuildAreas(p, zoneX - 6, zoneZ - 6);
+        if (dynIndex == -1) {
+            p.getSession().queue(new RebuildNormal(zoneX, zoneZ, -1, xtea));
+        } else {
+            p.getSession().queue(new RebuildRegion(zoneX, zoneZ, false, dynamicZoneProvider(dynIndex)));
+        }
+        p.rsprotDynamicIndex = dynIndex;
+        syncRegionTracking(p, zoneX, zoneZ);
+    }
+
+    /**
+     * Rebuild when the player nears the edge of the build area (>=4 zones from centre, ~16-tile
+     * margin) or crosses between a static map and a dynamic instance / another instance block (A21),
+     * since the static and dynamic messages describe the scene differently.
      */
     private static void maybeRebuildRegion(Player p, int x, int z) {
         int zoneX = x >> 3, zoneZ = z >> 3;
-        if (Math.abs(zoneX - (p.buildAreaZoneX + 6)) < 4 && Math.abs(zoneZ - (p.buildAreaZoneZ + 6)) < 4) {
+        if (dynamicIndexAt(x, z) == p.rsprotDynamicIndex
+                && Math.abs(zoneX - (p.buildAreaZoneX + 6)) < 4 && Math.abs(zoneZ - (p.buildAreaZoneZ + 6)) < 4) {
             return;
         }
-        setBuildAreas(p, zoneX - 6, zoneZ - 6);
-        p.getSession().queue(new RebuildNormal(zoneX, zoneZ, -1, xtea));
-        syncRegionTracking(p, zoneX, zoneZ);
+        sendRebuild(p, zoneX, zoneZ);
     }
 
     /**
