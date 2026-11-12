@@ -236,6 +236,28 @@ public final class RsProt {
                     builder.addListener(ResumePObjDialog.class,
                             (MessageConsumer<DmNetworkPlayer, ResumePObjDialog>) (player, msg) ->
                                     onObjInput(player, msg));
+                    // C6: examine (option 6 on locs / npcs / ground items).
+                    builder.addListener(net.rsprot.protocol.game.incoming.locs.OpLoc6.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.locs.OpLoc6>) (player, msg) -> {
+                                if (player instanceof Player p) {
+                                    io.dm.cache.ObjectDef def = io.dm.cache.ObjectDef.get(msg.getId());
+                                    examineEntity(p, def == null ? null : def.name);
+                                }
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.npcs.OpNpc6.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.npcs.OpNpc6>) (player, msg) -> {
+                                if (player instanceof Player p) {
+                                    // OpNpc6 carries the npc TYPE id (not the world index).
+                                    io.dm.cache.NPCDef def = io.dm.cache.NPCDef.get(msg.getId());
+                                    examineEntity(p, def == null ? null : def.name);
+                                }
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.objs.OpObj6.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.objs.OpObj6>) (player, msg) -> {
+                                if (player instanceof Player p) {
+                                    io.dm.model.item.Item.examine(p, msg.getId());
+                                }
+                            });
                     // C1-C4: social packets -> the legacy FriendsHandler/ClanHandler/PrivacyHandler logic.
                     builder.addListener(net.rsprot.protocol.game.incoming.messaging.MessagePrivate.class,
                             (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.messaging.MessagePrivate>) (player, msg) -> {
@@ -285,6 +307,9 @@ public final class RsProt {
                             ResumePauseButton.class, ResumePCountDialog.class,
                             ResumePStringDialog.class, ResumePNameDialog.class,
                             ResumePObjDialog.class,
+                            net.rsprot.protocol.game.incoming.locs.OpLoc6.class,
+                            net.rsprot.protocol.game.incoming.npcs.OpNpc6.class,
+                            net.rsprot.protocol.game.incoming.objs.OpObj6.class,
                             net.rsprot.protocol.game.incoming.messaging.MessagePrivate.class,
                             net.rsprot.protocol.game.incoming.social.FriendListAdd.class,
                             net.rsprot.protocol.game.incoming.social.FriendListDel.class,
@@ -497,6 +522,18 @@ public final class RsProt {
     }
 
     // ------------------------------------------------------------------ entity / interface interactions
+
+    /**
+     * C6: Cache228 carries no examine text for npcs/objects (only the custom item_info examine on
+     * {@code ItemDef}), so fall back to the generic "It's a &lt;name&gt;." line.
+     */
+    private static void examineEntity(Player p, String name) {
+        if (name == null || name.isEmpty() || name.equals("null")) {
+            p.sendMessage("Nothing interesting happens.");
+            return;
+        }
+        p.sendMessage("It's " + (name.matches("(?i)^[aeiou].*") ? "an " : "a ") + name + ".");
+    }
 
     /**
      * Incoming object (loc) click, options 1-5 → the legacy {@code ObjectActionHandler}: routes the

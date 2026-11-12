@@ -1,3 +1,7 @@
+## STAGE 17+ — C6 examine (2026-11-12)
+- RsProt.start(): OpLoc6 / OpNpc6 (npc TYPE id) / OpObj6 listeners. Ground items use Item.examine(p,id) (ItemDef.examine from item_info). NPC/object examine falls back to "It's a/an <name>." — the work file's claim that NPCDef/ObjectDef decode examine text is wrong (only ItemDef.examine exists; OSRS cache has no npc/obj examine strings). A real source (wiki dump) would be needed for authentic text.
+- File: network/rsprot/RsProt.java. Compile green; NOT live-tested. Test: right-click Examine on a tree, an NPC, a ground item.
+
 ## STAGE 17+ — C1-C4 social incoming bridges (2026-11-12)
 - RsProt.start(): listeners for incoming MessagePrivate, FriendListAdd/Del, IgnoreListAdd/Del, FriendChatJoinLeave/Kick/SetRank, SetChatFilterSettings (all added to the registerNoOpsExcept set). They call SocialList.handle(p,name,1..4) and new public static helpers FriendsHandler.privateMessage/rankFriend, ClanHandler.joinLeave/kick, PrivacyHandler.setPrivacy (legacy opcode handlers now delegate to the same helpers).
 - Only the private-chat filter is stored; public/trade filter values are ignored (as legacy). Compile green; boot not run (no server.properties in the worktree); NOT live-tested.
