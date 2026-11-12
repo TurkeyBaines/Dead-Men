@@ -106,6 +106,12 @@ public final class RsProt {
      * the 548 root via {@link IfOpenSub}. Slots/ids from AlterRSPS's {@code InterfaceDestination}
      * (fixed column). This is the tab sidebar + chatbox + minimap that make the frame look complete.
      */
+    /** C5/F10: resizable (161) root; child slots for FIXED_FRAME_PANES, same order (AlterRSPS InterfaceDestination, resizable column). */
+    private static final int RESIZABLE_TOP_LEVEL_INTERFACE = 161;
+    private static final int[] RESIZABLE_FRAME_SLOTS = {
+            96, 9, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 91, 33,
+    };
+
     private static final int[][] FIXED_FRAME_PANES = {
             {162, 10}, // chatbox
             {122, 33}, // xp counter
@@ -236,6 +242,18 @@ public final class RsProt {
                     builder.addListener(ResumePObjDialog.class,
                             (MessageConsumer<DmNetworkPlayer, ResumePObjDialog>) (player, msg) ->
                                     onObjInput(player, msg));
+                    // C5: fixed <-> resizable switch. windowMode 1 = fixed, >=2 resizable. Re-opens the
+                    // standard panes in the other root; extra open modals/custom tabs are not migrated.
+                    builder.addListener(net.rsprot.protocol.game.incoming.misc.client.WindowStatus.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.misc.client.WindowStatus>) (player, msg) -> {
+                                if (player instanceof Player p && p.isOnline()) {
+                                    boolean resizable = msg.getWindowMode() >= 2;
+                                    if (resizable == !p.isFixedScreen()) {
+                                        return;
+                                    }
+                                    openFrame(p, resizable);
+                                }
+                            });
                     // C8: admin world-map double-click teleport (gated inside TeleportHandler.teleport).
                     builder.addListener(net.rsprot.protocol.game.incoming.misc.user.Teleport.class,
                             (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.misc.user.Teleport>) (player, msg) -> {
@@ -314,6 +332,7 @@ public final class RsProt {
                             ResumePauseButton.class, ResumePCountDialog.class,
                             ResumePStringDialog.class, ResumePNameDialog.class,
                             ResumePObjDialog.class,
+                            net.rsprot.protocol.game.incoming.misc.client.WindowStatus.class,
                             net.rsprot.protocol.game.incoming.misc.user.Teleport.class,
                             net.rsprot.protocol.game.incoming.locs.OpLoc6.class,
                             net.rsprot.protocol.game.incoming.npcs.OpNpc6.class,
@@ -957,7 +976,7 @@ public final class RsProt {
             // (see syncRegionTracking's own doc), so no ground item ever gets sent to a fresh login.
             syncRegionTracking(player, x >> 3, z >> 3);
             syncAppearance(player);
-            openFrame(player);
+            openFrame(player, block.getResizable());
 
             // Milestone 3 fix (2026-07-07): Player.start() fires the one-shot login packet burst —
             // welcome message, LoginListener UI, pet spawn, and critically the chatbox/display-name
@@ -1504,10 +1523,13 @@ public final class RsProt {
      * corrected, RING=24/AMMO=25) registrations, not a functional unblock.</li>
      * </ul>
      */
-    private static void openFrame(Player player) {
-        player.getPacketSender().sendGameFrame(FIXED_TOP_LEVEL_INTERFACE);
-        for (int[] pane : FIXED_FRAME_PANES) {
-            player.getPacketSender().sendInterface(pane[0], FIXED_TOP_LEVEL_INTERFACE, pane[1], 1);
+    private static void openFrame(Player player, boolean resizable) {
+        int top = resizable ? RESIZABLE_TOP_LEVEL_INTERFACE : FIXED_TOP_LEVEL_INTERFACE;
+        player.setDisplayMode(resizable ? 2 : 1);
+        player.getPacketSender().sendGameFrame(top);
+        for (int i = 0; i < FIXED_FRAME_PANES.length; i++) {
+            int[] pane = FIXED_FRAME_PANES[i];
+            player.getPacketSender().sendInterface(pane[0], top, resizable ? RESIZABLE_FRAME_SLOTS[i] : pane[1], 1);
         }
         player.getPacketSender().sendAccessMask(io.dm.model.inter.Interface.INVENTORY, 0, 0, 27, 3407870);
         // Stage 06 fix (2026-07-11): this loop's range was 6-16, but TabEquipment.java's real handlers

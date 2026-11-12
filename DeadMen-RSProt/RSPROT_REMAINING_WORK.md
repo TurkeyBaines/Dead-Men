@@ -57,7 +57,7 @@ Wired today (21): MoveGameClick, MoveMinimapClick, ClientCheat, MessagePublic, O
 | C2 | FriendListAdd / FriendListDel / IgnoreListAdd / IgnoreListDel | FriendsHandler | friends/ignore mgmt — DONE 2026-11-12 (pending live-test) |
 | C3 | FriendChatJoinLeave / FriendChatKick / FriendChatSetRank | ClanHandler (53/22) | clan chat — DONE 2026-11-12 (pending live-test) |
 | C4 | SetChatFilterSettings | PrivacyHandler (21) | privacy toggles — DONE 2026-11-12 (pending live-test) |
-| C5 | WindowStatus | DisplayHandler (72) | resizable/fixed switching; login hardcodes fixed 548 (RP.openFrame) |
+| C5 | WindowStatus | DisplayHandler (72) | resizable/fixed switching; login hardcodes fixed 548 (RP.openFrame) — DONE 2026-11-12 (pending live-test; 161 classic-resizable only, 164 stacked not selected) |
 | C6 | OpLoc6 / OpNpc6 / OpObj6 | examine (legacy option-6 branches are debug-only) | no examine text for objects/NPCs/ground items — DONE 2026-11-12 (pending live-test; npc/obj text is generic 'It's a <name>.' since Cache228 has no examine text for them) |
 | C7 | Idle | idle logout (PL idleTicks logic ~1696 exists) | AFK logout — LEFT NO-OP 2026-11-12: legacy idleTicks is movement-based (Player ~1728) and never logs out; the Idle packet is informational |
 | C8 | Teleport | TeleportHandler (7) — admin world-map teleport | — DONE 2026-11-12 (pending live-test) |
@@ -93,7 +93,7 @@ Wired today (21): MoveGameClick, MoveMinimapClick, ClientCheat, MessagePublic, O
 | E3 | Player->NPC transform never bridged: transformToNpc(-1) hardcoded; Appearance.npcId/setNpcId used by content | RP 1374 — DONE 2026-11-12 (pending live-test) |
 | E4 | Player hidden flag never bridged: setHidden(false) hardcoded; Entity.hidden / PL.setHidden(true) at 1435 exist | RP 1375 — DONE 2026-11-12 (pending live-test) |
 | E5 | Hit-source tinting (sourceIndex -1) — documented accepted gap | RP pushMaskUpdates |
-| E6 | NPC head icons (NpcHeadIconSpecific / avatar headicon) not bridged — 7 NPC masks only | RP.pushNpcMaskUpdates |
+| E6 | NPC head icons (NpcHeadIconSpecific / avatar headicon) not bridged — 7 NPC masks only | RP.pushNpcMaskUpdates — NO-OP 2026-11-12: no legacy runtime NPC head-icon state exists (only NPCDef.headIcon, which the client reads from the cache itself) |
 | E7 | World-entity info allocated per player but never used — harmless | RP driveUpdate step 2 |
 
 ## F. Revision drift 184 -> 228 (content tables, not transport) — required for "everything works"

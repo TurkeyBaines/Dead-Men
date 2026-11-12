@@ -1,3 +1,9 @@
+## STAGE 17+ — C5 display mode (fixed/resizable) + E6 note (2026-11-12)
+- openFrame(player, resizable): 548 + FIXED_FRAME_PANES, or 161 + RESIZABLE_FRAME_SLOTS (AlterRSPS InterfaceDestination resizable column fetched 2026-11-12; fixed column matched our existing table exactly; max slot 96 < 161's 98 components, 91 < 164's 97). Login uses LoginBlock.getResizable(); new WindowStatus listener (windowMode>=2 = resizable) re-opens the standard panes on a mode change and sets Player.displayMode (so isFixedScreen()/InterfaceType.getComponent pick the right slots, via gameFrameId 161).
+- Not migrated on switch: open modals / swapped tabs (spellbook, social variant). 164 (stacked) never chosen. windowMode numbering (1 fixed, 2 resizable) is an assumption — verify with PROTOCOL_DUMP.
+- E6 closed as no-op (no legacy runtime state). Files: network/rsprot/RsProt.java. Compile green; NOT live-tested.
+- Test: log in fixed, switch Settings > Display to resizable and back: panes + chatbox + minimap must all reappear in the right place; log in with resizable client directly.
+
 ## STAGE 17+ — D1/D2/D3/D7/D9 login checks (2026-11-12)
 - RsProt.doLogin: World.updating -> LoginResponse.UpdateInProgress; remote IP (from rh.getCtx().channel().remoteAddress()) + UUID hex (LoginBlock.getUuid) captured into a new LoginInfo ctor (kronos-api LoginInfo) so Player.getIp()/getUUID() are real; IPBans/UUIDBan (non-dev) and saved BANNED group -> Banned; World.getPlayer(name)!=null -> Duplicate; avatar index >= 2048 -> ServerFull (and the slot is freed).
 - Not done: MAC ban (no MAC in the 228 login block), Punishment locks, D4 login_set (depends on legacy PlayerLogin), D5 2FA, D6 reconnect rebind, D8 starter kit (left on purpose until a real new-player flow exists), D10.
