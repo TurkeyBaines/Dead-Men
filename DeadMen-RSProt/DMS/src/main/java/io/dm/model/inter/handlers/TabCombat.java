@@ -90,7 +90,7 @@ public class TabCombat {
         if (staffId == 6914) //master wand
             return SpellBook.ANCIENT.isActive(player) ? 4675 : staffId;
         if (staffId == 11791 || staffId == 12904) { //staff of the dead
-            boolean augmented = AttributeExtensions.hasAttribute(item, AttributeTypes.AUGMENTED);
+            boolean augmented = false; // item augments (custom upgrade feature) were removed
             if (SpellBook.MODERN.isActive(player)) {
                 return 11791;
             } else if (SpellBook.ANCIENT.isActive(player) && augmented) {

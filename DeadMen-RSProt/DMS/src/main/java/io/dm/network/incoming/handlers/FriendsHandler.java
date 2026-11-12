@@ -24,20 +24,7 @@ public class FriendsHandler implements Incoming {
              */
             int rank = in.readByte();
             name = in.readString();
-            SocialRank socialRank = SocialRank.get(rank, null);
-            if (socialRank == null) {
-                return;
-            }
-            SocialMember friend = player.socialList.getFriend(name);
-            if (friend == null || friend.rank == socialRank) {
-                return;
-            }
-            friend.rank = socialRank;
-            friend.resend();
-            ClanChat cc = player.getClanChat();
-            if (cc.inClan(friend.playerName)) {
-                cc.update(false);
-            }
+            rankFriend(player, name, rank);
             return;
         }
         name = in.readString();
@@ -73,18 +60,44 @@ public class FriendsHandler implements Incoming {
             /**
              * Private message
              */
-            String message = Huffman.decrypt(in, 100);
-            if(Punishment.isMuted(player)) {
-                if(player.shadowMute)
-                    player.sendPM(name, message);
-                else
-                    player.sendMessage("You're muted and can't talk.");
-                return;
-            }
-            SocialList.sendPrivateMessage(player, player.getClientGroupId(), name, message);
-            Loggers.logPrivateChat(player.getName(), player.getIp(), name, message);
+            privateMessage(player, name, Huffman.decrypt(in, 100));
             return;
         }
+    }
+
+    /**
+     * Rank friend (legacy opcode 67; RSProt {@code FriendChatSetRank}).
+     */
+    public static void rankFriend(Player player, String name, int rank) {
+        SocialRank socialRank = SocialRank.get(rank, null);
+        if (socialRank == null) {
+            return;
+        }
+        SocialMember friend = player.socialList.getFriend(name);
+        if (friend == null || friend.rank == socialRank) {
+            return;
+        }
+        friend.rank = socialRank;
+        friend.resend();
+        ClanChat cc = player.getClanChat();
+        if (cc.inClan(friend.playerName)) {
+            cc.update(false);
+        }
+    }
+
+    /**
+     * Private message (legacy opcode 93; RSProt incoming {@code MessagePrivate}).
+     */
+    public static void privateMessage(Player player, String name, String message) {
+        if(Punishment.isMuted(player)) {
+            if(player.shadowMute)
+                player.sendPM(name, message);
+            else
+                player.sendMessage("You're muted and can't talk.");
+            return;
+        }
+        SocialList.sendPrivateMessage(player, player.getClientGroupId(), name, message);
+        Loggers.logPrivateChat(player.getName(), player.getIp(), name, message);
     }
 
 }

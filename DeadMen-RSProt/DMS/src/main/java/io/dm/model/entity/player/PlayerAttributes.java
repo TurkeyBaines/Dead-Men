@@ -484,7 +484,6 @@ public abstract class PlayerAttributes extends Entity {
 
     public NPC teleportsWizard;
 
-    @Expose public int teleportCategoryIndex, teleportSubcategoryIndex;
 
     @Expose public boolean canEnterMorUlRek;
 

@@ -5,11 +5,9 @@ import com.google.common.collect.Maps;
 import com.google.gson.annotations.Expose;
 import io.dm.api.utils.StringUtils;
 import io.dm.cache.ItemDef;
-import io.dm.model.content.upgrade.ItemEffect;
 import io.dm.model.entity.player.Player;
 import io.dm.model.item.attributes.AttributeExtensions;
 import io.dm.model.item.attributes.AttributeTypes;
-import io.dm.model.item.attributes.AugmentType;
 import io.dm.utility.Broadcast;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
@@ -348,20 +346,6 @@ public class Item {
         if (def == null)
             return;
         player.sendMessage(def.examine == null ? "This item has no examine" : def.examine);
-        ItemEffect[] effects = AttributeExtensions.getCurrentEffects(this);
-        if (effects.length > 0) {
-            int index = 1;
-            for (ItemEffect effect : effects) {
-                player.sendMessage("Upgrade " + index++ + " = " + effect.getName());
-            }
-        }
-        if (AttributeExtensions.hasAttribute(this, AttributeTypes.AUGMENTED)) {
-            String augment = AttributeExtensions.getAugmentType(this, AttributeTypes.AUGMENTED);
-            if (augment != null) {
-                AugmentType type = AugmentType.valueOf(augment);
-                player.sendMessage("This item is augmented with a " + StringUtils.getFormattedEnumName(type) + " augment.");
-            }
-        }
         if (player.debug) {
             player.sendMessage("Attributes: " + Joiner.on(",").withKeyValueSeparator("=").join(attributes));
             player.sendMessage("Attribute hash: " + getAttributeHash());

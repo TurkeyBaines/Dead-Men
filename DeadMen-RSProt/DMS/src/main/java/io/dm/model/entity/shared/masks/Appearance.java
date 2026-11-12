@@ -86,6 +86,26 @@ public class Appearance extends UpdateMask {
         update();
     }
 
+    public int getPrayerIcon() {
+        return prayerIcon;
+    }
+
+    /**
+     * Resolved 7-entry render set (stand, turn, walk, walk-back, walk-left, walk-right, run) —
+     * the same selection the legacy encoder makes: custom renders, else the wielded weapon type's,
+     * else unarmed. Used by the RSProt appearance bridge.
+     */
+    public int[] resolveRenders(Player player) {
+        if (customRenders != null) {
+            return customRenders;
+        }
+        ItemDef def = player.getEquipment().getDef(Equipment.SLOT_WEAPON);
+        if (def == null || def.weaponType == null) {
+            return WeaponType.UNARMED.renderAnimations;
+        }
+        return def.weaponType.renderAnimations;
+    }
+
     /**
      * Npc id
      */

@@ -63,6 +63,8 @@ import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub;
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop;
 import net.rsprot.protocol.game.outgoing.map.RebuildLogin;
 import net.rsprot.protocol.game.outgoing.map.RebuildNormal;
+import net.rsprot.protocol.game.outgoing.map.RebuildRegion;
+import net.rsprot.protocol.game.outgoing.map.util.RebuildRegionZone;
 import net.rsprot.protocol.game.outgoing.map.util.XteaProvider;
 import net.rsprot.protocol.game.outgoing.worldentity.SetActiveWorld;
 import net.rsprot.protocol.loginprot.incoming.util.AuthenticationType;
@@ -105,6 +107,12 @@ public final class RsProt {
      * the 548 root via {@link IfOpenSub}. Slots/ids from AlterRSPS's {@code InterfaceDestination}
      * (fixed column). This is the tab sidebar + chatbox + minimap that make the frame look complete.
      */
+    /** C5/F10: resizable (161) root; child slots for FIXED_FRAME_PANES, same order (AlterRSPS InterfaceDestination, resizable column). */
+    private static final int RESIZABLE_TOP_LEVEL_INTERFACE = 161;
+    private static final int[] RESIZABLE_FRAME_SLOTS = {
+            96, 9, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 91, 33,
+    };
+
     private static final int[][] FIXED_FRAME_PANES = {
             {162, 10}, // chatbox
             {122, 33}, // xp counter
@@ -244,6 +252,86 @@ public final class RsProt {
                     builder.addListener(CloseModal.class,
                             (MessageConsumer<DmNetworkPlayer, CloseModal>) (player, msg) ->
                                     onCloseModal(player));
+                    // C5: fixed <-> resizable switch. windowMode 1 = fixed, >=2 resizable. Re-opens the
+                    // standard panes in the other root; extra open modals/custom tabs are not migrated.
+                    builder.addListener(net.rsprot.protocol.game.incoming.misc.client.WindowStatus.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.misc.client.WindowStatus>) (player, msg) -> {
+                                if (player instanceof Player p && p.isOnline()) {
+                                    boolean resizable = msg.getWindowMode() >= 2;
+                                    if (resizable == !p.isFixedScreen()) {
+                                        return;
+                                    }
+                                    openFrame(p, resizable);
+                                }
+                            });
+                    // C8: admin world-map double-click teleport (gated inside TeleportHandler.teleport).
+                    builder.addListener(net.rsprot.protocol.game.incoming.misc.user.Teleport.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.misc.user.Teleport>) (player, msg) -> {
+                                if (player instanceof Player p && !p.isLocked()) {
+                                    io.dm.network.incoming.handlers.TeleportHandler.teleport(p, msg.getX(), msg.getZ(), msg.getLevel());
+                                }
+                            });
+                    // C6: examine (option 6 on locs / npcs / ground items).
+                    builder.addListener(net.rsprot.protocol.game.incoming.locs.OpLoc6.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.locs.OpLoc6>) (player, msg) -> {
+                                if (player instanceof Player p) {
+                                    io.dm.cache.ObjectDef def = io.dm.cache.ObjectDef.get(msg.getId());
+                                    examineEntity(p, def == null ? null : def.name);
+                                }
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.npcs.OpNpc6.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.npcs.OpNpc6>) (player, msg) -> {
+                                if (player instanceof Player p) {
+                                    // OpNpc6 carries the npc TYPE id (not the world index).
+                                    io.dm.cache.NPCDef def = io.dm.cache.NPCDef.get(msg.getId());
+                                    examineEntity(p, def == null ? null : def.name);
+                                }
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.objs.OpObj6.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.objs.OpObj6>) (player, msg) -> {
+                                if (player instanceof Player p) {
+                                    io.dm.model.item.Item.examine(p, msg.getId());
+                                }
+                            });
+                    // C1-C4: social packets -> the legacy FriendsHandler/ClanHandler/PrivacyHandler logic.
+                    builder.addListener(net.rsprot.protocol.game.incoming.messaging.MessagePrivate.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.messaging.MessagePrivate>) (player, msg) -> {
+                                if (player instanceof Player p) {
+                                    io.dm.network.incoming.handlers.FriendsHandler.privateMessage(p, msg.getName(), msg.getMessage());
+                                }
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.social.FriendListAdd.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.social.FriendListAdd>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.social.SocialList.handle(p, msg.getName(), 1);
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.social.FriendListDel.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.social.FriendListDel>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.social.SocialList.handle(p, msg.getName(), 2);
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.social.IgnoreListAdd.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.social.IgnoreListAdd>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.social.SocialList.handle(p, msg.getName(), 3);
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.social.IgnoreListDel.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.social.IgnoreListDel>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.social.SocialList.handle(p, msg.getName(), 4);
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.friendchat.FriendChatJoinLeave.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.friendchat.FriendChatJoinLeave>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.network.incoming.handlers.ClanHandler.joinLeave(p, msg.getName());
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.friendchat.FriendChatKick.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.friendchat.FriendChatKick>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.network.incoming.handlers.ClanHandler.kick(p, msg.getName());
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.friendchat.FriendChatSetRank.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.friendchat.FriendChatSetRank>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.network.incoming.handlers.FriendsHandler.rankFriend(p, msg.getName(), msg.getRank());
+                            });
+                    builder.addListener(net.rsprot.protocol.game.incoming.misc.user.SetChatFilterSettings.class,
+                            (MessageConsumer<DmNetworkPlayer, net.rsprot.protocol.game.incoming.misc.user.SetChatFilterSettings>) (player, msg) -> {
+                                if (player instanceof Player p) io.dm.network.incoming.handlers.PrivacyHandler.setPrivacy(p, msg.getPrivateChatFilter());
+                            });
                     // Everything else is accepted-and-dropped so processIncomingPackets never throws.
                     DmIncomingPackets.INSTANCE.registerNoOpsExcept(builder, java.util.Set.of(
                             MoveGameClick.class, MoveMinimapClick.class,
@@ -253,7 +341,21 @@ public final class RsProt {
                             IfButtonT.class, IfButtonD.class,
                             ResumePauseButton.class, ResumePCountDialog.class,
                             ResumePStringDialog.class, ResumePNameDialog.class,
-                            ResumePObjDialog.class, CloseModal.class));
+                            ResumePObjDialog.class, CloseModal.class,
+                            net.rsprot.protocol.game.incoming.misc.client.WindowStatus.class,
+                            net.rsprot.protocol.game.incoming.misc.user.Teleport.class,
+                            net.rsprot.protocol.game.incoming.locs.OpLoc6.class,
+                            net.rsprot.protocol.game.incoming.npcs.OpNpc6.class,
+                            net.rsprot.protocol.game.incoming.objs.OpObj6.class,
+                            net.rsprot.protocol.game.incoming.messaging.MessagePrivate.class,
+                            net.rsprot.protocol.game.incoming.social.FriendListAdd.class,
+                            net.rsprot.protocol.game.incoming.social.FriendListDel.class,
+                            net.rsprot.protocol.game.incoming.social.IgnoreListAdd.class,
+                            net.rsprot.protocol.game.incoming.social.IgnoreListDel.class,
+                            net.rsprot.protocol.game.incoming.friendchat.FriendChatJoinLeave.class,
+                            net.rsprot.protocol.game.incoming.friendchat.FriendChatKick.class,
+                            net.rsprot.protocol.game.incoming.friendchat.FriendChatSetRank.class,
+                            net.rsprot.protocol.game.incoming.misc.user.SetChatFilterSettings.class));
                     return Unit.INSTANCE;
                 });
         service = svc;
@@ -457,6 +559,18 @@ public final class RsProt {
      */
     private static void onPublicChat(DmNetworkPlayer player, MessagePublic msg) {
         if (player instanceof Player p && p.playerInfo != null) {
+            // C16: shared moderation / filter / logging / clan / command pipeline (ChatHandler.process).
+            // clanType >= 0 means the client addressed a friends/clan channel; -1 is plain public chat.
+            int result = io.dm.network.incoming.handlers.ChatHandler.process(
+                    p, msg.getClanType() >= 0, msg.getType(), msg.getEffect(), msg.getMessage());
+            if (result == io.dm.network.incoming.handlers.ChatHandler.SHADOW) {
+                // Shadow-muted: only the sender sees the line (public avatar chat would broadcast it).
+                p.getPacketSender().sendMessage(msg.getMessage(), p.getName(), 2);
+                return;
+            }
+            if (result != io.dm.network.incoming.handlers.ChatHandler.SHOW) {
+                return;
+            }
             int modIcon = p.isAdmin() ? 2 : p.isModerator() ? 1 : 0;
             p.playerInfo.getAvatar().getExtendedInfo().setChat(
                     msg.getColour(), msg.getEffect(), modIcon, false, msg.getMessage(), null);
@@ -464,6 +578,18 @@ public final class RsProt {
     }
 
     // ------------------------------------------------------------------ entity / interface interactions
+
+    /**
+     * C6: Cache228 carries no examine text for npcs/objects (only the custom item_info examine on
+     * {@code ItemDef}), so fall back to the generic "It's a &lt;name&gt;." line.
+     */
+    private static void examineEntity(Player p, String name) {
+        if (name == null || name.isEmpty() || name.equals("null")) {
+            p.sendMessage("Nothing interesting happens.");
+            return;
+        }
+        p.sendMessage("It's " + (name.matches("(?i)^[aeiou].*") ? "an " : "a ") + name + ".");
+    }
 
     /**
      * Incoming object (loc) click, options 1-5 → the legacy {@code ObjectActionHandler}: routes the
@@ -766,6 +892,41 @@ public final class RsProt {
         try {
             // Extract the plaintext password from the block for auth (fresh-connect only; reconnect
             // uses XteaKey and skips auth). In dev mode auth is skipped so a fresh username creates.
+            // D9: system update in progress.
+            if (World.updating) {
+                DmLogin.INSTANCE.reject(rh, LoginResponse.UpdateInProgress.INSTANCE);
+                return;
+            }
+            // D7: capture the remote IP and client UUID from the login connection.
+            String ip = "";
+            try {
+                if (rh.getCtx().channel().remoteAddress() instanceof java.net.InetSocketAddress isa
+                        && isa.getAddress() != null) {
+                    ip = isa.getAddress().getHostAddress();
+                }
+            } catch (Throwable t) {
+                System.out.println("[LOGIN] could not read remote address: " + t);
+            }
+            StringBuilder uuidHex = new StringBuilder();
+            if (block.getUuid() != null) {
+                for (byte b : block.getUuid()) {
+                    uuidHex.append(String.format("%02x", b));
+                }
+            }
+            String uuid = uuidHex.toString();
+            // D3: IP / UUID bans.
+            if (!World.isDev() && (io.dm.api.utils.IPBans.isIPBanned(ip)
+                    || (!uuid.isEmpty() && io.dm.api.utils.UUIDBan.isUUIDBanned(uuid)))) {
+                DmLogin.INSTANCE.reject(rh, LoginResponse.Banned.INSTANCE);
+                System.out.println("[LOGIN] '" + username + "' rejected: ip/uuid ban (" + ip + ")");
+                return;
+            }
+            // D1: already online under this name.
+            if (World.getPlayer(username) != null) {
+                DmLogin.INSTANCE.reject(rh, LoginResponse.Duplicate.INSTANCE);
+                System.out.println("[LOGIN] '" + username + "' rejected: already logged in");
+                return;
+            }
             String password = extractPassword(block);
             player = PlayerFile.loadForRsProt(username, World.isDev() ? null : password);
             if (player == null) {
@@ -773,11 +934,26 @@ public final class RsProt {
                 System.out.println("[LOGIN] '" + username + "' invalid password");
                 return;
             }
+            // D3: account-level ban (BANNED group persisted in the save).
+            if (player.getSavedGroupIds() != null
+                    && player.getSavedGroupIds().contains(PlayerGroup.BANNED.id)) {
+                DmLogin.INSTANCE.reject(rh, LoginResponse.Banned.INSTANCE);
+                System.out.println("[LOGIN] '" + username + "' rejected: banned");
+                return;
+            }
             index = World.players.add(player, 1);
+            // D2: RSProt avatars are indexed 1..2047; the entity list itself grows without bound.
+            if (index >= 2048) {
+                World.players.remove(index);
+                index = -1;
+                DmLogin.INSTANCE.reject(rh, LoginResponse.ServerFull.INSTANCE);
+                System.out.println("[LOGIN] '" + username + "' rejected: world full");
+                return;
+            }
             player.setIndex(index);
 
-            LoginInfo info = new LoginInfo(null, username, password == null ? "" : password, "", "",
-                    null, 0, false, 0, World.id, new int[4]);
+            LoginInfo info = new LoginInfo(ip, username, password == null ? "" : password, "", "",
+                    uuid, World.id, new int[4]);
             info.update(username, "", ListUtils.toList(
                     (World.isDev() ? PlayerGroup.ADMINISTRATOR : PlayerGroup.REGISTERED).id));
             player.init(info);
@@ -824,11 +1000,16 @@ public final class RsProt {
             // RebuildLogin carries the GPI init block (built from playerInfo); sent before build areas.
             s.queue(new RebuildLogin(x >> 3, z >> 3, -1, xtea, player.playerInfo));
             setBuildAreas(player, (x >> 3) - 6, (z >> 3) - 6);
+            // A21: RebuildLogin only carries the static map; a player who logs in inside a dynamic
+            // instance needs the RebuildRegion follow-up (legacy sendRegion(true) did the same).
+            if (dynamicIndexAt(x, z) != -1) {
+                sendRebuild(player, x >> 3, z >> 3);
+            }
             // Stage 02 fix: without this, the player is never added to any Region's players list
             // (see syncRegionTracking's own doc), so no ground item ever gets sent to a fresh login.
             syncRegionTracking(player, x >> 3, z >> 3);
             syncAppearance(player);
-            openFrame(player);
+            openFrame(player, block.getResizable());
 
             // Milestone 3 fix (2026-07-07): Player.start() fires the one-shot login packet burst —
             // welcome message, LoginListener UI, pet spawn, and critically the chatbox/display-name
@@ -1201,6 +1382,9 @@ public final class RsProt {
     private static void syncRegionTracking(Player p, int zoneX, int zoneZ) {
         p.removeFromRegions();
         int depth = 6;
+        // A21: instance blocks abut each other in the region grid, so a dynamic player must only
+        // track regions of its own block (legacy sendRegion's dynamic branch filtered the same way).
+        int dynIndex = dynamicIndexAt(zoneX << 3, zoneZ << 3);
         for (int xCalc = (zoneX - depth) / 8; xCalc <= (zoneX + depth) / 8; xCalc++) {
             for (int yCalc = (zoneZ - depth) / 8; yCalc <= (zoneZ + depth) / 8; yCalc++) {
                 int regionId = yCalc + (xCalc << 8);
@@ -1208,7 +1392,7 @@ public final class RsProt {
                     continue;
                 }
                 Region r = Region.get(regionId);
-                if (r != null) {
+                if (r != null && (dynIndex == -1 || (r.dynamicData != null && r.dynamicIndex == dynIndex))) {
                     p.addRegion(r);
                 }
             }
@@ -1217,17 +1401,77 @@ public final class RsProt {
     }
 
     /**
-     * Re-centre the 13x13-zone build area + send {@link RebuildNormal} when the player nears the
-     * edge (>=4 zones from centre, ~16-tile margin). Keeps the client's scene loaded as it roams.
+     * {@code Region.dynamicIndex} of the instance block covering tile (x, z), or -1 when that tile is
+     * in a static map (no region, or {@code dynamicData == null}).
+     */
+    private static int dynamicIndexAt(int x, int z) {
+        int regionId = ((x >> 6) << 8) | (z >> 6);
+        if (x < 0 || z < 0 || regionId >= Region.LOADED.length) {
+            return -1;
+        }
+        Region r = Region.LOADED[regionId];
+        return r != null && r.dynamicData != null ? r.dynamicIndex : -1;
+    }
+
+    /**
+     * A21: maps a dynamic-map zone to the template zone the client should render there. Decodes the
+     * legacy {@code DynamicMap} chunk hash {@code (rotation << 1) | (level << 24) | (x << 14) | (y << 3)}
+     * (bit-identical to {@code RebuildRegionZone.ReferenceZone}'s packing) and keys the zone with the
+     * TEMPLATE mapsquare's xtea, not the instance's, which has no map data. Returns {@code null}
+     * (the client's "no zone here" bit) for zones outside the player's own instance block or never built.
+     */
+    private static RebuildRegion.RebuildRegionZoneProvider dynamicZoneProvider(int dynIndex) {
+        return (zoneX, zoneZ, level) -> {
+            int regionId = ((zoneX >> 3) << 8) | (zoneZ >> 3);
+            if (zoneX < 0 || zoneZ < 0 || level < 0 || level > 3 || regionId >= Region.LOADED.length) {
+                return null;
+            }
+            Region r = Region.LOADED[regionId];
+            if (r == null || r.dynamicData == null || r.dynamicIndex != dynIndex) {
+                return null;
+            }
+            int[] chunk = r.dynamicData[level][zoneX & 7][zoneZ & 7];
+            int hash = chunk[0];
+            if (hash == 0 || chunk[1] == 0) {
+                return null;
+            }
+            int rotation = (hash >> 1) & 3;
+            int tmplZ = (hash >> 3) & 2047;
+            int tmplX = (hash >> 14) & 1023;
+            int tmplLevel = (hash >> 24) & 3;
+            return new RebuildRegionZone(tmplX, tmplZ, tmplLevel, rotation,
+                    xtea.provide(((tmplX >> 3) << 8) | (tmplZ >> 3)));
+        };
+    }
+
+    /**
+     * Re-centre the 13x13-zone build area, send {@link RebuildNormal} (static map) or
+     * {@link RebuildRegion} (dynamic instance, A21) and re-sync region tracking.
+     */
+    private static void sendRebuild(Player p, int zoneX, int zoneZ) {
+        int dynIndex = dynamicIndexAt(zoneX << 3, zoneZ << 3);
+        setBuildAreas(p, zoneX - 6, zoneZ - 6);
+        if (dynIndex == -1) {
+            p.getSession().queue(new RebuildNormal(zoneX, zoneZ, -1, xtea));
+        } else {
+            p.getSession().queue(new RebuildRegion(zoneX, zoneZ, false, dynamicZoneProvider(dynIndex)));
+        }
+        p.rsprotDynamicIndex = dynIndex;
+        syncRegionTracking(p, zoneX, zoneZ);
+    }
+
+    /**
+     * Rebuild when the player nears the edge of the build area (>=4 zones from centre, ~16-tile
+     * margin) or crosses between a static map and a dynamic instance / another instance block (A21),
+     * since the static and dynamic messages describe the scene differently.
      */
     private static void maybeRebuildRegion(Player p, int x, int z) {
         int zoneX = x >> 3, zoneZ = z >> 3;
-        if (Math.abs(zoneX - (p.buildAreaZoneX + 6)) < 4 && Math.abs(zoneZ - (p.buildAreaZoneZ + 6)) < 4) {
+        if (dynamicIndexAt(x, z) == p.rsprotDynamicIndex
+                && Math.abs(zoneX - (p.buildAreaZoneX + 6)) < 4 && Math.abs(zoneZ - (p.buildAreaZoneZ + 6)) < 4) {
             return;
         }
-        setBuildAreas(p, zoneX - 6, zoneZ - 6);
-        p.getSession().queue(new RebuildNormal(zoneX, zoneZ, -1, xtea));
-        syncRegionTracking(p, zoneX, zoneZ);
+        sendRebuild(p, zoneX, zoneZ);
     }
 
     /**
@@ -1317,10 +1561,13 @@ public final class RsProt {
      * corrected, RING=24/AMMO=25) registrations, not a functional unblock.</li>
      * </ul>
      */
-    private static void openFrame(Player player) {
-        player.getPacketSender().sendGameFrame(FIXED_TOP_LEVEL_INTERFACE);
-        for (int[] pane : FIXED_FRAME_PANES) {
-            player.getPacketSender().sendInterface(pane[0], FIXED_TOP_LEVEL_INTERFACE, pane[1], 1);
+    private static void openFrame(Player player, boolean resizable) {
+        int top = resizable ? RESIZABLE_TOP_LEVEL_INTERFACE : FIXED_TOP_LEVEL_INTERFACE;
+        player.setDisplayMode(resizable ? 2 : 1);
+        player.getPacketSender().sendGameFrame(top);
+        for (int i = 0; i < FIXED_FRAME_PANES.length; i++) {
+            int[] pane = FIXED_FRAME_PANES[i];
+            player.getPacketSender().sendInterface(pane[0], top, resizable ? RESIZABLE_FRAME_SLOTS[i] : pane[1], 1);
         }
         player.getPacketSender().sendAccessMask(io.dm.model.inter.Interface.INVENTORY, 0, 0, 27, 3407870);
         // Stage 06 fix (2026-07-11): this loop's range was 6-16, but TabEquipment.java's real handlers
@@ -1360,8 +1607,20 @@ public final class RsProt {
             boolean valid = item != null && io.dm.cache.ItemDef.isValid(item.getId());
             ext.setWornObj(i, valid ? item.getId() : -1, -1, -1);
         }
-        // Default idle/walk/run anims (Alter's DEFAULT_ANIM_SET). Weapon-specific overrides = TODO.
-        ext.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824);
+        // E1: weapon/custom render animations (stand, turn, walk, back, left, right, run), same
+        // order as RSProt's setBaseAnimationSet. Missing/-1 entries fall back to Alter's
+        // DEFAULT_ANIM_SET so a partial render array (e.g. an NPC transform's) never leaves a hole.
+        final int[] defaultAnims = {808, 823, 819, 820, 821, 822, 824};
+        int[] renders = ap.resolveRenders(player);
+        int[] anims = defaultAnims.clone();
+        if (renders != null) {
+            for (int i = 0; i < anims.length && i < renders.length; i++) {
+                if (renders[i] != -1) {
+                    anims[i] = renders[i];
+                }
+            }
+        }
+        ext.setBaseAnimationSet(anims[0], anims[1], anims[2], anims[3], anims[4], anims[5], anims[6]);
         // Body colours (5: hair, torso, legs, shoes, skin).
         for (int i = 0; i < 5; i++) {
             ext.setColour(i, ap.colors[i]);
@@ -1369,10 +1628,10 @@ public final class RsProt {
         ext.setName(player.getName());
         ext.setCombatLevel(Math.max(3, io.dm.model.combat.CombatUtils.getCombatLevel(player)));
         ext.setMale(ap.isMale());
-        ext.setOverheadIcon(-1);
+        ext.setOverheadIcon(ap.getPrayerIcon());   // E2
         ext.setSkullIcon(ap.getSkullIcon());
-        ext.transformToNpc(-1);
-        ext.setHidden(false);
+        ext.transformToNpc(ap.getNpcId());          // E3
+        ext.setHidden(player.isHidden());           // E4
     }
 
     // ------------------------------------------------------------------ JS5 cache serving (unchanged)

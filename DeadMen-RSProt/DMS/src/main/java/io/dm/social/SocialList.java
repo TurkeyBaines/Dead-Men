@@ -38,6 +38,7 @@ public class SocialList extends SocialContainer {
             this.update(null);
             player.sendSocial(true, this.friends);
             player.sendSocial(false, this.ignores);
+            player.sendFriendListLoaded();
             player.sendPrivacy(this.privacy);
             this.cc.init(player);
             notifyFriends(this.ownerName, true);

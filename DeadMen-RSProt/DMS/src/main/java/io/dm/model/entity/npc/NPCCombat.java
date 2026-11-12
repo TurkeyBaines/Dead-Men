@@ -12,7 +12,6 @@ import io.dm.model.achievements.listeners.experienced.DemonSlayer;
 import io.dm.model.activities.wilderness.Wilderness;
 import io.dm.model.combat.*;
 import io.dm.model.content.PvmPoints;
-import io.dm.model.content.upgrade.ItemEffect;
 import io.dm.model.entity.Entity;
 import io.dm.model.entity.player.DoubleDrops;
 import io.dm.model.entity.player.Player;
@@ -425,21 +424,6 @@ public abstract class NPCCombat extends Combat {
         boolean dropItem = true;
         for(Item equipment : pKiller.getEquipment().getItems()) {
             if(equipment != null && equipment.getDef() != null) {
-                List<String> upgrades = AttributeExtensions.getEffectUpgrades(equipment);
-                boolean hasEffect = upgrades != null;
-                if (hasEffect) {
-                    for (String s : upgrades) {
-                        try {
-                            if (s.equalsIgnoreCase("empty"))
-                                continue;
-                            ItemEffect effect = ItemEffect.valueOf(s);
-                            dropItem = effect.getUpgrade().modifyDroppedItem(pKiller, item);
-                        } catch (Exception ex) {
-                            System.err.println("Unknown upgrade { " + s + " } found!");
-                            ex.printStackTrace();
-                        }
-                    }
-                }
             }
         }
         /*

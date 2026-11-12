@@ -95,7 +95,6 @@ public enum ItemCombining {
             new YesNoDialogue("Are you sure you want to do this?", "Revert the item back to its normal form and get the kit back?", primary, 1, () -> {
                 player.getInventory().add(item);
                 kit.setId(revert);
-                AttributeExtensions.removeUpgrades(kit);
                 new ItemDialogue().one(primary, "You remove the " + kit.getDef().name + " from the " + item.getDef().name + ".");
             })
         );

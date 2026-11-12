@@ -1,3 +1,81 @@
+## STAGE 17+ — ::inter sprite test command (2026-11-12)
+- InterfaceCommands: `::inter sprite <childId> <spriteId>` calls PacketSender.sendSprite(629, child, sprite) (script 7849). Compiles; not live-tested.
+
+## STAGE 17+ — dm_set_sprite client script (2026-11-12)
+- OSRS has no sprite packet (no IfSetGraphic in rsprot 228), so added client script 7849 `dm_set_sprite(component, sprite)` = push_int_local 1, push_int_local 0, if_setgraphic(2105), return. Assembled bytes are identical to stock script 44, which confirms the 228 layout. Packer: tools/clientscript/PackSpriteScript.java (displee rs-cache-library from the gradle cache; usage in its javadoc).
+- Packed into the live <repo>/Cache228/cache (js5_cache_path) on 2026-11-12: only dat2, idx12, idx255 changed; index 12 revision 2283 -> 2284; all 7849 existing scripts keep crc/revision; server FileStore reads 7849 back. Pre-pack backup is in the session scratchpad. Cache binaries NOT committed. Server must be restarted to serve the new reference table; the client redownloads index 12.
+- PacketSender.sendSprite(interfaceId, childId, spriteId) runs it, e.g. sendSprite(629, 56, id) for children 56/57/58 (all type 5 graphic in the live cache). Compiles; not live-tested.
+
+## STAGE 17+ — Section B complete (2026-11-12)
+- B1-B6 ported earlier (live-test pending). B7/B8 audited: grep of every legacy writer outside PacketSender (sendVarShortPacket/sendFixedPacket/getPacketSender().write) leaves only Player social senders (already RSProt-branched, legacy fallback kept), ClanChat (same), and the legacy PlayerUpdater/PlayerNPCUpdater, which CoreWorker runs only when session==null. No further RSProt ports needed; deleting the dead legacy encoders is Stage 12 / section H.
+
+## STAGE 17+ — A18 skipped (2026-11-12)
+- Owner chose to skip A18. SkillLamp is unchanged (still opens custom interface 134, likely broken on 228); sendSkillinterface stays a no-op stub.
+
+## STAGE 17+ — A18 decision recorded, blocked on ids (2026-11-12)
+- Owner chose the stock XP lamp interface. SkillLamp still opens custom interface 134 (Kronos cache, not stock 228) with child ids 3-26; not changed because the stock 240 component ids (skill buttons, confirm) and how the selection is reported are unconfirmed (rule 4: no guessing). PacketSender.sendSkillinterface is already a no-op stub. Need: a listing of interface 240's components from a trusted 228 source, then SkillLamp can be re-pointed (open 240, register its handler, remove the sendSkillinterface calls).
+
+## STAGE 17+ — A16 / A17 / A22 decisions applied (2026-11-12)
+- A16: PacketSender.sendWidget -> for RSProt players a game message ("<name> (m:ss): <description>." / "<name> has ended."); legacy packet kept for non-RSProt.
+- A17: custom teleport interface (583) removed: PacketSender.sendTeleports, teleports.open/selectCategory/selectSubcategory/selectTeleport + the InterfaceHandler 583 registration, PlayerAttributes.teleportCategoryIndex/teleportSubcategoryIndex. Kept: teleports data (Category/Subcategory/Teleport, used by PVPInstance + SlayerTask), teleports.previous/teleport/teleportStart.
+- A22: whole item-upgrade feature removed per the owner's decision: package model/content/upgrade (ItemEffect, ItemUpgrade, ScrapableItems, UpgradeType, effects/*), AugmentType, AttributeTypes UPGRADE_1-3 + AUGMENTED, AttributeExtensions upgrade/effect/display helpers, the effect hooks in PlayerCombat (4), NPCCombat, DoubleDrops, StatList, Player.collectResource, Item.examine upgrade/augment lines, ItemCombining.revert upgrade clear, and the legacy per-slot attribute bytes in PacketSender item packets. Side effect: staff of the dead can no longer autocast ancients via an augment (TabCombat now treats augmented=false). Existing saves may still carry UPGRADE_n attribute strings; they are inert.
+- Compile green; NOT live-tested. Test: combat/xp/drops still behave, examine on an item prints only its examine, a ::teleport-style flow no longer references interface 583.
+
+## STAGE 17+ — C5 display mode (fixed/resizable) + E6 note (2026-11-12)
+- openFrame(player, resizable): 548 + FIXED_FRAME_PANES, or 161 + RESIZABLE_FRAME_SLOTS (AlterRSPS InterfaceDestination resizable column fetched 2026-11-12; fixed column matched our existing table exactly; max slot 96 < 161's 98 components, 91 < 164's 97). Login uses LoginBlock.getResizable(); new WindowStatus listener (windowMode>=2 = resizable) re-opens the standard panes on a mode change and sets Player.displayMode (so isFixedScreen()/InterfaceType.getComponent pick the right slots, via gameFrameId 161).
+- Not migrated on switch: open modals / swapped tabs (spellbook, social variant). 164 (stacked) never chosen. windowMode numbering (1 fixed, 2 resizable) is an assumption — verify with PROTOCOL_DUMP.
+- E6 closed as no-op (no legacy runtime state). Files: network/rsprot/RsProt.java. Compile green; NOT live-tested.
+- Test: log in fixed, switch Settings > Display to resizable and back: panes + chatbox + minimap must all reappear in the right place; log in with resizable client directly.
+
+## STAGE 17+ — D1/D2/D3/D7/D9 login checks (2026-11-12)
+- RsProt.doLogin: World.updating -> LoginResponse.UpdateInProgress; remote IP (from rh.getCtx().channel().remoteAddress()) + UUID hex (LoginBlock.getUuid) captured into a new LoginInfo ctor (kronos-api LoginInfo) so Player.getIp()/getUUID() are real; IPBans/UUIDBan (non-dev) and saved BANNED group -> Banned; World.getPlayer(name)!=null -> Duplicate; avatar index >= 2048 -> ServerFull (and the slot is freed).
+- Not done: MAC ban (no MAC in the 228 login block), Punishment locks, D4 login_set (depends on legacy PlayerLogin), D5 2FA, D6 reconnect rebind, D8 starter kit (left on purpose until a real new-player flow exists), D10.
+- Compile green; NOT live-tested (no server.properties in the worktree to boot). Test: log in twice with one name (2nd refused 'already logged in'), banned account refused, ::ip-ban flow now has a non-empty IP (check Loggers/chat logs show the address).
+
+## STAGE 17+ — E1-E4 avatar bridges (2026-11-12)
+- syncAppearance now bridges: weapon/custom render anims (Appearance.resolveRenders -> setBaseAnimationSet, -1 entries fall back to 808/823/819-822/824), Appearance.prayerIcon -> setOverheadIcon, Appearance.npcId -> transformToNpc, Entity.hidden -> setHidden. Player.setHidden override flags the appearance mask so changes are pushed.
+- Files: network/rsprot/RsProt.java, model/entity/shared/masks/Appearance.java, model/entity/player/Player.java. Compile green; NOT live-tested.
+- Test: wield a whip/scimitar/2h (walk/stand anims change), toggle protect from melee (overhead icon), ::npc-transform style content (player turns into NPC, anims follow), admin hide.
+- Assumption: legacy render array order == RSProt order (ready, turn, walk, back, left, right, run) and legacy prayerIcon index == 228 headicon index (unverified).
+
+## STAGE 17+ — C8 world-map teleport; C7/C12 deliberately no-op (2026-11-12)
+- RsProt.start(): incoming Teleport -> new TeleportHandler.teleport(p,x,z,level) (same admin/dev + Interface.WORLD_MAP(595) gate as legacy). Compile green; NOT live-tested (world map must be opened as admin; 228 world map interface id 595 assumed unchanged).
+- C7 Idle / C12 MapBuildComplete left on the no-op path on purpose (see work file rows).
+
+## STAGE 17+ — C16 public chat parity (2026-11-12)
+- ChatHandler.process(player, clan, type, effects, message) extracted from the legacy opcode-32 body (mute/IP-mute/shadow, bad-word filter, clan "/" routing, ::/;; commands, ! admin force-text, Loggers); legacy handle() delegates, RsProt.onPublicChat calls it. SHOW -> avatar setChat as before; SHADOW -> sender-only MessageGame(type 2, name, msg).
+- Assumptions to verify live: MessagePublic.clanType >= 0 means a friends/clan-channel message (else -1); shadow-mute echo format. Files: network/incoming/handlers/ChatHandler.java, network/rsprot/RsProt.java. Compile green; NOT live-tested.
+- Test: normal chat still shows; muted account gets "You're muted"; shadow-muted account sees own line only; "/hello" in a joined friend chat reaches members; filtered word is dropped; admin "!text" forces text.
+
+## STAGE 17+ — C6 examine (2026-11-12)
+- RsProt.start(): OpLoc6 / OpNpc6 (npc TYPE id) / OpObj6 listeners. Ground items use Item.examine(p,id) (ItemDef.examine from item_info). NPC/object examine falls back to "It's a/an <name>." — the work file's claim that NPCDef/ObjectDef decode examine text is wrong (only ItemDef.examine exists; OSRS cache has no npc/obj examine strings). A real source (wiki dump) would be needed for authentic text.
+- File: network/rsprot/RsProt.java. Compile green; NOT live-tested. Test: right-click Examine on a tree, an NPC, a ground item.
+
+## STAGE 17+ — C1-C4 social incoming bridges (2026-11-12)
+- RsProt.start(): listeners for incoming MessagePrivate, FriendListAdd/Del, IgnoreListAdd/Del, FriendChatJoinLeave/Kick/SetRank, SetChatFilterSettings (all added to the registerNoOpsExcept set). They call SocialList.handle(p,name,1..4) and new public static helpers FriendsHandler.privateMessage/rankFriend, ClanHandler.joinLeave/kick, PrivacyHandler.setPrivacy (legacy opcode handlers now delegate to the same helpers).
+- Only the private-chat filter is stored; public/trade filter values are ignored (as legacy). Compile green; boot not run (no server.properties in the worktree); NOT live-tested.
+- Human test: add/remove friend + ignore from the 228 lists, send PM (shown on both ends, muted account blocked), join/leave/kick in a friend chat, change private chat filter (friends see you go offline/online). Watch for IllegalArgumentException on boot (duplicate listener).
+
+## STAGE 17+ — B1-B6 friends / ignores / privacy / PM / friend chat outgoing (2026-11-12)
+- Player.sendFriends -> UpdateFriendList (OnlineFriend if worldId>0 else OfflineFriend; sendNewName() evaluated first as it can reset worldId), sendIgnores -> UpdateIgnoreList(AddedIgnoredEntry), sendPrivacy -> ChatFilterSettingsPrivateChat, sendPM -> MessagePrivateEcho, sendReceivePM -> MessagePrivate (world=World.id, 24-bit counter, crown=rank). New Player.sendFriendListLoaded() (FriendListLoaded) called from SocialList.process after the lists.
+- ClanChat: channel update -> UpdateFriendChatChannelFullV2(JoinUpdate/LeaveUpdate) (owner, name, kickRank, member entries w/ rank+World.id), message -> MessageFriendChannel; legacy settings packet 86 has no 228 equivalent (skipped for RSProt).
+- Files: model/entity/player/Player.java, social/SocialList.java, social/clan/ClanChat.java. Compile green; NOT live-tested. Semantics of UpdateFriendList `added` flag mirrored from legacy sendNewName (unverified); enter/talk-rank settings UI and public/trade ChatFilterSettings not sent (open question, see C-section).
+- Human test: log in with a friend/ignore list saved (friend list should populate, online friends show World N), add/remove friend, send PM both ways, join a friend chat via /, message in channel, leave.
+
+## STAGE 17+ — A1-A15 PacketSender outgoing ports (2026-11-12)
+- PacketSender now queues RSProt msgs: setAlignment->IfSetPosition, moveInterface->IfMoveSub, sendModel->IfSetModel, sendModelInformation->IfSetAngle(x,y,zoom), unlinkItems->UpdateInvStopTransmit, sendShopItems/updateItems(ShopItem[])->UpdateInvFull/Partial (display id, ItemDef.isValid guard), resetMapFlag->SetMapFlag(255,255), clearChunk->UpdateZoneFullFollows (build-area-relative tiles), sendMapState->MinimapToggle, cameras->CamLookAt/CamMoveTo (coords minus buildArea<<3)/CamShake/CamReset, sendUrl->UrlOpen.
+- clearChunks (A9, all zones) is an intentional no-op for RSProt: only Region.update calls it, right after a rebuild which already wipes the scene.
+- File: network/PacketSender.java. Compile green; NOT live-tested. A19/A20 (dead) left alone.
+- Human test: open a shop (stock visible, buy updates stock), drag-reorder/move an interface, run a cutscene/boss with camera (Zulrah/Vorkath/Inferno), click a map to set then arrive (flag clears), minigame minimap lock, ::url style link. Camera rate semantics (rate/rate2 vs 184 speeds) are unverified.
+
+## STAGE 17+ — A21 RebuildRegion for dynamic maps (2026-11-12)
+- RsProt.maybeRebuildRegion now branches via new sendRebuild(): tile in a Region with dynamicData != null -> RebuildRegion(zoneX, zoneZ, false, dynamicZoneProvider); else RebuildNormal as before.
+- Provider decodes Region.dynamicData[level][zx&7][zz&7] chunkHash (== ReferenceZone packing: rot<<1|y<<3|x<<14|level<<24), null for zones outside the player's own dynamicIndex block / unbuilt; xtea key is the TEMPLATE mapsquare's.
+- Rebuild also forced when static<->dynamic or instance-block changes (new Player.rsprotDynamicIndex); login inside an instance sends RebuildRegion after RebuildLogin.
+- syncRegionTracking only tracks regions of the player's own instance block (neighbouring instances abut in the grid; avoids ground-item/object leaks).
+- Files: network/rsprot/RsProt.java, model/entity/player/Player.java. Compile green; NOT live-tested.
+- Human test: see hand-back (enter Fight Caves/Inferno/POH/Zulrah, expect map renders with correct terrain + no black screen; leave and re-enter; two players in separate instances).
+
 # Dead-Men → RSProt: Technical Handoff & Blueprints (Rev 228)
 Target: Revision 228 (Aligning with AlterRSPS reference).
 Cache: 'cache-oldschool-live-en-b228-2025-02-05-11-45-05-openrs2' in Cache228/cache/ + Cache228/xteas.json.

@@ -6,7 +6,6 @@ import io.dm.api.buffer.OutBuffer;
 import io.dm.api.protocol.Protocol;
 import io.dm.api.protocol.login.LoginInfo;
 import io.dm.api.utils.ISAACCipher;
-import io.dm.data.impl.teleports;
 import io.dm.model.World;
 import io.dm.model.entity.Entity;
 import io.dm.model.entity.player.Player;
@@ -16,7 +15,6 @@ import io.dm.model.inter.Widget;
 //import io.dm.model.inter.handlers.BuyCredits;
 import io.dm.model.inter.WidgetInfo;
 import io.dm.model.item.Item;
-import io.dm.model.item.attributes.AttributeExtensions;
 import io.dm.model.map.Position;
 import io.dm.model.map.Region;
 import io.dm.model.map.ground.GroundItem;
@@ -267,6 +265,11 @@ public class PacketSender {
     }
 
     public void sendModelInformation(int parentId, int childId, int zoom, int rotationX, int rotationY) {
+        // RSProt: IfSetAngle(interfaceId, componentId, angleX, angleY, zoom).
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.interfaces.IfSetAngle(
+                parentId, childId, rotationX, rotationY, zoom))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(11).sendFixedPacket(13)
                 .addShort(zoom).addShortA(rotationX).addLEShortA(rotationY).addInt(parentId << 16 | childId);
         write(out);
@@ -290,6 +293,10 @@ public class PacketSender {
     }
     //TODO: 184 Revision Fix Custom Packet
     public void sendUrl(String url, boolean copy) {
+        // RSProt (A15): UrlOpen has no copy-to-clipboard variant; always opens.
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.misc.client.UrlOpen(url))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(2 + Protocol.strLen(url) + 1).sendVarBytePacket(87)
                 .addString(url)
                 .addByte(copy ? 1 : 0);
@@ -311,6 +318,9 @@ public class PacketSender {
     }
 
     public void sendModel(int parentId, int childId, int modelId) {
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.interfaces.IfSetModel(parentId, childId, modelId))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(9).sendFixedPacket(63)
                 .addInt1(parentId << 16 | childId).addInt1(modelId);
         write(out);
@@ -328,6 +338,10 @@ public class PacketSender {
 
     public void moveInterface(int fromParentId, int fromChildId, int toParentId, int toChildId) {
         player.moveVisibleInterface(fromParentId, fromChildId, toParentId, toChildId);
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.interfaces.IfMoveSub(
+                fromParentId, fromChildId, toParentId, toChildId))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(9).sendFixedPacket(73)
                 .addLEInt(toParentId << 16 | toChildId)
                 .addInt(fromParentId << 16 | fromChildId);
@@ -343,6 +357,17 @@ public class PacketSender {
                 .addLEInt(interfaceId << 16 | childId)
                 .addString(string);
         write(out);
+    }
+
+    /** Client script packed by tools/clientscript/PackSpriteScript.java: dm_set_sprite(component, sprite). */
+    private static final int SCRIPT_SET_SPRITE = 7849;
+
+    /**
+     * Sets the sprite of a graphic (type 5) component, e.g. {@code sendSprite(629, 56, spriteId)}.
+     * OSRS has no packet for this, so it runs the dm_set_sprite client script, which calls if_setgraphic.
+     */
+    public void sendSprite(int interfaceId, int childId, int spriteId) {
+        sendClientScript(SCRIPT_SET_SPRITE, "ii", (interfaceId << 16) | childId, spriteId);
     }
 
     public void setHidden(int interfaceId, int childId, boolean hide) {
@@ -379,6 +404,9 @@ public class PacketSender {
     }
 
     public void setAlignment(int parentId, int childId, int x, int y) {
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.interfaces.IfSetPosition(parentId, childId, x, y))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(9).sendFixedPacket(26)
                 .addLEShortA(y)
                 .addLEShortA(x)
@@ -533,18 +561,29 @@ public class PacketSender {
             Item item = items[slot];
             out.addInt(item == null || item.getId() < 0 ? 0 : item.getId() + 1);
             out.addInt(item == null || item.getId() < 0 ? 0 : item.getAmount());
-            String[] attributes = AttributeExtensions.getUpgradesForDisplay(item);
-            out.addByte(attributes == null ? 0 : attributes.length);
-            if (attributes != null) {
-                for (String attribute : attributes) {
-                    out.addString(attribute);
-                }
-            }
         }
         write(out);
     }
 
     public void sendShopItems(int interfaceHash, int containerId, ShopItem[] items, int length) {
+        // RSProt (A6): same UpdateInvFull form as sendItems (combinedId -1; shop interface 300 is bound
+        // to inv containerId by the cs2 149 init). Slot id is the display id (placeholders), and
+        // custom 184 ids missing from Cache228 are sent as empty slots (ItemDef.isValid).
+        if (player.getSession() != null) {
+            final ShopItem[] fitems = items;
+            final int flen = length;
+            queueRsprot(new net.rsprot.protocol.game.outgoing.inv.UpdateInvFull(
+                    containerId, flen,
+                    (int slot) -> {
+                        if (slot >= flen) return net.rsprot.protocol.common.game.outgoing.inv.InventoryObject.NULL;
+                        ShopItem it = fitems[slot];
+                        if (it == null) return net.rsprot.protocol.common.game.outgoing.inv.InventoryObject.NULL;
+                        int id = it.getDisplayId(player);
+                        if (id < 0 || !io.dm.cache.ItemDef.isValid(id)) return net.rsprot.protocol.common.game.outgoing.inv.InventoryObject.NULL;
+                        return net.rsprot.protocol.common.game.outgoing.inv.InventoryObject.pack(id, it.getAmount());
+                    }));
+            return;
+        }
         OutBuffer out = new OutBuffer(255).sendVarShortPacket(49)
                 .addInt(interfaceHash)
                 .addShort(containerId)
@@ -553,13 +592,6 @@ public class PacketSender {
             ShopItem item = items[slot];
             out.addInt(item == null || item.getDisplayId(player) < 0 ? 0 : item.getDisplayId(player) + 1);
             out.addInt(item == null || item.getDisplayId(player) < 0 ? 0 : item.getAmount());
-            String[] attributes = AttributeExtensions.getUpgradesForDisplay(item);
-            out.addByte(attributes == null ? 0 : attributes.length);
-            if (attributes != null) {
-                for (String attribute : attributes) {
-                    out.addString(attribute);
-                }
-            }
         }
         write(out);
     }
@@ -599,19 +631,29 @@ public class PacketSender {
                 out.addSmart(slot);
                 out.addInt(item == null || item.getId() < 0 ? 0 : item.getId() + 1);
                 out.addInt(item == null || item.getId() < 0 ? 0 : item.getAmount());
-                String[] attributes = AttributeExtensions.getUpgradesForDisplay(item);
-                out.addByte(attributes == null ? 0 : attributes.length);
-                if (attributes != null) {
-                    for (String attribute : attributes) {
-                        out.addString(attribute);
-                    }
-                }
             }
         }
         write(out);
     }
 
     public void updateItems(int interfaceHash, int containerId, ShopItem[] items, boolean[] updatedSlots, int updatedCount) {
+        // RSProt (A7): UpdateInvPartial, 3-arg pack(slot, id, count) (see the Item[] overload above).
+        if (player.getSession() != null) {
+            java.util.List<Integer> changed = new java.util.ArrayList<>();
+            for (int i = 0; i < items.length; i++) if (updatedSlots[i]) changed.add(i);
+            final ShopItem[] fitems = items;
+            queueRsprot(new net.rsprot.protocol.game.outgoing.inv.UpdateInvPartial(
+                    containerId,
+                    new net.rsprot.protocol.game.outgoing.inv.UpdateInvPartial.IndexedObjectProvider(changed.iterator()) {
+                        @Override public long provide(int slot) {
+                            ShopItem it = slot < fitems.length ? fitems[slot] : null;
+                            int id = it == null ? -1 : it.getDisplayId(player);
+                            if (id < 0 || !io.dm.cache.ItemDef.isValid(id)) return net.rsprot.protocol.common.game.outgoing.inv.InventoryObject.pack(slot, -1, -1);
+                            return net.rsprot.protocol.common.game.outgoing.inv.InventoryObject.pack(slot, id, it.getAmount());
+                        }
+                    }));
+            return;
+        }
         OutBuffer out = new OutBuffer(255).sendVarShortPacket(1)
                 .addInt(interfaceHash)
                 .addShort(containerId);
@@ -621,19 +663,15 @@ public class PacketSender {
                 out.addSmart(slot);
                 out.addInt(item == null || item.getDisplayId(player) < 0 ? 0 : item.getDisplayId(player) + 1);
                 out.addInt(item == null || item.getDisplayId(player) < 0 ? 0 : item.getAmount());
-                String[] attributes = AttributeExtensions.getUpgradesForDisplay(item);
-                out.addByte(attributes == null ? 0 : attributes.length);
-                if (attributes != null) {
-                    for (String attribute : attributes) {
-                        out.addString(attribute);
-                    }
-                }
             }
         }
         write(out);
     }
 
     public void unlinkItems(int containerId) {
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.inv.UpdateInvStopTransmit(containerId))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(3).sendFixedPacket(57)
                 .addShortA(containerId);
         write(out);
@@ -695,6 +733,10 @@ public class PacketSender {
     }
 
     public void resetMapFlag() {
+        // RSProt (A8): SetMapFlag(255, 255) clears the destination flag.
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.misc.player.SetMapFlag(255, 255))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(3).sendFixedPacket(25)
                 .addByte(-1)
                 .addByte(-1);
@@ -702,6 +744,11 @@ public class PacketSender {
     }
 
     public void clearChunks() {
+        // RSProt (A9): the only callers (Region.update) run right after a RebuildNormal/RebuildRegion,
+        // which already wipes every zone client-side, so there is nothing to send.
+        if (player.getSession() != null) {
+            return;
+        }
         OutBuffer out = new OutBuffer(3).sendFixedPacket(65)
                 .addByteS(-1)
                 .addByteC(-1);
@@ -709,6 +756,14 @@ public class PacketSender {
     }
 
     public void clearChunk(int chunkAbsX, int chunkAbsY) {
+        // RSProt (A9): UpdateZoneFullFollows clears the zone; coords are build-area-relative tiles
+        // (same convention as queueZonePayload).
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.zone.header.UpdateZoneFullFollows(
+                (chunkAbsX & ~0x7) - (player.buildAreaZoneX << 3),
+                (chunkAbsY & ~0x7) - (player.buildAreaZoneZ << 3),
+                player.getHeight()))) {
+            return;
+        }
         int x = Position.getLocal(chunkAbsX, player.getPosition().getFirstChunkX());
         int y = Position.getLocal(chunkAbsY, player.getPosition().getFirstChunkY());
         OutBuffer out = new OutBuffer(3).sendFixedPacket(65)
@@ -928,45 +983,18 @@ public class PacketSender {
         write(out);*/
     }
 
-    //TODO: 184 Revision Fix Custom Packet
-    public void sendTeleports(String title,
-                              int selectedCategoryIndex, teleports.Category[] categories,
-                              int selectedSubcategoryIndex, teleports.Subcategory[] subcategories,
-                              teleports.Teleport[] teleports) {
-
-        OutBuffer out = new OutBuffer(255).sendVarShortPacket(89);
-
-        if(title != null)
-            out.addString(title);
-        else
-            out.addByte(0);
-
-        out.addByte(selectedCategoryIndex);
-        if(categories != null) {
-            out.addByte(categories.length);
-            for(teleports.Category c : categories)
-                out.addString(c.name);
-        } else {
-            out.addByte(0);
-        }
-
-        out.addByte(selectedSubcategoryIndex);
-        if(subcategories != null) {
-            out.addByte(subcategories.length);
-            for(teleports.Subcategory c : subcategories)
-                out.addString(c.name);
-        } else {
-            out.addByte(0);
-        }
-
-        if(teleports != null) {
-            for(teleports.Teleport t : teleports)
-                out.addString(t.name);
-        }
-
-        write(out);
-    }
     public void sendWidget(Widget widget, int seconds) {
+        // A16: stock 228 has no timed-effect widget, so RSProt players get a game message instead.
+        // seconds == 0 is the legacy "remove the widget" call.
+        if (player.getSession() != null) {
+            if (seconds <= 0) {
+                sendMessage("<col=ff0000>" + widget.getName() + " has ended.</col>", null, 0);
+            } else {
+                sendMessage("<col=ff0000>" + widget.getName() + " (" + (seconds / 60) + ":"
+                        + String.format("%02d", seconds % 60) + "): " + widget.getDescription() + ".</col>", null, 0);
+            }
+            return;
+        }
         OutBuffer out = new OutBuffer(4).sendVarShortPacket(91)
                 .addByte(widget.getSpriteId())
                 .addShort(seconds * 50)
@@ -1008,6 +1036,9 @@ public class PacketSender {
     }
 
     public void sendMapState(int state) {
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.misc.client.MinimapToggle(state))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(2).sendFixedPacket(55)
                 .addByte(state);
         write(out);
@@ -1061,6 +1092,12 @@ public class PacketSender {
     }
 
     public void turnCameraToLocation(int x, int y, int cameraHeight, int constantSpeed, int variableSpeed) {
+        // RSProt (A11): camera coords are build-area-relative tiles.
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.camera.CamLookAt(
+                x - (player.buildAreaZoneX << 3), y - (player.buildAreaZoneZ << 3),
+                cameraHeight, constantSpeed, variableSpeed))) {
+            return;
+        }
         Position pos = new Position(x, y, 0);
         int posX = pos.getSceneX(player.getPosition());
         int posY = pos.getSceneY(player.getPosition());
@@ -1074,6 +1111,12 @@ public class PacketSender {
     }
 
     public void moveCameraToLocation(int x, int y, int cameraHeight, int constantSpeed, int variableSpeed) {
+        // RSProt (A12): camera coords are build-area-relative tiles.
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.camera.CamMoveTo(
+                x - (player.buildAreaZoneX << 3), y - (player.buildAreaZoneZ << 3),
+                cameraHeight, constantSpeed, variableSpeed))) {
+            return;
+        }
         Position pos = new Position(x, y, 0);
         int posX = pos.getSceneX(player.getPosition());
         int posY = pos.getSceneY(player.getPosition());
@@ -1090,6 +1133,11 @@ public class PacketSender {
      * @param shakeType 0 shakes X, 1 shakes Z, 2 shakes Y, 3 shakes Yaw, 4 shakes Pitch
      */
     public void shakeCamera(int shakeType, int intensity) {
+        // RSProt (A13): CamShake(axis, random, amplitude, rate); legacy sent the same value for the last three.
+        if (queueRsprot(new net.rsprot.protocol.game.outgoing.camera.CamShake(
+                shakeType, intensity, intensity, intensity))) {
+            return;
+        }
         OutBuffer out = new OutBuffer(5).sendFixedPacket(51)
                 .addByte(shakeType)
                 .addByte(intensity)
@@ -1099,6 +1147,9 @@ public class PacketSender {
     }
 
     public void resetCamera() {
+        if (queueRsprot(net.rsprot.protocol.game.outgoing.camera.CamReset.INSTANCE)) {
+            return;
+        }
         OutBuffer out = new OutBuffer(1).sendFixedPacket(76);
         write(out);
     }

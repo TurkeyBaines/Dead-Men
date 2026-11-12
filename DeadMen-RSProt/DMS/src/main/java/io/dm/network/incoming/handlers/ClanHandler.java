@@ -16,22 +16,32 @@ public class ClanHandler implements Incoming {
             /**
              * Join / Leave
              */
-            if (username.isEmpty()) {
-                player.getClanChat().leave(player, false);
-            } else {
-                player.getClanChat().join(player, username);
-            }
+            joinLeave(player, username);
             return;
         }
         if(opcode == 22) {
             /**
              * Kick
              */
-            ClanChat active = player.getActiveClanChat();
-            if (active != null) {
-                active.kick(player, username);
-            }
+            kick(player, username);
             return;
+        }
+    }
+
+    /** Join / leave (empty name = leave). Shared with the RSProt {@code FriendChatJoinLeave} bridge. */
+    public static void joinLeave(Player player, String username) {
+        if (username == null || username.isEmpty()) {
+            player.getClanChat().leave(player, false);
+        } else {
+            player.getClanChat().join(player, username);
+        }
+    }
+
+    /** Kick. Shared with the RSProt {@code FriendChatKick} bridge. */
+    public static void kick(Player player, String username) {
+        ClanChat active = player.getActiveClanChat();
+        if (active != null) {
+            active.kick(player, username);
         }
     }
 
