@@ -515,6 +515,18 @@ public final class RsProt {
      */
     private static void onPublicChat(DmNetworkPlayer player, MessagePublic msg) {
         if (player instanceof Player p && p.playerInfo != null) {
+            // C16: shared moderation / filter / logging / clan / command pipeline (ChatHandler.process).
+            // clanType >= 0 means the client addressed a friends/clan channel; -1 is plain public chat.
+            int result = io.dm.network.incoming.handlers.ChatHandler.process(
+                    p, msg.getClanType() >= 0, msg.getType(), msg.getEffect(), msg.getMessage());
+            if (result == io.dm.network.incoming.handlers.ChatHandler.SHADOW) {
+                // Shadow-muted: only the sender sees the line (public avatar chat would broadcast it).
+                p.getPacketSender().sendMessage(msg.getMessage(), p.getName(), 2);
+                return;
+            }
+            if (result != io.dm.network.incoming.handlers.ChatHandler.SHOW) {
+                return;
+            }
             int modIcon = p.isAdmin() ? 2 : p.isModerator() ? 1 : 0;
             p.playerInfo.getAvatar().getExtendedInfo().setChat(
                     msg.getColour(), msg.getEffect(), modIcon, false, msg.getMessage(), null);

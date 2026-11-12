@@ -68,7 +68,7 @@ Wired today (21): MoveGameClick, MoveMinimapClick, ClientCheat, MessagePublic, O
 | C13 | If1Button / IfSubOp | n/a (IF1 obsolete) | confirm unused, leave no-op |
 | C14 | Appearance/character design (legacy opcode 44 AppearanceHandler, Interface.APPEARANCE_CUSTOMIZATION=269, MakeoverMage) | no RSProt packet exists; must be rebuilt as If3Button/varbit flow | makeover mage / new-player design |
 | C15 | ClanChannel*/AffinedClanSettings* | OSRS clans — not a 184 feature | skip |
-| C16 | onPublicChat parity (RP ~458) bypasses ChatHandler: no mute/IP-mute/shadow-mute, no bad-word filter, no chat logging, no `!` admin force-text, no clan-chat (type 2) routing | ChatHandler | moderation gaps |
+| C16 | onPublicChat parity (RP ~458) bypasses ChatHandler: no mute/IP-mute/shadow-mute, no bad-word filter, no chat logging, no `!` admin force-text, no clan-chat (type 2) routing | ChatHandler | moderation gaps — DONE 2026-11-12 (pending live-test) |
 | C17 | onCommand parity: legacy ChatHandler also routed `::`/`;;` typed in chat | fine via ClientCheat | ok |
 
 ## D. Login / session (RP.doLogin, PlayerFile.loadForRsProt)
