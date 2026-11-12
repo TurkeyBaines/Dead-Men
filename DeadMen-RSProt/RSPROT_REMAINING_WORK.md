@@ -12,21 +12,21 @@ Legend: callers = call sites outside PacketSender.java.
 ## A. Outgoing packets with NO RSProt branch (silently dropped for every real player)
 | # | Method (PS) | Legacy opcode | Callers | RSProt target | Impact |
 |---|---|---|---|---|---|
-| A1 | setAlignment | 26 | 27 | IfSetPosition | interface component positioning |
-| A2 | moveInterface | 73 | 1 | IfMoveSub | |
-| A3 | sendModel | 63 | 0 | IfSetModel | dead unless content added |
-| A4 | sendModelInformation | 13 | 0 | IfSetAngle | dead |
-| A5 | unlinkItems | 57 | 0 | UpdateInvStopTransmit | dead |
-| A6 | sendShopItems | 49 | 1 (shop open) | UpdateInvFull (+display-id mapping) | shops show no stock |
-| A7 | updateItems(ShopItem[]) | 1 | 1 (ShopItemContainer) | UpdateInvPartial | shop stock changes invisible |
-| A8 | resetMapFlag | 25 | 1 | SetMapFlag(255,255) | |
-| A9 | clearChunk / clearChunks | 65 | 1 + 1 | UpdateZoneFullFollows | zone resets (instances/object cleanup) |
-| A10 | sendMapState | 55 | 12 | MinimapToggle | minimap lock in minigames/cutscenes |
-| A11 | turnCameraToLocation | 68 | 10 | CamLookAt | cutscenes/bosses |
-| A12 | moveCameraToLocation | 0 | 9 | CamMoveTo | |
-| A13 | shakeCamera | 51 | 8 | CamShake | |
-| A14 | resetCamera | 76 | 13 | CamReset | |
-| A15 | sendUrl | 87 | 3 | UrlOpen | |
+| A1 | setAlignment | 26 | 27 | IfSetPosition | interface component positioning — DONE 2026-11-12 (pending live-test) |
+| A2 | moveInterface | 73 | 1 | IfMoveSub | — DONE 2026-11-12 (pending live-test) |
+| A3 | sendModel | 63 | 0 | IfSetModel | dead unless content added — DONE 2026-11-12 (pending live-test) |
+| A4 | sendModelInformation | 13 | 0 | IfSetAngle | dead — DONE 2026-11-12 (pending live-test) |
+| A5 | unlinkItems | 57 | 0 | UpdateInvStopTransmit | dead — DONE 2026-11-12 (pending live-test) |
+| A6 | sendShopItems | 49 | 1 (shop open) | UpdateInvFull (+display-id mapping) | shops show no stock — DONE 2026-11-12 (pending live-test) |
+| A7 | updateItems(ShopItem[]) | 1 | 1 (ShopItemContainer) | UpdateInvPartial | shop stock changes invisible — DONE 2026-11-12 (pending live-test) |
+| A8 | resetMapFlag | 25 | 1 | SetMapFlag(255,255) | — DONE 2026-11-12 (pending live-test) |
+| A9 | clearChunk / clearChunks | 65 | 1 + 1 | UpdateZoneFullFollows | zone resets (instances/object cleanup) — DONE 2026-11-12 (pending live-test) |
+| A10 | sendMapState | 55 | 12 | MinimapToggle | minimap lock in minigames/cutscenes — DONE 2026-11-12 (pending live-test) |
+| A11 | turnCameraToLocation | 68 | 10 | CamLookAt | cutscenes/bosses — DONE 2026-11-12 (pending live-test) |
+| A12 | moveCameraToLocation | 0 | 9 | CamMoveTo | — DONE 2026-11-12 (pending live-test) |
+| A13 | shakeCamera | 51 | 8 | CamShake | — DONE 2026-11-12 (pending live-test) |
+| A14 | resetCamera | 76 | 13 | CamReset | — DONE 2026-11-12 (pending live-test) |
+| A15 | sendUrl | 87 | 3 | UrlOpen | — DONE 2026-11-12 (pending live-test) |
 | A16 | sendWidget | 91 (custom 184) | 12 | no 228 equivalent — rebuild as interface/cs2 | custom popup widgets |
 | A17 | sendTeleports | 89 (custom 184) | 3 | no 228 equivalent — rebuild teleport UI | teleport interface |
 | A18 | sendSkillinterface | 95 (custom, body commented) | 2 | none | custom skill guide |

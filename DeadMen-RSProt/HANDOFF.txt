@@ -1,3 +1,9 @@
+## STAGE 17+ — A1-A15 PacketSender outgoing ports (2026-11-12)
+- PacketSender now queues RSProt msgs: setAlignment->IfSetPosition, moveInterface->IfMoveSub, sendModel->IfSetModel, sendModelInformation->IfSetAngle(x,y,zoom), unlinkItems->UpdateInvStopTransmit, sendShopItems/updateItems(ShopItem[])->UpdateInvFull/Partial (display id, ItemDef.isValid guard), resetMapFlag->SetMapFlag(255,255), clearChunk->UpdateZoneFullFollows (build-area-relative tiles), sendMapState->MinimapToggle, cameras->CamLookAt/CamMoveTo (coords minus buildArea<<3)/CamShake/CamReset, sendUrl->UrlOpen.
+- clearChunks (A9, all zones) is an intentional no-op for RSProt: only Region.update calls it, right after a rebuild which already wipes the scene.
+- File: network/PacketSender.java. Compile green; NOT live-tested. A19/A20 (dead) left alone.
+- Human test: open a shop (stock visible, buy updates stock), drag-reorder/move an interface, run a cutscene/boss with camera (Zulrah/Vorkath/Inferno), click a map to set then arrive (flag clears), minigame minimap lock, ::url style link. Camera rate semantics (rate/rate2 vs 184 speeds) are unverified.
+
 ## STAGE 17+ — A21 RebuildRegion for dynamic maps (2026-11-12)
 - RsProt.maybeRebuildRegion now branches via new sendRebuild(): tile in a Region with dynamicData != null -> RebuildRegion(zoneX, zoneZ, false, dynamicZoneProvider); else RebuildNormal as before.
 - Provider decodes Region.dynamicData[level][zx&7][zz&7] chunkHash (== ReferenceZone packing: rot<<1|y<<3|x<<14|level<<24), null for zones outside the player's own dynamicIndex block / unbuilt; xtea key is the TEMPLATE mapsquare's.
