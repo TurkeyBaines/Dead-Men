@@ -6,7 +6,6 @@ import io.dm.api.buffer.OutBuffer;
 import io.dm.api.protocol.Protocol;
 import io.dm.api.protocol.login.LoginInfo;
 import io.dm.api.utils.ISAACCipher;
-import io.dm.data.impl.teleports;
 import io.dm.model.World;
 import io.dm.model.entity.Entity;
 import io.dm.model.entity.player.Player;
@@ -996,45 +995,18 @@ public class PacketSender {
         write(out);*/
     }
 
-    //TODO: 184 Revision Fix Custom Packet
-    public void sendTeleports(String title,
-                              int selectedCategoryIndex, teleports.Category[] categories,
-                              int selectedSubcategoryIndex, teleports.Subcategory[] subcategories,
-                              teleports.Teleport[] teleports) {
-
-        OutBuffer out = new OutBuffer(255).sendVarShortPacket(89);
-
-        if(title != null)
-            out.addString(title);
-        else
-            out.addByte(0);
-
-        out.addByte(selectedCategoryIndex);
-        if(categories != null) {
-            out.addByte(categories.length);
-            for(teleports.Category c : categories)
-                out.addString(c.name);
-        } else {
-            out.addByte(0);
-        }
-
-        out.addByte(selectedSubcategoryIndex);
-        if(subcategories != null) {
-            out.addByte(subcategories.length);
-            for(teleports.Subcategory c : subcategories)
-                out.addString(c.name);
-        } else {
-            out.addByte(0);
-        }
-
-        if(teleports != null) {
-            for(teleports.Teleport t : teleports)
-                out.addString(t.name);
-        }
-
-        write(out);
-    }
     public void sendWidget(Widget widget, int seconds) {
+        // A16: stock 228 has no timed-effect widget, so RSProt players get a game message instead.
+        // seconds == 0 is the legacy "remove the widget" call.
+        if (player.getSession() != null) {
+            if (seconds <= 0) {
+                sendMessage("<col=ff0000>" + widget.getName() + " has ended.</col>", null, 0);
+            } else {
+                sendMessage("<col=ff0000>" + widget.getName() + " (" + (seconds / 60) + ":"
+                        + String.format("%02d", seconds % 60) + "): " + widget.getDescription() + ".</col>", null, 0);
+            }
+            return;
+        }
         OutBuffer out = new OutBuffer(4).sendVarShortPacket(91)
                 .addByte(widget.getSpriteId())
                 .addShort(seconds * 50)

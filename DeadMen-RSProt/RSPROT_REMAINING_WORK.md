@@ -27,8 +27,8 @@ Legend: callers = call sites outside PacketSender.java.
 | A13 | shakeCamera | 51 | 8 | CamShake | — DONE 2026-11-12 (pending live-test) |
 | A14 | resetCamera | 76 | 13 | CamReset | — DONE 2026-11-12 (pending live-test) |
 | A15 | sendUrl | 87 | 3 | UrlOpen | — DONE 2026-11-12 (pending live-test) |
-| A16 | sendWidget | 91 (custom 184) | 12 | no 228 equivalent — rebuild as interface/cs2 | custom popup widgets |
-| A17 | sendTeleports | 89 (custom 184) | 3 | no 228 equivalent — rebuild teleport UI | teleport interface |
+| A16 | sendWidget | 91 (custom 184) | 12 | no 228 equivalent — rebuild as interface/cs2 | custom popup widgets — DONE 2026-11-12 (decision: chat messages only; pending live-test) |
+| A17 | sendTeleports | 89 (custom 184) | 3 | no 228 equivalent — rebuild teleport UI | teleport interface — DONE 2026-11-12 (decision: custom teleport interface 583 removed entirely; data + teleports.previous/teleport kept) |
 | A18 | sendSkillinterface | 95 (custom, body commented) | 2 | none | custom skill guide |
 | A19 | worldHop | 76 (custom) | 0 | none/LogoutTransfer | dead |
 | A20 | refreshGameFrame | 58 | 0 | IfOpenTop | dead |

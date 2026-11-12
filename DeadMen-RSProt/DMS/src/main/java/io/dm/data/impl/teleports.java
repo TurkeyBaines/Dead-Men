@@ -1,7 +1,6 @@
 package io.dm.data.impl;
 
 import com.google.gson.annotations.Expose;
-import io.dm.Server;
 import io.dm.api.utils.JsonUtils;
 import io.dm.data.DataFile;
 import io.dm.model.World;
@@ -9,9 +8,6 @@ import io.dm.model.entity.npc.actions.edgeville.Nurse;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerCounter;
 import io.dm.model.entity.shared.LockType;
-import io.dm.model.inter.InterfaceHandler;
-import io.dm.model.inter.InterfaceType;
-import io.dm.model.inter.actions.SlotAction;
 import io.dm.model.inter.dialogue.MessageDialogue;
 import io.dm.model.inter.dialogue.YesNoDialogue;
 import io.dm.model.item.Item;
@@ -63,79 +59,6 @@ public class teleports extends DataFile {
         @Expose public String name;
         @Expose public int x, y, z;
         @Expose public int price;
-    }
-
-    /**
-     * Interface
-     */
-
-    public static void open(Player player) {
-        if(player.teleportCategoryIndex >= CATEGORIES.length)
-            player.teleportCategoryIndex = 0;
-        if(player.teleportSubcategoryIndex >= CATEGORIES[player.teleportCategoryIndex].subcategories.length)
-            player.teleportSubcategoryIndex = 0;
-        if(player.isVisibleInterface(583))
-            player.closeInterface(InterfaceType.MAIN);
-        player.getPacketSender().sendTeleports(
-                World.type.getWorldName() + " Teleports",
-                player.teleportCategoryIndex, CATEGORIES,
-                player.teleportSubcategoryIndex, CATEGORIES[player.teleportCategoryIndex].subcategories,
-                CATEGORIES[player.teleportCategoryIndex].subcategories[player.teleportSubcategoryIndex].teleports
-        );
-        player.openInterface(InterfaceType.MAIN, 583);
-    }
-
-    private static void selectCategory(Player player, int index) {
-        if(player.teleportCategoryIndex == index && player.teleportSubcategoryIndex == 0)
-            return;
-        if(index < 0 || index >= CATEGORIES.length)
-            return;
-        if(player.isVisibleInterface(583))
-            player.closeInterface(InterfaceType.MAIN);
-        player.getPacketSender().sendTeleports(
-                null,
-                player.teleportCategoryIndex = index, null,
-                player.teleportSubcategoryIndex = 0, CATEGORIES[index].subcategories,
-                CATEGORIES[index].subcategories[0].teleports
-        );
-        player.openInterface(InterfaceType.MAIN, 583);
-    }
-
-    private static void selectSubcategory(Player player, int index) {
-        if(player.teleportSubcategoryIndex == index)
-            return;
-        Category cat = CATEGORIES[player.teleportCategoryIndex];
-        if(index < 0 || index >= cat.subcategories.length)
-            return;
-        if(player.isVisibleInterface(583))
-            player.closeInterface(InterfaceType.MAIN);
-        player.getPacketSender().sendTeleports(
-                null,
-                player.teleportCategoryIndex, null,
-                player.teleportSubcategoryIndex = index, null,
-                cat.subcategories[index].teleports
-        );
-        player.openInterface(InterfaceType.MAIN, 583);
-    }
-
-    private static void selectTeleport(Player player, int index) {
-        if(player.teleportCategoryIndex == -1)
-            return;
-        Teleport[] teleports = CATEGORIES[player.teleportCategoryIndex].subcategories[player.teleportSubcategoryIndex].teleports;
-        if(index < 0 || index >= teleports.length)
-            return;
-        Teleport teleport = teleports[index];
-        teleportStart(player, teleport.x, teleport.y, teleport.z, teleport.price);
-    }
-
-    static {
-        if (!Server.dataOnlyMode) {
-            InterfaceHandler.register(583, h -> {
-                h.actions[19] = (SlotAction) teleports::selectCategory;
-                h.actions[21] = (SlotAction) teleports::selectSubcategory;
-                h.actions[63] = (SlotAction) teleports::selectTeleport;
-            });
-        }
     }
 
     /**
