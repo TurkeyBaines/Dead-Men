@@ -359,6 +359,17 @@ public class PacketSender {
         write(out);
     }
 
+    /** Client script packed by tools/clientscript/PackSpriteScript.java: dm_set_sprite(component, sprite). */
+    private static final int SCRIPT_SET_SPRITE = 7849;
+
+    /**
+     * Sets the sprite of a graphic (type 5) component, e.g. {@code sendSprite(629, 56, spriteId)}.
+     * OSRS has no packet for this, so it runs the dm_set_sprite client script, which calls if_setgraphic.
+     */
+    public void sendSprite(int interfaceId, int childId, int spriteId) {
+        sendClientScript(SCRIPT_SET_SPRITE, "ii", (interfaceId << 16) | childId, spriteId);
+    }
+
     public void setHidden(int interfaceId, int childId, boolean hide) {
         if (queueRsprot(new net.rsprot.protocol.game.outgoing.interfaces.IfSetHide(
                 (interfaceId << 16) | childId, hide))) {
