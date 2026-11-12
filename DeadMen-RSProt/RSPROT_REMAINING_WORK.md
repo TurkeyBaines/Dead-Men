@@ -46,8 +46,8 @@ Legend: callers = call sites outside PacketSender.java.
 | B4 | PL.sendPM (Protocol.outgoingPm) | PM echo to sender | MessagePrivateEcho | 2 — DONE 2026-11-12 (pending live-test) |
 | B5 | PL.sendReceivePM (~392, opcode 45) | incoming PM | MessagePrivate | 1 — DONE 2026-11-12 (pending live-test) |
 | B6 | social/clan/ClanChat.java (opcodes 86 settings, 48 channel list, 22 message, leave buffer) | clan/friend chat | UpdateFriendChatChannelFull(V2)/SingleUser, MessageFriendChannel | 7 files — DONE 2026-11-12 (pending live-test) |
-| B7 | PlayerUpdater.java / PlayerNPCUpdater.java (opcodes 4, 36/53) | legacy GPI/NPI | replaced by PlayerInfo/NpcInfo — dead for RSProt | CoreWorker guards session==null |
-| B8 | masks/*.java send() + Appearance.data OutBuffer + ChatUpdate encode | legacy mask encoders | dead for RSProt (bridged in RP.pushMaskUpdates / pushNpcMaskUpdates) | delete in Stage 12 |
+| B7 | PlayerUpdater.java / PlayerNPCUpdater.java (opcodes 4, 36/53) | legacy GPI/NPI | replaced by PlayerInfo/NpcInfo — dead for RSProt | CoreWorker guards session==null — VERIFIED 2026-11-12: nothing to port. CoreWorker:138 only runs PlayerUpdater/PlayerNPCUpdater when session==null; RSProt uses PlayerInfo/NpcInfo (+ syncLocalNpcs). Deletion belongs to H (after G) |
+| B8 | masks/*.java send() + Appearance.data OutBuffer + ChatUpdate encode | legacy mask encoders | dead for RSProt (bridged in RP.pushMaskUpdates / pushNpcMaskUpdates) | delete in Stage 12 — VERIFIED 2026-11-12: nothing to port; masks are bridged in RsProt.pushMaskUpdates/pushNpcMaskUpdates and their send()/Appearance.data encoders are unreachable for RSProt. Deletion belongs to H (after G) |
 
 ## C. Incoming packets still on the accept-and-drop no-op path (RP.start registerNoOpsExcept)
 Wired today (21): MoveGameClick, MoveMinimapClick, ClientCheat, MessagePublic, OpLoc, OpNpc, OpObj, OpPlayer, If3Button, OpLocT, OpObjT, OpNpcT, OpPlayerT, IfButtonT, IfButtonD, ResumePauseButton, ResumePCountDialog, ResumePStringDialog, ResumePNameDialog, ResumePObjDialog, CloseModal.

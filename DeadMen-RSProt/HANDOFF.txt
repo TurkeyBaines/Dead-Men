@@ -1,3 +1,6 @@
+## STAGE 17+ — Section B complete (2026-11-12)
+- B1-B6 ported earlier (live-test pending). B7/B8 audited: grep of every legacy writer outside PacketSender (sendVarShortPacket/sendFixedPacket/getPacketSender().write) leaves only Player social senders (already RSProt-branched, legacy fallback kept), ClanChat (same), and the legacy PlayerUpdater/PlayerNPCUpdater, which CoreWorker runs only when session==null. No further RSProt ports needed; deleting the dead legacy encoders is Stage 12 / section H.
+
 ## STAGE 17+ — A18 skipped (2026-11-12)
 - Owner chose to skip A18. SkillLamp is unchanged (still opens custom interface 134, likely broken on 228); sendSkillinterface stays a no-op stub.
 
