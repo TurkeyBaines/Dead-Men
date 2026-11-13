@@ -186,6 +186,14 @@ public class NPCDef {
                 options[1] = "Attack";
                 break;
 
+            case 14172:
+                /* Sam the Sigil Seller (Purgatory): the cache def has no options, so
+                 * NPCAction.register(14172, "<name>", ...) found nothing and silently did nothing. */
+                options[0] = "Talk-to";
+                options[1] = "Check Points";
+                options[2] = "Exchange";
+                break;
+
             case 15101:
                 name = "Sir Sell A Bit";
                 break;
