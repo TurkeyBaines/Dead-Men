@@ -1,3 +1,6 @@
+## STAGE 17+ — sprite 6391 (2026-11-13)
+- Packed the supplied 50x46 padlock icon (27 colours, no transparency) as sprite 6391 into the live Cache228 with tools/sprite/PackSprite.java (dat2, idx8, idx255 changed; index 8 revision 415). Use ::inter sprite <child> 6391. Server restart needed; not live-tested.
+
 ## STAGE 17+ — sprite packer + sprite 6390 (2026-11-13)
 - tools/sprite/PackSprite.java: PNG -> single-frame sprite in index 8 (palette <=255 median-cut, per-pixel alpha kept). `check` mode parses all 6390 stock sprites exactly (format confirmed). Packed the supplied 45x34 lock icon as sprite 6390 into the live Cache228 (dat2, idx8, idx255 changed; backup in session scratchpad). Use: ::inter sprite <child> 6390. Server restart needed; not live-tested.
 
