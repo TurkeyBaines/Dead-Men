@@ -5,6 +5,7 @@ import io.dm.Server;
 import io.dm.api.utils.Random;
 import io.dm.cache.Color;
 import io.dm.cache.ItemDef;
+import io.dm.deadman.content.areas.SafeZone;
 import io.dm.deadman.content.guard.Skull;
 import io.dm.model.activities.pvp.leaderboard.Leaderboard;
 import io.dm.model.activities.raids.xeric.ChambersOfXeric;
@@ -93,10 +94,7 @@ public class PlayerCombat extends Combat {
 
     public void start() { //different than init because player isn't online yet when init happens
         setLevel();
-        if(Skull.hasSkull(player))
-            player.getAppearance().setSkullIcon(0);
-        else
-            player.getAppearance().setSkullIcon(-1);
+        Skull.applyIcon(player);
     }
 
     /**
@@ -167,12 +165,14 @@ public class PlayerCombat extends Combat {
         if(!multiCheck(target, message))
             return false;
         if(target.player != null) {
+            // safe zones always win, whatever area listener is active
+            if(!SafeZone.allowAttack(player, target.player, message))
+                return false;
             if(player.attackPlayerListener != null) {
                 if(!player.attackPlayerListener.allow(player, target.player, message))
                     return false;
-            } else {
-                if(message)
-                    player.sendMessage("You can't attack players from where you're standing.");
+            } else if(!SafeZone.allowDefaultAttack(player, target.player, message)) {
+                // no area listener: PvP everywhere (outside safe zones and instances)
                 return false;
             }
         } else {

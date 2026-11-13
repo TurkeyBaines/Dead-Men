@@ -1,23 +1,57 @@
 package io.dm.deadman.content.areas;
 
-import io.dm.deadman.content.guard.DMMGuard;
-import io.dm.model.entity.npc.NPC;
+import io.dm.deadman.content.areas.citadel.Citadel;
+import io.dm.deadman.content.areas.lobby.Purgatory;
+import io.dm.deadman.content.guard.Skull;
+import io.dm.model.World;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerAction;
-import io.dm.model.inter.Interface;
-import io.dm.model.inter.InterfaceType;
-import io.dm.model.inter.utils.Config;
 import io.dm.model.map.Bounds;
 import io.dm.model.map.MapListener;
+import io.dm.model.map.Position;
+import io.dm.model.map.Region;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
+/**
+ * PvP-everywhere + safe zones.
+ * <p>
+ * The whole overworld is a PvP area: a player with no area-specific {@code attackPlayerListener} (i.e. anywhere that
+ * isn't the Wilderness, a PvP instance, a house, ...) may attack any other player, as long as neither of them is
+ * standing in a safe zone. Safe zones are the {@link Bounds} registered through {@link #register(String, Bounds...)};
+ * inside one nobody can attack, or be attacked, by another player. NPC combat is untouched.
+ * <p>
+ * Instanced maps (houses, raids, PvP instances, ...) are never part of the default PvP area - they keep using their
+ * own listeners.
+ * <p>
+ * {@link #setEnabled(boolean)} switches the whole mechanic (both the PvP-everywhere rule and the safe zones) off so
+ * events can toggle it.
+ */
 public class SafeZone {
 
-    private static List<Player> players;
-    private static HashMap<Player, DMMGuard> guards;
+    private static final List<Zone> ZONES = new ArrayList<>();
+
+    /** PvP-everywhere / safe zones master switch. */
+    private static boolean enabled = true;
+
+    private static class Zone {
+        final String name;
+        final Bounds[] bounds;
+
+        Zone(String name, Bounds[] bounds) {
+            this.name = name;
+            this.bounds = bounds;
+        }
+
+        boolean contains(Position position) {
+            for (Bounds b : bounds) {
+                if (position.inBounds(b))
+                    return true;
+            }
+            return false;
+        }
+    }
 
     public static Bounds varrock = new Bounds(
             new int[][] {
@@ -321,80 +355,175 @@ public class SafeZone {
             {2652,3709}
     }, 0);
 
+
     public static Bounds pest_control = new Bounds(2629,2633,2680,2682, 0);
 
+    /** The Pest Control game area itself (the boat landing is {@link #pest_control}). */
+    public static Bounds pest_control_game = new Bounds(2622,2556,2689,2626, 0);
+
     static {
-
-        players = new ArrayList<>();
-        guards = new HashMap<Player, DMMGuard>();
-
-        MapListener.registerBounds(varrock)
-                .onEnter(SafeZone::entered)
-                .onExit(SafeZone::exited);
-
-        MapListener.registerBounds(lumbridge)
-                .onEnter(SafeZone::entered)
-                .onExit(SafeZone::exited);
-
-        MapListener.registerBounds(yanille)
-                .onEnter(SafeZone::entered)
-                .onExit(SafeZone::exited);
-
-        MapListener.registerBounds(ardougne)
-                .onEnter(SafeZone::entered)
-                .onExit(SafeZone::exited);
-
-        MapListener.registerBounds(tree_gnome)
-                .onEnter(SafeZone::entered)
-                .onExit(SafeZone::exited);
-
-        MapListener.registerBounds(rellekka)
-                .onEnter(SafeZone::entered)
-                .onExit(SafeZone::exited);
-
-        MapListener.registerBounds(pest_control)
-                .onEnter(SafeZone::entered)
-                .onExit(SafeZone::exited);
+        register("Varrock", varrock);
+        register("Lumbridge", lumbridge);
+        register("Yanille", yanille);
+        register("Ardougne", ardougne);
+        register("Tree Gnome Stronghold", tree_gnome);
+        register("Rellekka", rellekka);
+        register("Pest Control", pest_control, pest_control_game);
+        // Tournament hubs: the Citadel (and the floor above it where dead players respawn) and the lobby.
+        register("Citadel", Citadel.getBounds());
+        register("Purgatory", Purgatory.getBounds());
     }
 
-    private static void entered(Player player) {
-        System.out.println("SAFEZONE: " + player.getName() + " > ENTERED");
-
-        players.add(player);
-        player.attackPlayerListener = SafeZone::allowAttack;
-        player.attackNpcListener = SafeZone::allowNPCAttack;
-        player.setAction(1, PlayerAction.ATTACK);
-        player.getEquipment().update(0);
-        player.getEquipment().sendUpdates();
-
-//        if (player.getSkullTimer().skulled()) {
-//            NPC n = new DMMGuard();
-//            n.setCombat(new DMMGuardCombat());
-//            n.spawn(player.getPosition());
-//        }
+    /**
+     * Registers a safe zone. Anyone standing in {@code bounds} can't attack or be attacked by other players.
+     */
+    public static void register(String name, Bounds... bounds) {
+        Zone zone = new Zone(name, bounds);
+        ZONES.add(zone);
+        // The map listener only exists to refresh the player's state the tick they cross a border;
+        // the actual rule is always computed from the position (isSafe), so overlapping zones can't desync.
+        MapListener.register(p -> zone.contains(p.getPosition()))
+                .onEnter(SafeZone::refresh)
+                .onExit((player, logout) -> {
+                    if (!logout)
+                        refresh(player);
+                });
     }
 
-    private static void exited(Player player, boolean logout) {
-        System.out.println("SAFEZONE: " + player.getName() + " > EXITED");
-        if (logout) return;
-        players.remove(player);
-        player.attackPlayerListener = SafeZone::allowAttack;
-        player.attackNpcListener = SafeZone :: allowNPCAttack;
-        player.setAction(1, PlayerAction.ATTACK);
-        player.getEquipment().update(0);
-        player.getEquipment().sendUpdates();
+    /**
+     * Rules
+     */
 
-        if (guards.containsKey(player)) {
-            guards.get(player).remove();
+    public static boolean isEnabled() {
+        return enabled;
+    }
+
+    public static void setEnabled(boolean enabled) {
+        if (SafeZone.enabled == enabled)
+            return;
+        SafeZone.enabled = enabled;
+        for (Player p : World.players) {
+            if (p != null)
+                refresh(p);
         }
     }
 
-    private static boolean allowAttack(Player player, Player pTarget, boolean message) {
-        return true;
+    public static boolean isSafe(Position position) {
+        if (!enabled)
+            return false;
+        for (Zone zone : ZONES) {
+            if (zone.contains(position))
+                return true;
+        }
+        return false;
     }
-    private static boolean allowNPCAttack(Player player, NPC npc, boolean message) {
+
+    public static boolean isSafe(Player player) {
+        return isSafe(player.getPosition());
+    }
+
+    /** The name of the first safe zone containing the player, or null. */
+    public static String getZoneName(Player player) {
+        if (!enabled)
+            return null;
+        for (Zone zone : ZONES) {
+            if (zone.contains(player.getPosition()))
+                return zone.name;
+        }
+        return null;
+    }
+
+    /**
+     * Instanced maps (houses, raids, PvP instances, ...) manage PvP themselves, they're never part of the default PvP area.
+     */
+    public static boolean isInstanced(Player player) {
+        Region region = player.getPosition().getRegion();
+        return region != null && region.dynamicData != null;
+    }
+
+    /**
+     * Safe zone gate. Checked for every player-vs-player attack, regardless of which area listener is active, so a
+     * safe zone can't be bypassed by a stale listener.
+     *
+     * @return false if the attack must be refused because of a safe zone.
+     */
+    public static boolean allowAttack(Player player, Player pTarget, boolean message) {
+        if (isSafe(player)) {
+            if (message)
+                player.sendMessage("You can't attack other players while you're in a safe zone.");
+            return false;
+        }
+        if (isSafe(pTarget)) {
+            if (message)
+                player.sendMessage("You can't attack players who are in a safe zone.");
+            return false;
+        }
         return true;
     }
 
+    /**
+     * The PvP-everywhere rule, used when the attacker has no area-specific listener.
+     */
+    public static boolean allowDefaultAttack(Player player, Player pTarget, boolean message) {
+        if (!enabled || player == pTarget || isInstanced(player) || isInstanced(pTarget)) {
+            if (message)
+                player.sendMessage("You can't attack players from where you're standing.");
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Whether the right-click "Attack" option should be shown for a player that has no area-specific listener.
+     */
+    private static boolean defaultPvp(Player player) {
+        return enabled && !player.inSafeZone && !isInstanced(player);
+    }
+
+    /**
+     * State
+     */
+
+    /**
+     * Brings the player's safe zone state in line with where they're standing. Safe to call any number of times.
+     */
+    public static void refresh(Player player) {
+        boolean safe = isSafe(player);
+        if (safe == player.inSafeZone)
+            return;
+        player.inSafeZone = safe;
+        if (safe) {
+            // anything the player was fighting stops here (attackers stop themselves in PlayerCombat.preAttack)
+            if (player.getCombat().getTarget() != null && player.getCombat().getTarget().player != null)
+                player.getCombat().reset();
+            player.getCombat().resetKillers();
+            player.sendMessage(Skull.hasSkull(player)
+                    ? "You have entered a safe zone, but the guards don't take kindly to skulled players!"
+                    : "You have entered a safe zone. Other players can't attack you here.");
+            // skulled players are picked up by the guards themselves, see DMMGuardCombat
+        } else {
+            if (enabled)
+                player.sendMessage("You have left the safe zone. Other players can attack you!");
+        }
+        syncAttackOption(player);
+    }
+
+    /**
+     * Keeps the right-click "Attack" player option in line with the PvP-everywhere rule. Called every tick for every
+     * player. Areas that own the option themselves (an attack listener is set, or slot 1 holds Invite/Fight)
+     * are left alone; the moment they release it (listener cleared, option removed) this restores it.
+     */
+    public static void syncAttackOption(Player player) {
+        if (player.attackPlayerListener != null)
+            return;
+        PlayerAction current = player.getAction(1);
+        if (current != null && current != PlayerAction.ATTACK)
+            return;
+        boolean wanted = defaultPvp(player);
+        if (wanted && current == null)
+            player.setAction(1, PlayerAction.ATTACK);
+        else if (!wanted && current == PlayerAction.ATTACK)
+            player.setAction(1, null);
+    }
 
 }

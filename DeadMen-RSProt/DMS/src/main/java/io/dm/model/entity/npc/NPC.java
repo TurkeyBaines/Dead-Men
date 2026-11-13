@@ -143,7 +143,18 @@ public class NPC extends NPCAttributes {
 
     private NPCCombat combat;
 
+    /**
+     * Gives this npc a combat handler built in code instead of the one from the npc's combat json, so it works for
+     * any npc id. Must be called before {@link #spawn}; spawn keeps it.
+     */
+    public NPC useCombat(NPCCombat handler, io.dm.data.impl.npcs.npc_combat.Info info) {
+        combat = handler.init(this, info);
+        return this;
+    }
+
     private boolean setCombat() {
+        if(combat != null) /* installed through useCombat */
+            return true;
         NPCDef def = getDef();
         if (def == null) {
             System.out.println("<NPC DEF NULL>: " + id);

@@ -26,7 +26,11 @@ public class Purgatory {
 
     private List<Player> players;
 
-    private Bounds bounds = new Bounds(3776, 9728, 1, 64);
+    private static final Bounds bounds = new Bounds(3776, 9728, 1, 64);
+
+    public static Bounds getBounds() {
+        return bounds;
+    }
     private Bounds spawns = new Bounds(3802, 9754, 1, 13);
     private Position centre = new Position(3808, 9759, 1);
 

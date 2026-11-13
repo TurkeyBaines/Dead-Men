@@ -42,6 +42,7 @@ public class Citadel {
     private static List<Player> players;
     private static HashMap<Player, DMMGuard> guards;
 
+    // z = -1: every floor, dead players respawn on the floor above the citadel (2973, 3338, 1)
     private static Bounds bounds = new Bounds(new int[][] {
             {2957, 3356},
             {2987, 3356},
@@ -50,7 +51,11 @@ public class Citadel {
             {2959, 3322},
             {2950, 3335},
             {2950, 3343}
-    }, 0);
+    }, -1);
+
+    public static Bounds getBounds() {
+        return bounds;
+    }
 
     private static Bounds spawnPoints = new Bounds(new int[][] {
             { 2963, 3349 },

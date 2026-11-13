@@ -55,19 +55,8 @@ public class DragonSpear implements Special {
         target.stun(3, false);
         target.graphics(245, 124, 5);
         target.hit(new Hit(player).nullify()); // so other players cant pj in single-way zone
-        if(target.player != null) { //important that this happens here for things that hit multiple targets
-            int atkcb = target.player.getCombat().getLevel();
-            int defcb = player.getCombat().getLevel();
-            int duration = Skull.SHORT_SKULL;
-            if (atkcb > defcb) {
-                if ((atkcb - defcb) > 30)
-                    duration = Skull.LONG_SKULL;
-                else if ((atkcb - defcb) > 15)
-                    duration = Skull.MED_SKULL;
-            }
-
-            Skull.skull(target.player, duration);
-        }
+        if(target.player != null) //important that this happens here for things that hit multiple targets
+            Skull.attacked(player, target.player); // the attacker gets skulled, not the victim
         return true;
     }
 

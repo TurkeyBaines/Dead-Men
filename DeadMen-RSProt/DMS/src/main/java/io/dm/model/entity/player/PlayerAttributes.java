@@ -552,6 +552,12 @@ public abstract class PlayerAttributes extends Entity {
 
     public boolean pvpAttackZone;
 
+    /** Remaining skull time in game ticks, saved with the character. See {@code Skull}. */
+    @Expose public int skullTicks;
+
+    /** Maintained by {@code SafeZone}: true while standing inside a registered safe zone. */
+    public boolean inSafeZone;
+
     public int pvpCombatLevel;
 
     @Expose public int recoilDamageRemaining = 40;

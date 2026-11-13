@@ -718,21 +718,8 @@ public abstract class Entity {
         }
         if(baseHit.attacker != null) {
             if(baseHit.attacker.player != null && baseHit.attackStyle != null) {
-                if(player != null) { //important that this happens here for things that hit multiple targets
-                    if (!Skull.hasSkull(player)) {
-                        int atkcb = baseHit.attacker.player.getCombat().getLevel();
-                        int defcb = this.player.getCombat().getLevel();
-                        int duration = Skull.SHORT_SKULL;
-                        if (atkcb > defcb) {
-                            if ((atkcb - defcb) > 30) {
-                                duration = Skull.LONG_SKULL;
-                            } else if ((atkcb - defcb) > 15) {
-                                duration = Skull.MED_SKULL;
-                            }
-                        }
-                        Skull.skull(baseHit.attacker.player, duration);
-                    }
-                }
+                if(player != null) //important that this happens here for things that hit multiple targets
+                    Skull.attacked(baseHit.attacker.player, player);
                 if(baseHit.attackSpell == null)
                     CombatUtils.addXp(baseHit.attacker.player, this, baseHit.attackStyle, baseHit.attackType, damage);
             }

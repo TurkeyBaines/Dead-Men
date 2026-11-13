@@ -1,6 +1,10 @@
 package io.dm.network.incoming.handlers.commands;
 
 import io.dm.deadman.Deadman;
+import io.dm.deadman.content.areas.SafeZone;
+import io.dm.deadman.content.guard.DMMGuardConfig;
+import io.dm.deadman.content.guard.DMMGuards;
+import io.dm.deadman.content.guard.Skull;
 import io.dm.deadman.tournament.events.DMMEvent;
 import io.dm.deadman.tournament.events.breach.Breach;
 import io.dm.deadman.tournament.events.chest.StaticChest;
@@ -33,7 +37,75 @@ public class TournamentCommands {
                 event(player, args);
                 break;
 
+            case "safezone": case "sz": case "pvp":
+                safeZone(player, args);
+                break;
+
+            case "skull":
+                skull(player, args);
+                break;
+
+            case "guard":
+                guard(player, args);
+                break;
+
         }
+    }
+
+    /** ::tourn skull [off|ticks] - skull yourself (default short skull) or remove it; prints the remaining time. */
+    private void skull(Player p, String... args) {
+        if (args.length > 1) {
+            if (args[1].equalsIgnoreCase("off")) {
+                Skull.clear(p);
+            } else {
+                try {
+                    Skull.skull(p, Integer.parseInt(args[1]));
+                } catch (NumberFormatException e) {
+                    p.sendMessage("Usage: ::tourn skull [off|ticks]");
+                    return;
+                }
+            }
+        } else {
+            Skull.skull(p, Skull.SHORT_SKULL);
+        }
+        p.sendMessage("Skull: " + (Skull.hasSkull(p) ? Skull.remainingTicks(p) + " ticks left." : "none."));
+    }
+
+    /** ::tourn guard spawn | clear - drop a test guard on your tile / remove every guard. */
+    private void guard(Player p, String... args) {
+        String sub = args.length > 1 ? args[1].toLowerCase() : "";
+        switch (sub) {
+            case "spawn":
+                DMMGuards.spawn(p.getPosition());
+                p.sendMessage("Spawned a guard (npc " + DMMGuardConfig.NPC_ID + "). Guards active: " + DMMGuards.count());
+                break;
+            case "clear":
+                p.sendMessage("Removed " + DMMGuards.clear() + " guard(s).");
+                break;
+            default:
+                p.sendMessage("Usage: ::tourn guard [spawn|clear]. Guards active: " + DMMGuards.count());
+                break;
+        }
+    }
+
+    /** ::tourn safezone [on|off] - PvP everywhere + safe zones master switch, no argument prints the status. */
+    private void safeZone(Player p, String... args) {
+        if (args.length > 1) {
+            switch (args[1].toLowerCase()) {
+                case "on": case "enable":
+                    SafeZone.setEnabled(true);
+                    break;
+                case "off": case "disable":
+                    SafeZone.setEnabled(false);
+                    break;
+                default:
+                    p.sendMessage("Usage: ::tourn safezone [on|off]");
+                    return;
+            }
+        }
+        String zone = SafeZone.getZoneName(p);
+        p.sendMessage("PvP everywhere / safe zones: " + (SafeZone.isEnabled() ? "ON" : "OFF")
+                + ". You are " + (zone != null ? "in the " + zone + " safe zone." : "not in a safe zone."));
     }
 
     private void setUTC(Player player, String[] args) {

@@ -5,6 +5,7 @@ import io.dm.api.utils.NumberUtils;
 import io.dm.api.utils.Random;
 import io.dm.cache.Color;
 import io.dm.cache.NpcID;
+import io.dm.deadman.content.areas.SafeZone;
 import io.dm.model.entity.npc.NPC;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.player.PlayerAction;
@@ -80,7 +81,8 @@ public class Wilderness {
 //        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 63, true); //hide safe area sprite
 //        player.getPacketSender().setHidden(Interface.WILDERNESS_OVERLAY, 66, false); //show wilderness level
 //        Config.IN_PVP_AREA.set(player, 1);
-//        player.setAction(1, PlayerAction.ATTACK);
+        // the Wilderness owns the attack listener, so SafeZone.syncAttackOption leaves the option to us
+        player.setAction(1, PlayerAction.ATTACK);
         player.getEquipment().update(0); //force a slot update
         player.getEquipment().sendUpdates();
     }
@@ -129,9 +131,10 @@ public class Wilderness {
         }
 
         if(pTarget.wildernessLevel == 0) {
-            if(message)
-                player.sendMessage("You can't attack players who aren't in the Wilderness.");
-            return false;
+            // PvP everywhere: a target outside the Wilderness is fair game unless the world rules say otherwise
+            // (safe zone targets are already refused by PlayerCombat.canAttack before this listener runs).
+            // The wilderness combat level range only applies between two players that are both in the Wilderness.
+            return SafeZone.allowDefaultAttack(player, pTarget, message);
         }
 
         if (isAtWildernessLimitForIP(player)) {

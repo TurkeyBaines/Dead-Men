@@ -5,6 +5,7 @@ import io.dm.deadman.content.areas.citadel.Citadel;
 import io.dm.deadman.content.areas.MultiZone;
 import io.dm.deadman.content.areas.SafeZone;
 import io.dm.deadman.content.areas.lobby.Purgatory;
+import io.dm.deadman.content.guard.DMMGuards;
 import io.dm.deadman.tournament.Stage;
 import io.dm.deadman.tournament.Tournament;
 import io.dm.deadman.tournament.TournamentConfig;
@@ -47,6 +48,7 @@ public class Deadman {
         purgatory = new Purgatory();
         multiZone = new MultiZone();
         safeZone = new SafeZone();
+        DMMGuards.spawnAll();
 
         groups = new Groups();
 

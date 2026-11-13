@@ -2,6 +2,8 @@ package io.dm.model.entity.player;
 
 import com.google.gson.annotations.Expose;
 import io.dm.deadman.Deadman;
+import io.dm.deadman.content.areas.SafeZone;
+import io.dm.deadman.content.guard.Skull;
 import io.dm.deadman.content.sigils.Sigil;
 import io.dm.deadman.content.sigils.SigilPurchaseScreen;
 import io.dm.deadman.content.sigils.Sigils;
@@ -1657,6 +1659,8 @@ public class Player extends PlayerAttributes implements io.dm.net.DmNetworkPlaye
         if(movement.hasMoved() && lastRegion != (region = getPosition().getRegion()))
             lastRegion = region;
         validateMapListeners();
+        SafeZone.syncAttackOption(this);
+        Skull.process(this);
 
         combat.attack();
 
