@@ -152,7 +152,7 @@ public enum SigilPurchaseScreen {
                     14,
                     p,
                     "Sigil of the Alchemaniac",
-                    " High Level Alchemy will provide " + Color.RED.wrap("30% extra coins") + ".",
+                    " High Level Alchemy will provide " + Color.RED.wrap("30% extra points") + ".",
                     25000
             )),
 
@@ -484,7 +484,7 @@ public enum SigilPurchaseScreen {
                     50,
                     p,
                     "Sigil of Woodcraft",
-                    "Receive " + Color.RED.wrap("planks") + " when " + Color.RED.wrap("chopping trees") + ", requires coins to work.<br>" +
+                    "Receive " + Color.RED.wrap("planks") + " when " + Color.RED.wrap("chopping trees") + ", requires points to work.<br>" +
                             "50gp Normal, 125gp Oak, 250gp Teak, 700gp Mahogany.",
                     100000)),
 
@@ -554,7 +554,7 @@ public enum SigilPurchaseScreen {
 
         p.getPacketSender().sendString(912, 223, name);
         p.getPacketSender().sendString(912, 224, info);
-        p.getPacketSender().sendString(912, 225, NumberUtils.formatNumber(price) + " coins");
+        p.getPacketSender().sendString(912, 225, NumberUtils.formatNumber(price) + " points");
     }
 
     private static void buySigil(Player p) {
@@ -570,10 +570,10 @@ public enum SigilPurchaseScreen {
 
         p.unsafeDialogue(
                 new OptionsDialogue(
-                        "Purchase the " + name + " for " + NumberUtils.formatNumber(price) + " coins?",
+                        "Purchase the " + name + " for " + NumberUtils.formatNumber(price) + " points?",
                         new Option("Yes", () -> {
                             if (!p.getInventory().contains(995, price)) {
-                                showMessage(p, "You don't have enough coins to purchase this sigil.");
+                                showMessage(p, "You don't have enough points to purchase this sigil.");
                                 return;
                             }
 

@@ -5,10 +5,14 @@ import io.dm.deadman.tournament.stages.Final;
 import io.dm.deadman.tournament.stages.Lobby;
 import io.dm.deadman.tournament.stages.Main;
 import io.dm.model.World;
+import io.dm.model.entity.npc.NPC;
+import io.dm.model.entity.npc.NPCAction;
 import io.dm.model.entity.player.Player;
 import io.dm.model.entity.shared.LockType;
+import io.dm.model.inter.InterfaceType;
 import io.dm.model.inter.dialogue.MessageDialogue;
 import io.dm.model.inter.dialogue.NPCDialogue;
+import io.dm.model.inter.dialogue.PlayerDialogue;
 import io.dm.model.map.Bounds;
 import io.dm.model.map.Direction;
 import io.dm.model.map.Position;
@@ -30,10 +34,13 @@ public class Purgatory {
     private final  int RED_PORTAL_ID = 31947;
     private final  int WHITE_PORTAL_ID = 31946;
 
+    private NPC sam;
+    private NPC death;
+
     public Purgatory() {
         registerPortal();
 
-
+        registerSam();
     }
 
     public boolean contains(Player player) {
@@ -94,6 +101,34 @@ public class Purgatory {
                 event.delay(5);
             }
         });
+    }
+
+    private void registerSam() {
+        sam = new NPC(14172);
+        sam.spawn(3799, 9757, 1, 15);
+
+        NPCAction.register(14172, "Talk-to", (p, n) -> {
+            p.dialogue(
+                    new NPCDialogue(14172, "Rocks... Rocks for sale. Get your Magical Rocks!"),
+                    new PlayerDialogue("What on earth are you talking about?"),
+                    new NPCDialogue(14172, "These rocks are full of power! They're all shiny and glowing, energy galore. I'll show ye!"),
+                    new MessageDialogue("It appears Sam is under some form of magical spell")
+            );
+        });
+
+        NPCAction.register(14172, "Check Points", (p, n) -> {
+            p.dialogue(
+                    new NPCDialogue(14172, "You have " + p.getDeadMenPoints() + " points")
+            );
+        });
+
+        NPCAction.register(14172, "Exchange", (p, n) -> {
+            p.openInterface(InterfaceType.MAIN, 912);
+        });
+    }
+
+    private void registerDeath() {
+
     }
 
 }

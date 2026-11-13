@@ -53,6 +53,17 @@ public abstract class PlayerAttributes extends Entity {
     /**********************************************/
     /**********************************************/
 
+    @Expose @Getter public long firstAccountStartTime = System.currentTimeMillis();
+
+    @Expose @Getter public int totalTournamentCount = 0;
+    @Expose @Getter @Setter public int topFinishPosition = 0;
+    @Expose @Getter public int DeadMenPoints = 0;
+    @Expose @Getter public int OverallKills = 0;
+    @Expose @Getter public int OverallDeaths = 0;
+
+    @Expose @Getter public int DMM_Kills = 0;
+    @Expose @Getter public int DMM_Deaths = 0;
+
     @Expose @Getter @Setter public String utc;
 
     @Expose @Getter @Setter public int[] sigils;
