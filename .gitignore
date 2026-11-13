@@ -1,0 +1,6 @@
+# Game caches: too big for GitHub (limit 100 MB). Copy between machines manually.
+/DeadMen/Cache/
+/DeadMen/Cache_old/
+/DeadMen-RSProt/Cache/
+/DeadMen-RSProt/Cache228/
+**/main_file_cache.*
